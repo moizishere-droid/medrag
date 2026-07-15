@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medrag"
+version = "0.1.0"
+description = "Multilingual Multimodal Medical Knowledge RAG System"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["backend/src"]
+
+[tool.setuptools.package-dir]
+"" = "backend/src"
