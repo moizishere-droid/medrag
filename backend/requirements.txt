@@ -1,0 +1,53 @@
+# --- Core numerical (pinned to avoid numpy2 incompatibilities with torch/spacy) ---
+numpy==1.26.4
+
+# --- LLM / Embeddings ---
+openai==1.35.14
+
+# --- Vector DB ---
+qdrant-client==1.9.1
+
+# --- Graph DB ---
+neo4j==5.20.0
+
+# --- Relational DB (chat memory) ---
+sqlalchemy==2.0.30
+psycopg2-binary==2.9.9
+
+# --- Config loading ---
+pydantic-settings==2.2.1
+python-dotenv==1.0.1
+
+# --- Medical NER ---
+spacy==3.7.5
+scispacy==0.5.4
+
+# --- Image embeddings ---
+torch==2.3.1
+open-clip-torch==2.24.0
+pillow==10.3.0
+
+# --- Sparse retrieval (BM25) ---
+rank-bm25==0.2.2
+
+# --- Reranking / cross-encoder ---
+sentence-transformers==2.7.0
+transformers==4.41.2
+
+# --- Backend API ---
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+
+# --- Data ingestion ---
+requests==2.31.0
+biopython==1.83
+pypdf==4.2.0
+
+# --- Evaluation ---
+ragas==0.1.9
+
+# --- Experiment tracking ---
+wandb==0.17.0
+
+# --- Testing ---
+pytest==8.2.2

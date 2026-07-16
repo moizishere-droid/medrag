@@ -6,7 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "medrag"
 version = "0.1.0"
 description = "Multilingual Multimodal Medical Knowledge RAG System"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
+dependencies = []
+# Actual dependencies are managed in backend/requirements.txt and
+# frontend/requirements.txt, not here. This file exists only to make
+# `medrag` an installable/importable package (pip install -e . --no-deps).
 
 [tool.setuptools.packages.find]
 where = ["backend/src"]
