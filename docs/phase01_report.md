@@ -26,3 +26,8 @@
 
 - **Initial confusion between `pyproject.toml` dependencies and `requirements.txt`** — resolved by clearly separating responsibilities: `requirements.txt` files own dependency installation, `pyproject.toml` only owns package structure/import registration.
 - **Python version compatibility** — `requires-python` constraint widened to `>=3.10,<3.13` to support common current Python versions without breaking pinned library compatibility (notably spacy/scispacy/torch/numpy).
+
+## Additional Fixes
+
+- **`backend/config/settings.py`** — typed config loader (pydantic-settings) that reads `.env`, with required fields (`OPENAI_API_KEY`, `PUBMED_EMAIL`) and optional fields for Qdrant/Neo4j/Postgres/W&B that aren't needed until their respective phases. `backend/config/__init__.py` added so it's importable.
+- **Package structure correction** — subfolders (`ingestion/`, `processing/`, `embeddings/`, `retrieval/`, `graph/`, `generation/`, `memory/`, `evaluation/`) were originally created directly under `backend/src/`, which would have made imports resolve as `from ingestion.x import y` instead of the intended `from medrag.ingestion.x import y`. Fixed by nesting all subfolders inside a new `backend/src/medrag/` package folder, with `__init__.py` added throughout.
