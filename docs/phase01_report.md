@@ -1,4 +1,10 @@
-# Phase 1: Environment Setup — Report
+# Phase 1: Environment Setup – Report
+
+## Phase Objective
+
+Establish a reproducible development environment, organize the project structure, and configure the foundation required for building the MedRAG system.
+
+---
 
 ## What Was Built
 
@@ -13,21 +19,28 @@
 1. **One shared `venv` instead of separate backend/frontend environments** — simpler to manage for a single-developer portfolio project; the two requirements files still keep the dependency lists cleanly separated by concern.
 2. **Dependencies moved from `pyproject.toml` into `requirements.txt` files, pinned to exact versions** (not ranges) — chosen for reproducibility and to make future version conflicts easier to diagnose (a fixed, known-good snapshot rather than a moving target).
 3. **`pyproject.toml` kept, but stripped of dependencies** — still needed so `medrag` can be `pip install -e .`'d and imported as `medrag.x.y` throughout the codebase, without duplicating the dependency list already in `requirements.txt`.
-4. **Skipped the notebook for this phase** — Phase 1 is mechanical setup (installing packages, verifying imports), not a concept to learn hands-on, so notebook-first didn't apply here (same exception made for Phase 0).
-5. **Deferred Docker services (Qdrant, Neo4j, Postgres) setup** — none of the three databases are needed until later phases (Qdrant: Phase 9, Neo4j: Phase 14, Postgres: Phase 17), so ingestion work (Phase 2) can start immediately without blocking on Docker installation.
+
+---
+
+## Files Created
+
+- `backend/requirements.txt`
+- `backend/config/settings.py`
+- `frontend/requirements.txt`
+- `pyproject.toml`
+- `install.bat`
+- `.env.example`
+- `.env`
+- `.gitignore`
+- `.python-version`
+- `README.md`
+
+---
 
 ## Results
 
-- Backend and frontend dependencies installed cleanly into a single `venv` with no version conflicts.
-- `medrag` package installed in editable mode and importable project-wide.
-- All core library imports verified working.
-
-## Challenges & Solutions
-
-- **Initial confusion between `pyproject.toml` dependencies and `requirements.txt`** — resolved by clearly separating responsibilities: `requirements.txt` files own dependency installation, `pyproject.toml` only owns package structure/import registration.
-- **Python version compatibility** — `requires-python` constraint widened to `>=3.10,<3.13` to support common current Python versions without breaking pinned library compatibility (notably spacy/scispacy/torch/numpy).
-
-## Additional Fixes
-
-- **`backend/config/settings.py`** — typed config loader (pydantic-settings) that reads `.env`, with required fields (`OPENAI_API_KEY`, `PUBMED_EMAIL`) and optional fields for Qdrant/Neo4j/Postgres/W&B that aren't needed until their respective phases. `backend/config/__init__.py` added so it's importable.
-- **Package structure correction** — subfolders (`ingestion/`, `processing/`, `embeddings/`, `retrieval/`, `graph/`, `generation/`, `memory/`, `evaluation/`) were originally created directly under `backend/src/`, which would have made imports resolve as `from ingestion.x import y` instead of the intended `from medrag.ingestion.x import y`. Fixed by nesting all subfolders inside a new `backend/src/medrag/` package folder, with `__init__.py` added throughout.
+- Successfully created a reproducible development environment.
+- Backend and frontend dependencies installed without version conflicts.
+- Centralized configuration system verified.
+- Project package registered and importable from all modules.
+- Development environment prepared for the data ingestion pipeline (Phase 2).

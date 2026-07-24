@@ -2,18 +2,24 @@
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
+
 [project]
 name = "medrag"
 version = "0.1.0"
 description = "Multilingual Multimodal Medical Knowledge RAG System"
 requires-python = ">=3.10,<3.13"
-dependencies = []
-# Actual dependencies are managed in backend/requirements.txt and
-# frontend/requirements.txt, not here. This file exists only to make
+dependencies = []       # Actual dependencies are managed in backend/requirements.txt and
+                        # frontend/requirements.txt, not here. 
+
+
+# This file exists only to make
 # `medrag` an installable/importable package (pip install -e . --no-deps).
 
+
 [tool.setuptools.packages.find]
-where = ["backend/src"]
+where = ["backend/src"]              # "look inside this folder for packages"
 
 [tool.setuptools.package-dir]
-"" = "backend/src"
+"" = "backend/src"                  # "and treat that folder as the root" --> we donot have to write in 
+                                    # this way --> import backend.src.medrag.retrieval --> instead we can 
+                                    # write import medrag.retrieval
