@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import List, Set
 
-from medrag.ingestion.models import Article
+from medrag.ingestion.models import Article, DrugRecord
 
 
 def save_articles(articles: List[Article], topic: str, output_dir: str) -> Path:
@@ -47,3 +47,22 @@ def get_existing_pmids(topic: str, output_dir: str) -> Set[str]:
             data = json.loads(line)
             existing.add(data["pmid"])
     return existing
+
+
+def save_drugs(drugs: List[DrugRecord], topic: str, output_dir: str) -> Path:
+    """
+    Write drug records for a topic to data/raw/openfda/{topic}.jsonl.
+
+    Unlike save_articles (append), this OVERWRITES the file each run —
+    OpenFDA drug labels aren't a growing corpus like papers; each run
+    fetches the current best matches fresh, so overwrite avoids
+    accumulating duplicates across repeated runs.
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    filepath = Path(output_dir) / f"{topic}.jsonl"
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        for drug in drugs:
+            f.write(drug.model_dump_json() + "\n")
+
+    return filepath
