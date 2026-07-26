@@ -66,3 +66,16 @@ def save_drugs(drugs: List[DrugRecord], topic: str, output_dir: str) -> Path:
             f.write(drug.model_dump_json() + "\n")
 
     return filepath
+
+def load_drugs(topic: str, output_dir: str) -> List[DrugRecord]:
+    """Load all saved drug records for a topic back into DrugRecord objects."""
+    filepath = Path(output_dir) / f"{topic}.jsonl"
+    drugs = []
+    if not filepath.exists():
+        return drugs
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            data = json.loads(line)
+            drugs.append(DrugRecord(**data))
+    return drugs
