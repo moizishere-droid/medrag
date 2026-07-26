@@ -126,28 +126,29 @@ Although several AI-powered medical search tools exist, many are protected by a 
 | 0     | Project Documentation & Architecture |
 | 1     | Environment Setup                    |
 | 2     | PubMed Data Ingestion (text)         |
-| 3     | WHO Guidelines + OpenFDA Ingestion   |
-| 4     | Image Extraction (medical diagrams)  |
-| 5     | Table Extraction (drug tables)       |
-| 6     | Text Chunking (medical-aware)        |
-| 7     | Text Embeddings (OpenAI)             |
-| 8     | Image Embeddings (CLIP)              |
-| 9     | Qdrant Vector Store                  |
-| 10    | BM25 Sparse Retrieval                |
-| 11    | Hybrid Retrieval (RRF)               |
-| 12    | Cross-Encoder Reranking              |
-| 13    | Medical NER (SpaCy + scispaCy)       |
-| 14    | Neo4j Knowledge Graph                |
-| 15    | LLM Answer Generation (GPT-4-turbo)  |
-| 16    | Citation System                      |
-| 17    | Chat Memory (PostgreSQL)             |
-| 18    | RAGAS Evaluation                     |
-| 19    | FastAPI Backend                      |
-| 20    | Streamlit Frontend                   |
-| 21    | Testing Suite (pytest)               |
-| 22    | CI/CD (GitHub Actions)               |
-| 23    | Docker Deployment                    |
-| 24    | Railway Production Deployment        |
+| 3     | OpenFDA Ingestion                    | 
+| 4     | WHO Guidelines Ingestion             | 
+| 5     | Image Extraction (medical diagrams)  |
+| 6     | Table Extraction (drug tables)       |
+| 7     | Text Chunking (medical-aware)        |
+| 8     | Text Embeddings (OpenAI)             |
+| 9     | Image Embeddings (CLIP)              |
+| 10    | Qdrant Vector Store                  |
+| 11    | BM25 Sparse Retrieval                |
+| 12    | Hybrid Retrieval (RRF)               |
+| 13    | Cross-Encoder Reranking              |
+| 14    | Medical NER (SpaCy + scispaCy)       |
+| 15    | Neo4j Knowledge Graph                |
+| 16    | LLM Answer Generation (GPT-4-turbo)  |
+| 17    | Citation System                      |
+| 18    | Chat Memory (PostgreSQL)             |
+| 19    | RAGAS Evaluation                     |
+| 20    | FastAPI Backend                      |
+| 21    | Streamlit Frontend                   |
+| 22    | Testing Suite (pytest)               |
+| 23    | CI/CD (GitHub Actions)               |
+| 24    | Docker Deployment                    |
+| 25    | Railway Production Deployment        |
 
 ## 8. Project Structure
 

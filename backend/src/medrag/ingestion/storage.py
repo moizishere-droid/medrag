@@ -4,9 +4,9 @@ Local JSONL storage for ingested articles — one file per topic.
 
 import json
 from pathlib import Path
-from typing import List, Set
+from typing import List, Set, Optional
 
-from medrag.ingestion.models import Article, DrugRecord
+from medrag.ingestion.models import Article, DrugRecord, Guideline
 
 
 def save_articles(articles: List[Article], topic: str, output_dir: str) -> Path:
@@ -49,6 +49,20 @@ def get_existing_pmids(topic: str, output_dir: str) -> Set[str]:
     return existing
 
 
+def load_drugs(topic: str, output_dir: str) -> List[DrugRecord]:
+    """Load all saved drug records for a topic back into DrugRecord objects."""
+    filepath = Path(output_dir) / f"{topic}.jsonl"
+    drugs = []
+    if not filepath.exists():
+        return drugs
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            data = json.loads(line)
+            drugs.append(DrugRecord(**data))
+    return drugs
+
+
 def save_drugs(drugs: List[DrugRecord], topic: str, output_dir: str) -> Path:
     """
     Write drug records for a topic to data/raw/openfda/{topic}.jsonl.
@@ -67,15 +81,29 @@ def save_drugs(drugs: List[DrugRecord], topic: str, output_dir: str) -> Path:
 
     return filepath
 
-def load_drugs(topic: str, output_dir: str) -> List[DrugRecord]:
-    """Load all saved drug records for a topic back into DrugRecord objects."""
-    filepath = Path(output_dir) / f"{topic}.jsonl"
-    drugs = []
+
+def save_guideline(guideline: Guideline, output_dir: str) -> Path:
+    """
+    Write a WHO guideline's full text to data/raw/who/{topic}.json.
+    One file per topic (each topic maps to exactly one guideline document,
+    though several topics may share the same underlying source document).
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    filepath = Path(output_dir) / f"{guideline.topic.replace(' ', '_')}.json"
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(guideline.model_dump_json())
+
+    return filepath
+
+
+def load_guideline(topic: str, output_dir: str) -> Optional[Guideline]:
+    """Load a saved WHO guideline for a topic, or None if it doesn't exist
+    (expected for the 12 topics with no dedicated WHO guideline)."""
+    filepath = Path(output_dir) / f"{topic.replace(' ', '_')}.json"
     if not filepath.exists():
-        return drugs
+        return None
 
     with open(filepath, "r", encoding="utf-8") as f:
-        for line in f:
-            data = json.loads(line)
-            drugs.append(DrugRecord(**data))
-    return drugs
+        data = json.load(f)
+    return Guideline(**data)

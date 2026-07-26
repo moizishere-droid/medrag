@@ -5,6 +5,7 @@ Data models for ingested content.
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class Article(BaseModel):
     """
     A single ingested article, normalized to one consistent shape
@@ -39,3 +40,18 @@ class DrugRecord(BaseModel):
     mechanism_of_action: Optional[str] = None
     topic: str
     source: str = "openfda"
+
+
+class Guideline(BaseModel):
+    """
+    A single WHO guideline document, full text extracted from its source PDF.
+    Not every project topic has a dedicated WHO guideline — some conditions
+    (e.g. osteoarthritis, migraine) are genuinely specialty-society territory
+    instead, and are simply absent from this source.
+    """
+    title: str
+    topic: str
+    full_text: str
+    num_pages: int
+    source_url: str
+    source: str = "who"
