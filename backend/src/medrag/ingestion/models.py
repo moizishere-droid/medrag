@@ -44,14 +44,39 @@ class DrugRecord(BaseModel):
 
 class Guideline(BaseModel):
     """
-    A single WHO guideline document, full text extracted from its source PDF.
+    A single WHO guideline document, extracted from its source PDF.
     Not every project topic has a dedicated WHO guideline — some conditions
     (e.g. osteoarthritis, migraine) are genuinely specialty-society territory
     instead, and are simply absent from this source.
+
+    clean_text excludes detected tables (used as the primary field for
+    chunking/embedding). raw_text is the unmodified extraction, kept as a
+    fallback since bbox-based table exclusion can occasionally remove
+    legitimate nearby prose (captions, footnotes) on dense, table-heavy pages.
     """
     title: str
     topic: str
-    full_text: str
+    clean_text: str
+    raw_text: str
     num_pages: int
+    num_tables: int
+    num_images: int
     source_url: str
     source: str = "who"
+
+
+class WhoTable(BaseModel):
+    """A single table extracted from a WHO guideline PDF via pdfplumber."""
+    topic: str
+    page_number: int
+    table_data: list  # list of rows, each row a list of cell values
+
+
+class WhoImage(BaseModel):
+    """A single embedded image extracted from a WHO guideline PDF via PyMuPDF."""
+    topic: str
+    page_number: int
+    image_index: int
+    filename: str
+    width: int
+    height: int

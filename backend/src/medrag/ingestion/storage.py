@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import List, Set, Optional
 
-from medrag.ingestion.models import Article, DrugRecord, Guideline
+from medrag.ingestion.models import Article, DrugRecord, Guideline, WhoTable, WhoImage
 
 
 def save_articles(articles: List[Article], topic: str, output_dir: str) -> Path:
@@ -107,3 +107,83 @@ def load_guideline(topic: str, output_dir: str) -> Optional[Guideline]:
     with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
     return Guideline(**data)
+
+
+def save_who_tables(tables: List[dict], topic: str, output_dir: str) -> Path:
+    """
+    Write tables extracted from a WHO guideline to data/tables/who/{topic}.jsonl.
+    tables: list of {page_number, table_data} dicts from extract_full_document.
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    filepath = Path(output_dir) / f"{topic.replace(' ', '_')}.jsonl"
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        for t in tables:
+            record = WhoTable(topic=topic, page_number=t["page_number"], table_data=t["table_data"])
+            f.write(record.model_dump_json() + "\n")
+
+    return filepath
+
+
+def load_who_tables(topic: str, output_dir: str) -> List[WhoTable]:
+    """Load all saved tables for a topic back into WhoTable objects."""
+    filepath = Path(output_dir) / f"{topic.replace(' ', '_')}.jsonl"
+    tables = []
+    if not filepath.exists():
+        return tables
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            data = json.loads(line)
+            tables.append(WhoTable(**data))
+    return tables
+
+
+def save_who_images(images: List[dict], topic: str, output_dir: str) -> List[WhoImage]:
+    """
+    Save extracted images as PNG files to data/images/who/, plus a metadata
+    JSONL file. images: list of dicts from extract_images (with raw image_bytes).
+    Returns the saved WhoImage records.
+    """
+    from PIL import Image
+    import io as _io
+
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    saved_records = []
+
+    for i, img in enumerate(images):
+        pil_image = Image.open(_io.BytesIO(img["image_bytes"]))
+        filename = f"{topic.replace(' ', '_')}_page{img['page_number']}_img{i}.png"
+        filepath = Path(output_dir) / filename
+        pil_image.save(filepath, "PNG")
+
+        record = WhoImage(
+            topic=topic,
+            page_number=img["page_number"],
+            image_index=i,
+            filename=filename,
+            width=img["width"],
+            height=img["height"],
+        )
+        saved_records.append(record)
+
+    meta_path = Path(output_dir) / f"{topic.replace(' ', '_')}_metadata.jsonl"
+    with open(meta_path, "w", encoding="utf-8") as f:
+        for record in saved_records:
+            f.write(record.model_dump_json() + "\n")
+
+    return saved_records
+
+
+def load_who_images(topic: str, output_dir: str) -> List[WhoImage]:
+    """Load saved image metadata for a topic back into WhoImage objects."""
+    meta_path = Path(output_dir) / f"{topic.replace(' ', '_')}_metadata.jsonl"
+    images = []
+    if not meta_path.exists():
+        return images
+
+    with open(meta_path, "r", encoding="utf-8") as f:
+        for line in f:
+            data = json.loads(line)
+            images.append(WhoImage(**data))
+    return images

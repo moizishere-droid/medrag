@@ -1,12 +1,19 @@
 """
-WHO IRIS guideline client.
+WHO IRIS guideline client: URL resolution + unified text/table/image extraction.
 
 IRIS (WHO's document repository) migrated to a JS-based DSpace 7 frontend,
 which broke the old apps.who.int/iris/bitstream/handle/... URL pattern
-(it now just returns the app shell, not the file). This module resolves
-old handles to the correct downloadable bitstream URL via IRIS's REST API:
+(it now just returns the app shell, not the file). resolve_who_pdf_url()
+resolves old handles to the correct downloadable bitstream URL via IRIS's
+REST API:
 
     handle (10665/XXXXX) -> item UUID -> ORIGINAL bundle -> bitstream content URL
+
+Extraction is unified per-PDF: pdfplumber detects and extracts tables first,
+then extracts plain text with those table regions excluded (avoiding the
+garbling that plain pypdf-style extraction produces on table-heavy pages).
+PyMuPDF (fitz) extracts embedded images separately, since neither pypdf nor
+pdfplumber capture those.
 
 Not every project topic has a dedicated WHO guideline. Where WHO's guidance
 is genuinely specialty-society territory instead (e.g. osteoarthritis,
@@ -14,14 +21,16 @@ migraine, chronic kidney disease), there is no entry — that is accurate
 coverage, not a bug.
 """
 
+import re
 import logging
 from io import BytesIO
-from typing import Optional
+from typing import Optional, List, Tuple, Dict, Any
 
 import requests
-from pypdf import PdfReader
+import pdfplumber
+import fitz  # PyMuPDF
 
-from medrag.ingestion.models import Guideline
+from medrag.ingestion.models import Guideline, WhoTable, WhoImage
 
 logger = logging.getLogger("medrag.ingestion")
 
@@ -32,6 +41,12 @@ BROWSER_HEADERS = {
     )
 }
 
+# Strips the repeated WHO branding header (present on every page, varies by
+# document title) and the "N of M" page-number footer.
+HEADER_FOOTER_PATTERN = r"(.*World Health Organization \(WHO\).*\n?)|(\d+ of \d+)"
+
+
+# --- URL resolution -----------------------------------------------------
 
 def resolve_who_pdf_url(handle: str, headers: dict = BROWSER_HEADERS) -> Optional[str]:
     """
@@ -65,24 +80,132 @@ def resolve_who_pdf_url(handle: str, headers: dict = BROWSER_HEADERS) -> Optiona
     return bitstreams[0]["_links"]["content"]["href"]
 
 
-def fetch_who_guideline(topic: str, url: str, title: str, headers: dict = BROWSER_HEADERS) -> Guideline:
+# --- Text + table extraction (pdfplumber) --------------------------------
+
+def extract_page_content(page, header_footer_pattern: Optional[str] = None) -> Tuple[str, str, List[list]]:
     """
-    Download a WHO guideline PDF and extract its full text.
-    A browser-like User-Agent is required — WHO's servers return 403 for
-    default library user agents.
+    Extract clean text (tables excluded), raw text (unmodified), and
+    structured tables from one page.
+    Returns (clean_text, raw_text, tables_list).
+    """
+    tables_data = []
+    text_region = page
+
+    found_tables = page.find_tables()
+    for table_obj in found_tables:
+        table_rows = table_obj.extract()
+        tables_data.append(table_rows)
+
+        # Clamp bbox to page boundaries - some PDFs report slightly
+        # out-of-range table boxes that would otherwise crash outside_bbox()
+        x0, top, x1, bottom = table_obj.bbox
+        x0 = max(x0, 0)
+        top = max(top, 0)
+        x1 = min(x1, page.width)
+        bottom = min(bottom, page.height)
+        safe_bbox = (x0, top, x1, bottom)
+
+        try:
+            text_region = text_region.outside_bbox(safe_bbox) if hasattr(text_region, "outside_bbox") else text_region
+        except Exception:
+            pass  # keep text_region as-is rather than crashing the whole page
+
+    clean_text = text_region.extract_text() or ""
+    raw_text = page.extract_text() or ""
+
+    if header_footer_pattern:
+        clean_text = re.sub(header_footer_pattern, "", clean_text).strip()
+        raw_text = re.sub(header_footer_pattern, "", raw_text).strip()
+
+    return clean_text, raw_text, tables_data
+
+
+def extract_full_document(pdf_bytes: bytes, header_footer_pattern: Optional[str] = HEADER_FOOTER_PATTERN):
+    """
+    Extract clean text, raw text, all tables, and page count from an entire PDF.
+    Returns (clean_text, raw_text, all_tables, num_pages), where all_tables is
+    a list of {page_number, table_data} dicts.
+    """
+    pdf_file = BytesIO(pdf_bytes)
+    plumber_pdf = pdfplumber.open(pdf_file)
+
+    clean_parts = []
+    raw_parts = []
+    all_tables = []
+
+    for page_num, page in enumerate(plumber_pdf.pages):
+        clean, raw, tables = extract_page_content(page, header_footer_pattern=header_footer_pattern)
+        if clean:
+            clean_parts.append(clean)
+        if raw:
+            raw_parts.append(raw)
+        for table_data in tables:
+            all_tables.append({"page_number": page_num, "table_data": table_data})
+
+    num_pages = len(plumber_pdf.pages)
+    return "\n".join(clean_parts), "\n".join(raw_parts), all_tables, num_pages
+
+
+# --- Image extraction (PyMuPDF) ------------------------------------------
+
+def extract_images(pdf_bytes: bytes, min_width: int = 100, min_height: int = 100) -> List[Dict[str, Any]]:
+    """
+    Extract embedded images from a PDF, skipping tiny images (likely icons/logos).
+    Returns a list of {page_number, image_index, image_bytes, ext, width, height}.
+    """
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    images = []
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        image_list = page.get_images(full=True)
+
+        for img_index, img in enumerate(image_list):
+            xref = img[0]
+            base_image = doc.extract_image(xref)
+            width = base_image["width"]
+            height = base_image["height"]
+
+            if width < min_width or height < min_height:
+                continue
+
+            images.append({
+                "page_number": page_num,
+                "image_index": img_index,
+                "image_bytes": base_image["image"],
+                "ext": base_image["ext"],
+                "width": width,
+                "height": height,
+            })
+
+    doc.close()
+    return images
+
+
+# --- Full per-topic pipeline ----------------------------------------------
+
+def fetch_who_guideline(topic: str, url: str, title: str, headers: dict = BROWSER_HEADERS) -> Tuple[Guideline, List[dict], List[dict]]:
+    """
+    Download a WHO guideline PDF and extract text, tables, and images in one pass.
+    Returns (Guideline, tables, images) - tables/images are the raw extraction
+    results (not yet converted to WhoTable/WhoImage records or saved to disk).
     """
     response = requests.get(url, headers=headers, timeout=30)
     response.raise_for_status()
+    pdf_bytes = response.content
 
-    pdf_bytes = BytesIO(response.content)
-    reader = PdfReader(pdf_bytes)
+    clean_text, raw_text, tables, num_pages = extract_full_document(pdf_bytes)
+    images = extract_images(pdf_bytes)
 
-    full_text = "\n".join(page.extract_text() or "" for page in reader.pages)
-
-    return Guideline(
+    guideline = Guideline(
         title=title,
         topic=topic,
-        full_text=full_text,
-        num_pages=len(reader.pages),
+        clean_text=clean_text,
+        raw_text=raw_text,
+        num_pages=num_pages,
+        num_tables=len(tables),
+        num_images=len(images),
         source_url=url,
     )
+
+    return guideline, tables, images

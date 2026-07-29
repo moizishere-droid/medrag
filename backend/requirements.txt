@@ -42,6 +42,8 @@ uvicorn[standard]==0.29.0
 requests==2.31.0
 biopython==1.83
 pypdf==4.2.0
+pdfplumber==0.11.4
+pymupdf==1.28.0
 
 # --- Evaluation ---
 ragas==0.1.9
