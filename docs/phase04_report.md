@@ -10,8 +10,10 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 - **Unified per-PDF extraction** (`who_client.py`):
   - `extract_page_content()` — for one page: detects and extracts tables first (via `pdfplumber`), then extracts plain text with those table regions excluded, plus an unmodified raw-text fallback. Table bounding boxes are clamped to page limits to avoid a rare out-of-range coordinate crash.
   - `extract_full_document()` — loops the above across every page of a PDF, aggregating clean text, raw text, all tables, and page count.
-  - `extract_images()` — extracts embedded images via `PyMuPDF` (`fitz`), filtering out tiny icons/logos.
-  - `fetch_who_guideline()` — the full per-document pipeline: download → extract text/tables/images → return a validated `Guideline` plus raw tables/images.
+  - `extract_images()` — extracts embedded images via `PyMuPDF` (`fitz`), filtering out tiny icons/logos by size.
+  - `filter_and_dedupe_images()` — removes images repeated more than 3 times across a document (treated as logo/branding elements, not content), and dedupes any remaining repeats to their first occurrence.
+  - `is_blank_or_near_solid()` — detects and drops blank/near-solid-color images (a colorspace/mask extraction artifact that occasionally produces solid black images with no real visual content).
+  - `fetch_who_guideline()` — the full per-document pipeline: download → extract text/tables/images → filter/dedupe images → return a validated `Guideline` plus raw tables/images.
 - **Data models** (`models.py`) — `Guideline` (now `clean_text`/`raw_text`/`num_tables`/`num_images` instead of a single `full_text`), `WhoTable` (page + row/column data), `WhoImage` (page + filename + dimensions).
 - **Storage** (`storage.py`) — `save_who_tables`/`load_who_tables` and `save_who_images`/`load_who_images` added; existing `save_guideline`/`load_guideline` needed no changes (schema-agnostic serialization).
 - **Runner script** (`run_who_ingestion.py`) — rebuilt to call the unified pipeline and save all three outputs (guideline, tables, images) per topic, with the corrected header/footer stripping pattern as the default.
@@ -24,13 +26,15 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 4. **Kept both `clean_text` and `raw_text`.** `pdfplumber`'s bbox-based table exclusion is a rectangle, not a precise cell boundary — on dense, table-heavy pages it can also remove legitimate nearby prose (captions, footnotes, references) that happens to fall within a table's bounding box. Rather than engineering a more precise (and riskier) cell-level exclusion, both versions are stored: `clean_text` as the primary field for chunking/embedding, `raw_text` as an unmodified fallback so nothing is ever truly lost.
 5. **Deduplicated shared documents by URL, not by topic.** Several topics intentionally share one source document (asthma/copd via the PEN package; coronary artery disease/heart failure/stroke/hyperlipidemia via the CVD risk guideline; depression/anxiety disorder/epilepsy via mhGAP) — each unique PDF is downloaded and extracted only once, then its results are re-saved under every topic name that references it.
 6. **Re-verified the 24/12 topic coverage split** (24 topics with real WHO guidance, 12 confirmed gaps) with broader, non-IRIS-restricted searches after discovering some WHO documents live on `cdn.who.int` rather than `iris.who.int` — confirmed the gap topics (osteoarthritis, rheumatoid arthritis, osteoporosis, chronic kidney disease, lung cancer, peptic ulcer disease, irritable bowel syndrome, arrhythmia, hypothyroidism, hyperthyroidism, migraine, Parkinson's disease) are genuinely outside WHO's guideline scope, not a search-bias artifact.
+7. **Filtered repeated logo images and blank extraction artifacts rather than keeping everything.** Initial image extraction pulled the same branding graphic (e.g. the mhGAP logo) dozens of times per document, plus occasional solid-black images from a mask/colorspace artifact — both would have wasted Phase 8 embedding compute and polluted retrieval with meaningless near-duplicate vectors. Chose hash-based repeat detection (drop anything repeating >3 times) plus a simple pixel-standard-deviation blank check, over more complex perceptual-hashing or ML-based approaches, since the goal was removing obvious noise, not achieving perfect image classification.
 
 ## Results
 
 - **24/24 topics** successfully processed in the final production run (17 unique documents).
-- **~1,204 tables** and **~135 images** extracted in total across all documents.
-- Table extraction verified dramatically cleaner than the original `pypdf` output — structured rows/columns instead of flattened, unreadable fragments.
-- One embedded image was confirmed, by visual inspection, to be a real, fully readable figure (a malaria milestones/targets table that exists in the source PDF as an image, not as extractable text — confirming image extraction catches content that table/text extraction alone would miss entirely).
+- **~1,204 tables** extracted in total across all documents.
+- Text extraction verified dramatically cleaner than the original `pypdf` output — structured rows/columns instead of flattened, unreadable fragments; repeated document headers stripped from both `clean_text` and `raw_text`.
+- Image extraction reduced from ~300 mostly-duplicate files (some topics had 20+ repeats of a single logo) down to a clean, mostly-unique set of real figures per topic (roughly 0-8 each) — genuine content came through clearly (e.g. a malaria milestones/targets chart, dengue fever context photos, COVID-19 diagrams, hepatitis patient photos).
+- A small number of low-impact artifacts remain (an occasional single ISBN barcode graphic or single WHO emblem logo per document) — judged not worth further filtering given their minimal impact on embedding quality at this scale.
 
 ## Challenges & Solutions
 
@@ -40,16 +44,17 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 - **Table bounding boxes occasionally exceeded page boundaries** (a PDF rendering/rounding quirk), crashing `outside_bbox()`. Fixed by clamping each box to the page's actual dimensions before use.
 - **Bbox-based table exclusion also removes some legitimate nearby prose** on table-dense pages (rectangles don't perfectly match table shapes). Accepted as a known tradeoff, mitigated by keeping the unmodified `raw_text` as a fallback rather than engineering fragile cell-level precision.
 - **The header/footer stripping pattern initially only matched page-number footers**, missing the repeated WHO branding header line present on every page — leaving that noise in the saved text. Fixed with a combined pattern matching any line containing "World Health Organization (WHO)" plus the page-number footer, and re-ran the full batch to overwrite the saved files with corrected text.
+- **Most extracted images turned out to be a repeated logo/branding graphic** (e.g. the mhGAP logo appearing ~27 times in one document), plus occasional blank/solid-black images from a mask-extraction artifact. An initial cleanup attempt (patching only the metadata-listed files) missed dozens of orphaned image files left over from before the fix was applied, since they were no longer referenced in the updated metadata at all. Resolved by wiping the entire `data/images/who/` folder and re-running the full ingestion batch fresh with `filter_and_dedupe_images()` and `is_blank_or_near_solid()` now applied at the source.
 
 ## Files Created
 
 - `notebooks/phase04_who_guidelines.ipynb`
-- `backend/src/medrag/ingestion/who_client.py` (resolver + unified extraction)
-- `backend/src/medrag/ingestion/models.py` (updated — `Guideline` revised, `WhoTable`/`WhoImage` added)
+- `backend/src/medrag/ingestion/who_client.py` (resolver + unified extraction + image filtering)
+- `backend/src/medrag/ingestion/models.py` (updated — `Guideline`, `WhoTable`/`WhoImage` added)
 - `backend/src/medrag/ingestion/storage.py` (updated — table/image save/load functions added)
 - `backend/scripts/run_who_ingestion.py` (rebuilt for the unified pipeline)
 - `backend/requirements.txt` (updated — added `pdfplumber==0.11.4`, `pymupdf==1.28.0`)
 - `data/raw/who/*.json` (24 files — clean_text, raw_text, counts)
 - `data/tables/who/*.jsonl` (24 files — ~1,204 tables total)
-- `data/images/who/*.png` + `*_metadata.jsonl` (24 topics — ~135 images total)
+- `data/images/who/*.png` + `*_metadata.jsonl` (24 topics — clean, deduplicated real images)
 - `docs/phase04_report.md`

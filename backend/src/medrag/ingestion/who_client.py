@@ -13,7 +13,8 @@ Extraction is unified per-PDF: pdfplumber detects and extracts tables first,
 then extracts plain text with those table regions excluded (avoiding the
 garbling that plain pypdf-style extraction produces on table-heavy pages).
 PyMuPDF (fitz) extracts embedded images separately, since neither pypdf nor
-pdfplumber capture those.
+pdfplumber capture those. Repeated logos/branding images (common in headers)
+are filtered out via content-hash deduplication.
 
 Not every project topic has a dedicated WHO guideline. Where WHO's guidance
 is genuinely specialty-society territory instead (e.g. osteoarthritis,
@@ -23,6 +24,8 @@ coverage, not a bug.
 
 import re
 import logging
+import hashlib
+from collections import Counter
 from io import BytesIO
 from typing import Optional, List, Tuple, Dict, Any
 
@@ -96,8 +99,6 @@ def extract_page_content(page, header_footer_pattern: Optional[str] = None) -> T
         table_rows = table_obj.extract()
         tables_data.append(table_rows)
 
-        # Clamp bbox to page boundaries - some PDFs report slightly
-        # out-of-range table boxes that would otherwise crash outside_bbox()
         x0, top, x1, bottom = table_obj.bbox
         x0 = max(x0, 0)
         top = max(top, 0)
@@ -108,7 +109,7 @@ def extract_page_content(page, header_footer_pattern: Optional[str] = None) -> T
         try:
             text_region = text_region.outside_bbox(safe_bbox) if hasattr(text_region, "outside_bbox") else text_region
         except Exception:
-            pass  # keep text_region as-is rather than crashing the whole page
+            pass
 
     clean_text = text_region.extract_text() or ""
     raw_text = page.extract_text() or ""
@@ -123,8 +124,7 @@ def extract_page_content(page, header_footer_pattern: Optional[str] = None) -> T
 def extract_full_document(pdf_bytes: bytes, header_footer_pattern: Optional[str] = HEADER_FOOTER_PATTERN):
     """
     Extract clean text, raw text, all tables, and page count from an entire PDF.
-    Returns (clean_text, raw_text, all_tables, num_pages), where all_tables is
-    a list of {page_number, table_data} dicts.
+    Returns (clean_text, raw_text, all_tables, num_pages).
     """
     pdf_file = BytesIO(pdf_bytes)
     plumber_pdf = pdfplumber.open(pdf_file)
@@ -182,6 +182,55 @@ def extract_images(pdf_bytes: bytes, min_width: int = 100, min_height: int = 100
     return images
 
 
+def compute_image_hash(image_bytes: bytes) -> str:
+    """Hash an image's raw bytes to detect exact duplicates (e.g. repeated logos)."""
+    return hashlib.md5(image_bytes).hexdigest()
+
+
+def is_blank_or_near_solid(image_bytes: bytes, std_threshold: float = 5.0) -> bool:
+    """
+    Detect blank/near-solid-color images (e.g. black rectangles from a
+    mask/alpha-channel extraction artifact) that carry no real visual content.
+    Uses pixel standard deviation as a simple, dependency-light heuristic.
+    """
+    try:
+        from PIL import Image
+        import io as _io
+
+        img = Image.open(_io.BytesIO(image_bytes)).convert("L")  # grayscale
+        pixels = list(img.getdata())
+        mean = sum(pixels) / len(pixels)
+        variance = sum((p - mean) ** 2 for p in pixels) / len(pixels)
+        std_dev = variance ** 0.5
+        return std_dev < std_threshold
+    except Exception:
+        return False  # if inspection fails, don't drop the image on that basis
+
+
+def filter_and_dedupe_images(images: List[Dict[str, Any]], max_repeats: int = 3) -> List[Dict[str, Any]]:
+    """
+    Remove images that repeat more than max_repeats times across a document
+    (treated as logos/branding, not real content), dedupe any remaining
+    repeats down to their first occurrence, and drop blank/near-solid-color
+    images (extraction artifacts with no real visual content).
+    """
+    images = [img for img in images if not is_blank_or_near_solid(img["image_bytes"])]
+
+    hashes = [compute_image_hash(img["image_bytes"]) for img in images]
+    hash_counts = Counter(hashes)
+
+    seen = set()
+    filtered = []
+    for img, img_hash in zip(images, hashes):
+        if hash_counts[img_hash] > max_repeats:
+            continue  # likely a logo/branding element - drop entirely
+        if img_hash not in seen:
+            seen.add(img_hash)
+            filtered.append(img)
+
+    return filtered
+
+
 # --- Full per-topic pipeline ----------------------------------------------
 
 def fetch_who_guideline(topic: str, url: str, title: str, headers: dict = BROWSER_HEADERS) -> Tuple[Guideline, List[dict], List[dict]]:
@@ -196,6 +245,7 @@ def fetch_who_guideline(topic: str, url: str, title: str, headers: dict = BROWSE
 
     clean_text, raw_text, tables, num_pages = extract_full_document(pdf_bytes)
     images = extract_images(pdf_bytes)
+    images = filter_and_dedupe_images(images)
 
     guideline = Guideline(
         title=title,
