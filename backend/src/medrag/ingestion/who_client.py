@@ -28,6 +28,8 @@ import hashlib
 from collections import Counter
 from io import BytesIO
 from typing import Optional, List, Tuple, Dict, Any
+from PIL import Image
+import io as _io
 
 import requests
 import pdfplumber
@@ -194,8 +196,6 @@ def is_blank_or_near_solid(image_bytes: bytes, std_threshold: float = 5.0) -> bo
     Uses pixel standard deviation as a simple, dependency-light heuristic.
     """
     try:
-        from PIL import Image
-        import io as _io
 
         img = Image.open(_io.BytesIO(image_bytes)).convert("L")  # grayscale
         pixels = list(img.getdata())
