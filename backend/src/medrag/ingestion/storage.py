@@ -1,5 +1,6 @@
 """
-Local JSONL storage for ingested articles — one file per topic.
+Local storage for ingested articles, drugs, and WHO guidelines/tables/images —
+one file (or one file per topic) per data type.
 """
 
 import json
@@ -66,11 +67,8 @@ def load_drugs(topic: str, output_dir: str) -> List[DrugRecord]:
 def save_drugs(drugs: List[DrugRecord], topic: str, output_dir: str) -> Path:
     """
     Write drug records for a topic to data/raw/openfda/{topic}.jsonl.
-
-    Unlike save_articles (append), this OVERWRITES the file each run —
-    OpenFDA drug labels aren't a growing corpus like papers; each run
-    fetches the current best matches fresh, so overwrite avoids
-    accumulating duplicates across repeated runs.
+    Overwrites each run — OpenFDA drug labels aren't a growing corpus like
+    papers, so overwriting avoids duplicate accumulation across repeated runs.
     """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     filepath = Path(output_dir) / f"{topic}.jsonl"
@@ -83,11 +81,7 @@ def save_drugs(drugs: List[DrugRecord], topic: str, output_dir: str) -> Path:
 
 
 def save_guideline(guideline: Guideline, output_dir: str) -> Path:
-    """
-    Write a WHO guideline's full text to data/raw/who/{topic}.json.
-    One file per topic (each topic maps to exactly one guideline document,
-    though several topics may share the same underlying source document).
-    """
+    """Write a WHO guideline's text to data/raw/who/{topic}.json."""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     filepath = Path(output_dir) / f"{guideline.topic.replace(' ', '_')}.json"
 
@@ -142,8 +136,9 @@ def load_who_tables(topic: str, output_dir: str) -> List[WhoTable]:
 def save_who_images(images: List[dict], topic: str, output_dir: str) -> List[WhoImage]:
     """
     Save extracted images as PNG files to data/images/who/, plus a metadata
-    JSONL file. images: list of dicts from extract_images (with raw image_bytes).
-    Returns the saved WhoImage records.
+    JSONL file. images: list of dicts from extract_images/rasterize_figure_pages
+    (with raw image_bytes and an image_type field). Returns the saved WhoImage
+    records.
     """
     from PIL import Image
     import io as _io
@@ -164,6 +159,7 @@ def save_who_images(images: List[dict], topic: str, output_dir: str) -> List[Who
             filename=filename,
             width=img["width"],
             height=img["height"],
+            image_type=img.get("image_type", "embedded"),
         )
         saved_records.append(record)
 

@@ -73,10 +73,18 @@ class WhoTable(BaseModel):
 
 
 class WhoImage(BaseModel):
-    """A single embedded image extracted from a WHO guideline PDF via PyMuPDF."""
+    """A single image associated with a WHO guideline PDF.
+
+    image_type is 'embedded' for a real embedded raster image (PyMuPDF
+    get_images), or 'rasterized_page' for a full-page render used to
+    capture vector-drawn figures/diagrams/algorithms that have no
+    embedded image object to extract (PDFs draw these with vector
+    instructions, not embedded bitmaps).
+    """
     topic: str
     page_number: int
     image_index: int
     filename: str
     width: int
     height: int
+    image_type: str = "embedded"

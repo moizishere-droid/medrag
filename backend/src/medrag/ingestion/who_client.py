@@ -28,8 +28,6 @@ import hashlib
 from collections import Counter
 from io import BytesIO
 from typing import Optional, List, Tuple, Dict, Any
-from PIL import Image
-import io as _io
 
 import requests
 import pdfplumber
@@ -49,6 +47,12 @@ BROWSER_HEADERS = {
 # Strips the repeated WHO branding header (present on every page, varies by
 # document title) and the "N of M" page-number footer.
 HEADER_FOOTER_PATTERN = r"(.*World Health Organization \(WHO\).*\n?)|(\d+ of \d+)"
+
+# Matches figure/diagram/algorithm captions in extracted text - used to find
+# pages likely containing vector-drawn figures that have no embedded image
+# object to extract (PDFs draw flowcharts/algorithms/charts with vector
+# instructions, not embedded bitmaps, so PyMuPDF's get_images() misses them).
+FIGURE_CAPTION_PATTERN = re.compile(r"\b(Fig(?:ure)?\.?\s*\d+|Algorithm\s*\d+)\b", re.IGNORECASE)
 
 
 # --- URL resolution -----------------------------------------------------
@@ -125,8 +129,10 @@ def extract_page_content(page, header_footer_pattern: Optional[str] = None) -> T
 
 def extract_full_document(pdf_bytes: bytes, header_footer_pattern: Optional[str] = HEADER_FOOTER_PATTERN):
     """
-    Extract clean text, raw text, all tables, and page count from an entire PDF.
-    Returns (clean_text, raw_text, all_tables, num_pages).
+    Extract clean text, raw text, all tables, page count, and the page
+    numbers of any pages whose text contains a figure/diagram/algorithm
+    caption (e.g. "Fig. 1", "Algorithm 2") from an entire PDF.
+    Returns (clean_text, raw_text, all_tables, num_pages, figure_pages).
     """
     pdf_file = BytesIO(pdf_bytes)
     plumber_pdf = pdfplumber.open(pdf_file)
@@ -134,6 +140,7 @@ def extract_full_document(pdf_bytes: bytes, header_footer_pattern: Optional[str]
     clean_parts = []
     raw_parts = []
     all_tables = []
+    figure_pages = []
 
     for page_num, page in enumerate(plumber_pdf.pages):
         clean, raw, tables = extract_page_content(page, header_footer_pattern=header_footer_pattern)
@@ -144,8 +151,11 @@ def extract_full_document(pdf_bytes: bytes, header_footer_pattern: Optional[str]
         for table_data in tables:
             all_tables.append({"page_number": page_num, "table_data": table_data})
 
+        if FIGURE_CAPTION_PATTERN.search(raw):
+            figure_pages.append(page_num)
+
     num_pages = len(plumber_pdf.pages)
-    return "\n".join(clean_parts), "\n".join(raw_parts), all_tables, num_pages
+    return "\n".join(clean_parts), "\n".join(raw_parts), all_tables, num_pages, figure_pages
 
 
 # --- Image extraction (PyMuPDF) ------------------------------------------
@@ -184,6 +194,34 @@ def extract_images(pdf_bytes: bytes, min_width: int = 100, min_height: int = 100
     return images
 
 
+def rasterize_figure_pages(pdf_bytes: bytes, page_numbers: List[int], dpi: int = 150) -> List[Dict[str, Any]]:
+    """
+    Render specific pages of a PDF as full images, to capture vector-drawn
+    figures/diagrams/algorithms that have no embedded image object
+    (get_images() only sees embedded bitmaps, not vector drawing instructions).
+    Returns a list of {page_number, image_bytes, ext, width, height}.
+    """
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    rendered = []
+
+    for page_num in page_numbers:
+        if page_num >= len(doc):
+            continue
+        page = doc[page_num]
+        pixmap = page.get_pixmap(dpi=dpi)
+        rendered.append({
+            "page_number": page_num,
+            "image_bytes": pixmap.tobytes("png"),
+            "ext": "png",
+            "width": pixmap.width,
+            "height": pixmap.height,
+        })
+
+    doc.close()
+    return rendered
+
+
+
 def compute_image_hash(image_bytes: bytes) -> str:
     """Hash an image's raw bytes to detect exact duplicates (e.g. repeated logos)."""
     return hashlib.md5(image_bytes).hexdigest()
@@ -196,6 +234,8 @@ def is_blank_or_near_solid(image_bytes: bytes, std_threshold: float = 5.0) -> bo
     Uses pixel standard deviation as a simple, dependency-light heuristic.
     """
     try:
+        from PIL import Image
+        import io as _io
 
         img = Image.open(_io.BytesIO(image_bytes)).convert("L")  # grayscale
         pixels = list(img.getdata())
@@ -236,6 +276,10 @@ def filter_and_dedupe_images(images: List[Dict[str, Any]], max_repeats: int = 3)
 def fetch_who_guideline(topic: str, url: str, title: str, headers: dict = BROWSER_HEADERS) -> Tuple[Guideline, List[dict], List[dict]]:
     """
     Download a WHO guideline PDF and extract text, tables, and images in one pass.
+    Images include both real embedded images (PyMuPDF get_images) and
+    rasterized full-page renders for any page whose text contains a
+    figure/diagram/algorithm caption but has no embedded image object
+    (vector-drawn content that get_images() cannot see).
     Returns (Guideline, tables, images) - tables/images are the raw extraction
     results (not yet converted to WhoTable/WhoImage records or saved to disk).
     """
@@ -243,9 +287,24 @@ def fetch_who_guideline(topic: str, url: str, title: str, headers: dict = BROWSE
     response.raise_for_status()
     pdf_bytes = response.content
 
-    clean_text, raw_text, tables, num_pages = extract_full_document(pdf_bytes)
-    images = extract_images(pdf_bytes)
-    images = filter_and_dedupe_images(images)
+    clean_text, raw_text, tables, num_pages, figure_pages = extract_full_document(pdf_bytes)
+
+    embedded_images = extract_images(pdf_bytes)
+    embedded_images = filter_and_dedupe_images(embedded_images)
+    for img in embedded_images:
+        img["image_type"] = "embedded"
+
+    # Only rasterize figure-caption pages that didn't already yield a real
+    # embedded image, to avoid redundant near-duplicate content
+    pages_with_embedded = {img["page_number"] for img in embedded_images}
+    pages_to_rasterize = [p for p in figure_pages if p not in pages_with_embedded]
+
+    rasterized_images = rasterize_figure_pages(pdf_bytes, pages_to_rasterize)
+    rasterized_images = [img for img in rasterized_images if not is_blank_or_near_solid(img["image_bytes"])]
+    for img in rasterized_images:
+        img["image_type"] = "rasterized_page"
+
+    all_images = embedded_images + rasterized_images
 
     guideline = Guideline(
         title=title,
@@ -254,8 +313,8 @@ def fetch_who_guideline(topic: str, url: str, title: str, headers: dict = BROWSE
         raw_text=raw_text,
         num_pages=num_pages,
         num_tables=len(tables),
-        num_images=len(images),
+        num_images=len(all_images),
         source_url=url,
     )
 
-    return guideline, tables, images
+    return guideline, tables, all_images
