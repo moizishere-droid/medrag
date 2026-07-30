@@ -27,6 +27,7 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 5. **Deduplicated shared documents by URL, not by topic.** Several topics intentionally share one source document (asthma/copd via the PEN package; coronary artery disease/heart failure/stroke/hyperlipidemia via the CVD risk guideline; depression/anxiety disorder/epilepsy via mhGAP) — each unique PDF is downloaded and extracted only once, then its results are re-saved under every topic name that references it.
 6. **Re-verified the 24/12 topic coverage split** (24 topics with real WHO guidance, 12 confirmed gaps) with broader, non-IRIS-restricted searches after discovering some WHO documents live on `cdn.who.int` rather than `iris.who.int` — confirmed the gap topics (osteoarthritis, rheumatoid arthritis, osteoporosis, chronic kidney disease, lung cancer, peptic ulcer disease, irritable bowel syndrome, arrhythmia, hypothyroidism, hyperthyroidism, migraine, Parkinson's disease) are genuinely outside WHO's guideline scope, not a search-bias artifact.
 7. **Filtered repeated logo images and blank extraction artifacts rather than keeping everything.** Initial image extraction pulled the same branding graphic (e.g. the mhGAP logo) dozens of times per document, plus occasional solid-black images from a mask/colorspace artifact — both would have wasted Phase 8 embedding compute and polluted retrieval with meaningless near-duplicate vectors. Chose hash-based repeat detection (drop anything repeating >3 times) plus a simple pixel-standard-deviation blank check, over more complex perceptual-hashing or ML-based approaches, since the goal was removing obvious noise, not achieving perfect image classification.
+8. **Added full-page rasterization for vector-drawn figures.** `PyMuPDF`'s embedded-image extraction only captures actual embedded bitmap objects — it cannot see vector-drawn diagrams, flowcharts, or algorithms (common in clinical guidelines, e.g. "Fig. 1: Analytic framework," "Algorithm 1/2"), since those are drawn with PDF vector instructions, not stored as image objects. Solved by detecting figure/algorithm captions in the extracted text and rendering those specific pages as full images via `PyMuPDF`'s `get_pixmap()` — capturing the diagram exactly as it visually appears, including its own labels and text (which is necessary for the diagram to be meaningful on its own, not treated as unwanted duplication of the separately-stored prose text). Rasterization is skipped for pages that already yielded a real embedded image, to avoid redundant near-duplicate content. A new `image_type` field (`"embedded"` vs `"rasterized_page"`) distinguishes the two in saved metadata.
 
 ## Results
 
@@ -34,6 +35,7 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 - **~1,204 tables** extracted in total across all documents.
 - Text extraction verified dramatically cleaner than the original `pypdf` output — structured rows/columns instead of flattened, unreadable fragments; repeated document headers stripped from both `clean_text` and `raw_text`.
 - Image extraction reduced from ~300 mostly-duplicate files (some topics had 20+ repeats of a single logo) down to a clean, mostly-unique set of real figures per topic (roughly 0-8 each) — genuine content came through clearly (e.g. a malaria milestones/targets chart, dengue fever context photos, COVID-19 diagrams, hepatitis patient photos).
+- Full-page rasterization now additionally captures vector-drawn figures/algorithms that embedded-image extraction alone would have missed entirely (e.g. hypertension's treatment algorithms), tagged with `image_type="rasterized_page"` to distinguish from real embedded images.
 - A small number of low-impact artifacts remain (an occasional single ISBN barcode graphic or single WHO emblem logo per document) — judged not worth further filtering given their minimal impact on embedding quality at this scale.
 
 ## Challenges & Solutions
@@ -50,7 +52,7 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 
 - `notebooks/phase04_who_guidelines.ipynb`
 - `backend/src/medrag/ingestion/who_client.py` (resolver + unified extraction + image filtering)
-- `backend/src/medrag/ingestion/models.py` (updated — `Guideline`, `WhoTable`/`WhoImage` added)
+- `backend/src/medrag/ingestion/models.py` (updated — `Guideline` revised, `WhoTable`/`WhoImage` added, `WhoImage.image_type` added)
 - `backend/src/medrag/ingestion/storage.py` (updated — table/image save/load functions added)
 - `backend/scripts/run_who_ingestion.py` (rebuilt for the unified pipeline)
 - `backend/requirements.txt` (updated — added `pdfplumber==0.11.4`, `pymupdf==1.28.0`)
