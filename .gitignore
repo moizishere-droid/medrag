@@ -8,19 +8,6 @@ dist/
 .venv/
 venv/
 
-# Environment
-.env
-
-# Data (raw/processed medical data should not be committed)
-data/raw/*
-data/images/*
-data/tables/*
-data/processed/*
-!data/raw/.gitkeep
-!data/images/.gitkeep
-!data/tables/.gitkeep
-!data/processed/.gitkeep
-
 # Jupyter
 .ipynb_checkpoints/
 
@@ -35,4 +22,6 @@ wandb/
 
 # IDE
 .vscode/
-.idea/
+
+# Environment
+.env
