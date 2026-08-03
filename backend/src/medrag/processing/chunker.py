@@ -18,6 +18,12 @@ unreliable results elsewhere (false-positive-inflated counts on breast
 cancer/anemia in pregnancy, near-zero detection on mhGAP-based documents,
 TB, and COVID-19) - a safe adaptive threshold would have needed non-trivial
 extra validation logic not justified by the benefit.
+
+WHO documents shared across multiple project topics (e.g. the PEN package
+covering both asthma and copd) are chunked ONCE, not once per topic - see
+chunk_who_guideline()'s `topics` parameter. This avoids storing/embedding
+duplicate content, which would otherwise waste embedding cost (Phase 7) and
+crowd out genuinely different results in retrieval (Phase 9/11).
 """
 
 import logging
@@ -120,6 +126,11 @@ def sentence_based_chunk(text: str, target_tokens: int = 300) -> List[str]:
     return chunks
 
 
+def _build_chunk(chunk_id: str, **kwargs) -> Chunk:
+    """Construct a Chunk with its point_id automatically derived from chunk_id."""
+    return Chunk(chunk_id=chunk_id, point_id=Chunk.make_point_id(chunk_id), **kwargs)
+
+
 # --- Per-source chunking functions ---------------------------------------
 
 def chunk_pubmed_article(article: Article, target_tokens: int = 500) -> List[Chunk]:
@@ -130,18 +141,16 @@ def chunk_pubmed_article(article: Article, target_tokens: int = 500) -> List[Chu
 
     Each chunk's text is prefixed with the article title for context, since
     an isolated sentence from a split abstract otherwise loses its anchor
-    to which paper it came from (this matters more for OpenFDA/WHO, whose
-    fields/sections split far more often, but is applied consistently here
-    too for the same reason).
+    to which paper it came from.
     """
     raw_texts = sentence_based_chunk(article.abstract, target_tokens=target_tokens)
     return [
-        Chunk(
+        _build_chunk(
             chunk_id=f"{article.topic}_pubmed_{article.pmid}_{i}",
             text=f"{article.title}: {raw_text}",
             raw_text=raw_text,
             source="pubmed",
-            topic=article.topic,
+            topics=[article.topic],
             source_id=article.pmid,
             chunk_index=i,
             chunk_type="text",
@@ -195,12 +204,12 @@ def chunk_openfda_drug(drug: DrugRecord, target_tokens: int = 300) -> List[Chunk
 
         prefix = f"{drug.brand_name} — {field_labels[field_name]}"
         for raw_text in raw_texts:
-            chunks.append(Chunk(
+            chunks.append(_build_chunk(
                 chunk_id=f"{drug.topic}_openfda_{drug.brand_name}_{index}",
                 text=f"{prefix}: {raw_text}",
                 raw_text=raw_text,
                 source="openfda",
-                topic=drug.topic,
+                topics=[drug.topic],
                 source_id=drug.brand_name,
                 chunk_index=index,
                 chunk_type="text",
@@ -211,29 +220,35 @@ def chunk_openfda_drug(drug: DrugRecord, target_tokens: int = 300) -> List[Chunk
     return chunks
 
 
-def chunk_who_guideline(guideline: Guideline, tables: List[dict], target_tokens: int = 300) -> List[Chunk]:
+def chunk_who_guideline(guideline: Guideline, tables: List[dict], topics: List[str], target_tokens: int = 300) -> List[Chunk]:
     """
     Chunk a WHO guideline: clean_text via sentence-based chunking (the
     validated final strategy - see module docstring), plus each extracted
     table kept as one atomic chunk (never split, to preserve row/column
     meaning). Images are not chunked - handled separately in Phase 8.
 
-    Each chunk's text is prefixed with the guideline's title for context,
-    same reasoning as PubMed/OpenFDA - an isolated sentence or table from a
-    long document otherwise loses its anchor to which guideline it's from.
+    topics is the FULL list of project topics that share this document
+    (e.g. ["asthma", "copd"] for the PEN package) - callers must chunk each
+    unique document only once and pass all its topics here, rather than
+    calling this once per topic, to avoid storing/embedding duplicate
+    content. A canonical id (topics joined with "+") is used for chunk_id/
+    source_id instead of a single topic name.
+
+    Each chunk's text is prefixed with the guideline's title for context.
     """
+    canonical_id = "+".join(sorted(topics))
     chunks = []
     index = 0
 
     text_raws = sentence_based_chunk(guideline.clean_text, target_tokens=target_tokens)
     for raw_text in text_raws:
-        chunks.append(Chunk(
-            chunk_id=f"{guideline.topic}_who_text_{index}",
+        chunks.append(_build_chunk(
+            chunk_id=f"{canonical_id}_who_text_{index}",
             text=f"{guideline.title}: {raw_text}",
             raw_text=raw_text,
             source="who",
-            topic=guideline.topic,
-            source_id=guideline.topic,
+            topics=topics,
+            source_id=canonical_id,
             chunk_index=index,
             chunk_type="text",
             metadata={"title": guideline.title},
@@ -245,13 +260,13 @@ def chunk_who_guideline(guideline: Guideline, tables: List[dict], target_tokens:
             " | ".join(str(cell) if cell is not None else "" for cell in row)
             for row in table["table_data"]
         )
-        chunks.append(Chunk(
-            chunk_id=f"{guideline.topic}_who_table_{index}",
+        chunks.append(_build_chunk(
+            chunk_id=f"{canonical_id}_who_table_{index}",
             text=f"{guideline.title} (table, page {table['page_number']}): {table_text}",
             raw_text=table_text,
             source="who",
-            topic=guideline.topic,
-            source_id=guideline.topic,
+            topics=topics,
+            source_id=canonical_id,
             chunk_index=index,
             chunk_type="table",
             metadata={"title": guideline.title, "page_number": table["page_number"]},

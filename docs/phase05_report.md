@@ -42,12 +42,26 @@ Additional decisions:
 
 ## Results
 
-- **29,795 total chunks** generated across all three sources:
+- **28,255 total chunks** generated across all three sources:
   - PubMed: 5,391 chunks (4,680 articles → ~1.15 chunks/article; most abstracts stayed as one chunk, a minority of longer ones split cleanly)
   - OpenFDA: 18,068 chunks (766 drugs → ~24 chunks/drug on average, reflecting genuinely long, multi-section drug labels — particularly `warnings_and_cautions` and `adverse_reactions`)
-  - WHO: 6,336 chunks (24 guideline documents, including ~1,204 table chunks alongside sentence-based text chunks)
+  - WHO: 4,796 unique chunks across 24 topic files (24 guideline documents, including ~1,204 table chunks alongside sentence-based text chunks)
 - Verified correct abbreviation handling with a direct before/after test: `"...compared in Fig. 3 of the study."` stayed intact as one sentence, versus an earlier broken attempt that split it into `"...in Fig."` and `"3 of the study."`
 - Verified sliding-window overlap worked correctly (a boundary-spanning sentence was confirmed present in both neighboring chunks) even though it wasn't chosen as the default.
+
+## Final Review: Two Issues Found and Fixed
+
+A deliberate end-to-end review of the whole phase, done before moving to Phase 7, caught two real issues:
+
+1. **WHO shared-document duplication.** Topics sharing one underlying document (asthma/copd via the PEN package; coronary artery disease/heart failure/stroke/hyperlipidemia via the CVD risk guideline; depression/anxiety disorder/epilepsy via mhGAP) were each being chunked independently, producing ~24% exact content duplicates (6,336 chunks where only 4,796 were actually unique) — wasting future embedding cost (Phase 7) and risking near-duplicate results crowding out genuinely different content in retrieval (Phase 9/11).
+2. **`chunk_id` strings are not valid Qdrant point IDs.** Qdrant (Phase 9) requires point IDs to be an unsigned integer or a UUID, not an arbitrary string like `"diabetes_pubmed_12345678_0"`.
+
+**Both were fixed directly in Phase 6** rather than deferred:
+- The `Chunk` model changed from a single `topic: str` field to `topics: List[str]`, so a shared document's chunks list every topic that references it once, instead of being duplicated per topic.
+- A new `point_id` field holds a deterministic UUID5 derived from `chunk_id` (`Chunk.make_point_id()`), generated at chunk-creation time — ready for direct use in Phase 9 without any later rework.
+- `chunk_who_guideline()` now accepts the full `topics` list for a shared document and uses a canonical id (topics joined with `"+"`, e.g. `"asthma+copd"`) for both `chunk_id` and `source_id`.
+- The runner script (`run_chunking.py`) groups shared-document topics (`WHO_TOPIC_GROUPS`) and chunks each group exactly once, then saves the identical result under every topic's file — no duplicate computation, no divergent IDs for the same content.
+- Re-running the full batch confirmed the fix: WHO chunk count dropped from 6,336 to **4,796 unique chunks** (1,540 fewer duplicates, matching the exact estimate made during the review), with all 24 topic files still correctly populated.
 
 ## Challenges & Solutions
 
@@ -58,11 +72,11 @@ Additional decisions:
 ## Files Created
 
 - `notebooks/phase06_chunking.ipynb`
-- `backend/src/medrag/processing/models.py` (`Chunk`)
-- `backend/src/medrag/processing/chunker.py` (spaCy pipeline, `sentence_based_chunk`, per-source chunking functions)
+- `backend/src/medrag/processing/models.py` (`Chunk` — including `topics: List[str]` and `point_id`)
+- `backend/src/medrag/processing/chunker.py` (spaCy pipeline, `sentence_based_chunk`, per-source chunking functions, `_build_chunk`/`Chunk.make_point_id` for deterministic IDs)
 - `backend/src/medrag/processing/storage.py` (`save_chunks`/`load_chunks`)
-- `backend/scripts/run_chunking.py`
+- `backend/scripts/run_chunking.py` (including `WHO_TOPIC_GROUPS` for shared-document dedup)
 - `data/processed/chunks/pubmed/*.jsonl` (36 files, 5,391 chunks)
 - `data/processed/chunks/openfda/*.jsonl` (36 files, 18,068 chunks)
-- `data/processed/chunks/who/*.jsonl` (24 files, 6,336 chunks)
+- `data/processed/chunks/who/*.jsonl` (24 files, 4,796 unique chunks, shared correctly across topic groups)
 - `docs/phase06_report.md`

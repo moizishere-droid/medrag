@@ -26,13 +26,32 @@ RAW_WHO_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."
 WHO_TABLE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "tables", "who"))
 CHUNK_OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "processed", "chunks"))
 
-# WHO topics with a real guideline (24 of 36 - see docs/phase04_report.md)
-WHO_TOPICS = [
-    "tuberculosis", "hypertension", "diabetes", "obesity", "asthma", "copd",
-    "coronary artery disease", "heart failure", "stroke", "hyperlipidemia",
-    "pneumonia", "covid-19", "malaria", "hiv aids", "hepatitis b", "hepatitis c",
-    "dengue fever", "typhoid", "depression", "anxiety disorder", "epilepsy",
-    "malnutrition", "anemia in pregnancy", "breast cancer",
+# WHO topics with a real guideline (24 of 36 - see docs/phase04_report.md),
+# grouped by underlying shared document (matching run_who_ingestion.py's
+# TOPIC_DOCS groupings) - each group is chunked ONCE via chunk_who_guideline,
+# then the identical resulting chunks are saved under every topic file in
+# the group, so per-topic retrieval still works without duplicating the
+# actual chunking computation or creating divergent chunk_id/source_id
+# values for what is really the same content.
+WHO_TOPIC_GROUPS = [
+    ["tuberculosis"],
+    ["hypertension"],
+    ["diabetes"],
+    ["obesity"],
+    ["asthma", "copd"],
+    ["coronary artery disease", "heart failure", "stroke", "hyperlipidemia"],
+    ["pneumonia"],
+    ["covid-19"],
+    ["malaria"],
+    ["hiv aids"],
+    ["hepatitis b"],
+    ["hepatitis c"],
+    ["dengue fever"],
+    ["typhoid"],
+    ["depression", "anxiety disorder", "epilepsy"],
+    ["malnutrition"],
+    ["anemia in pregnancy"],
+    ["breast cancer"],
 ]
 
 
@@ -60,18 +79,35 @@ def chunk_openfda():
 
 def chunk_who():
     total_chunks = 0
-    for topic in WHO_TOPICS:
-        guideline = load_guideline(topic, output_dir=RAW_WHO_DIR)
+    total_saved_files = 0
+
+    for group in WHO_TOPIC_GROUPS:
+        primary_topic = group[0]
+        guideline = load_guideline(primary_topic, output_dir=RAW_WHO_DIR)
         if guideline is None:
             continue
-        tables = load_who_tables(topic, output_dir=WHO_TABLE_DIR)
+
+        tables = load_who_tables(primary_topic, output_dir=WHO_TABLE_DIR)
         table_dicts = [{"page_number": t.page_number, "table_data": t.table_data} for t in tables]
 
-        chunks = chunk_who_guideline(guideline, table_dicts)
-        save_chunks(chunks, source="who", topic=topic, output_dir=CHUNK_OUTPUT_DIR)
+        # Chunked ONCE per group, not once per topic - avoids duplicate
+        # spaCy computation and produces chunks with a shared canonical
+        # chunk_id/source_id across every topic in the group
+        chunks = chunk_who_guideline(guideline, table_dicts, topics=group)
         total_chunks += len(chunks)
-        logger.info(f"who/{topic}: {guideline.num_pages} pages, {len(tables)} tables -> {len(chunks)} chunks")
-    logger.info(f"=== WHO chunking done: {total_chunks} total chunks ===")
+
+        # Save the identical chunk set under every topic file in the group,
+        # so per-topic retrieval/filtering still works normally
+        for topic in group:
+            save_chunks(chunks, source="who", topic=topic, output_dir=CHUNK_OUTPUT_DIR)
+            total_saved_files += 1
+
+        logger.info(
+            f"who/{'+'.join(group)}: {guideline.num_pages} pages, {len(tables)} tables "
+            f"-> {len(chunks)} chunks (saved under {len(group)} topic file(s))"
+        )
+
+    logger.info(f"=== WHO chunking done: {total_chunks} unique chunks across {total_saved_files} topic files ===")
 
 
 def main():
