@@ -1,4 +1,4 @@
-# Phase 6: Text Chunking — Report
+# Phase 5: Text Chunking — Report
 
 ## Phase Objective
 
@@ -42,12 +42,17 @@ Additional decisions:
 
 ## Results
 
-- **28,255 total chunks** generated across all three sources:
+- **28,392 total chunks** generated across all three sources (final, after the Phase 3 OpenFDA correction):
   - PubMed: 5,391 chunks (4,680 articles → ~1.15 chunks/article; most abstracts stayed as one chunk, a minority of longer ones split cleanly)
-  - OpenFDA: 18,068 chunks (766 drugs → ~24 chunks/drug on average, reflecting genuinely long, multi-section drug labels — particularly `warnings_and_cautions` and `adverse_reactions`)
+  - OpenFDA: 18,205 chunks (607 drugs after the exact-phrase matching fix removed false positives, recovered to include the `hiv aids`/`peptic ulcer disease` search-term corrections — see `docs/phase03_report.md`)
   - WHO: 4,796 unique chunks across 24 topic files (24 guideline documents, including ~1,204 table chunks alongside sentence-based text chunks)
 - Verified correct abbreviation handling with a direct before/after test: `"...compared in Fig. 3 of the study."` stayed intact as one sentence, versus an earlier broken attempt that split it into `"...in Fig."` and `"3 of the study."`
 - Verified sliding-window overlap worked correctly (a boundary-spanning sentence was confirmed present in both neighboring chunks) even though it wasn't chosen as the default.
+- `dengue fever` and `anemia in pregnancy` correctly show 0 OpenFDA chunks — confirmed as a genuine data limitation (see `docs/phase03_report.md`), not a chunking bug; both topics still have full PubMed and WHO content.
+
+## Note: OpenFDA Source Data Was Corrected Mid-Phase
+
+Between this phase's original run and its final numbers above, a review (documented in `docs/phase03_report.md`) found and fixed a real accuracy bug in Phase 3's OpenFDA matching logic — exact-phrase search matching was added, removing false-positive drug-topic associations (e.g. a diabetes drug incorrectly filed under irritable bowel syndrome), followed by two targeted search-term corrections (`hiv aids`, `peptic ulcer disease`) for topics whose project label didn't match real FDA wording. `run_chunking.py` was re-run against the corrected data to produce the final totals above. PubMed and WHO numbers were unaffected throughout (Phase 3's fix only touched OpenFDA data).
 
 ## Final Review: Two Issues Found and Fixed
 
@@ -77,6 +82,6 @@ A deliberate end-to-end review of the whole phase, done before moving to Phase 7
 - `backend/src/medrag/processing/storage.py` (`save_chunks`/`load_chunks`)
 - `backend/scripts/run_chunking.py` (including `WHO_TOPIC_GROUPS` for shared-document dedup)
 - `data/processed/chunks/pubmed/*.jsonl` (36 files, 5,391 chunks)
-- `data/processed/chunks/openfda/*.jsonl` (36 files, 18,068 chunks)
+- `data/processed/chunks/openfda/*.jsonl` (36 files, 18,205 chunks)
 - `data/processed/chunks/who/*.jsonl` (24 files, 4,796 unique chunks, shared correctly across topic groups)
 - `docs/phase06_report.md`
