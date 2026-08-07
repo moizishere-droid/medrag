@@ -160,19 +160,24 @@ def chunk_pubmed_article(article: Article, target_tokens: int = 500) -> List[Chu
     ]
 
 
-def chunk_openfda_drug(drug: DrugRecord, target_tokens: int = 300) -> List[Chunk]:
+def chunk_openfda_drug(drug: DrugRecord, topics: List[str], target_tokens: int = 300) -> List[Chunk]:
     """
     Chunk an OpenFDA drug record field-by-field - each labeled section
     (indications, dosage, contraindications, etc.) is already a coherent
     unit. Fields long enough to exceed target_tokens are sub-split with
     sentence_based_chunk rather than kept as one oversized chunk.
 
+    topics is the full list of project topics this drug legitimately
+    appeared under (OpenFDA searches independently per topic, and the same
+    drug - e.g. a widely-used NSAID, or a false-positive text match on
+    indications_and_usage - can surface under several topics). Callers must
+    group by brand_name across all topics and call this once per unique
+    drug, passing every topic it appeared under, rather than calling this
+    once per topic - avoiding duplicate storage/embedding of the same
+    drug's identical field content.
+
     Each chunk's text is prefixed with "{brand_name} — {readable field
-    name}:" for context. Without this, a sub-chunk from the middle of a
-    long field like adverse_reactions can read as a generic sentence with
-    no indication of which drug or which field it belongs to - weakening
-    its embedding similarity to queries like "what are Glimepiride's
-    warnings" that name the drug explicitly.
+    name}:" for context.
     """
     field_labels = {
         "indications_and_usage": "Indications and Usage",
@@ -205,11 +210,11 @@ def chunk_openfda_drug(drug: DrugRecord, target_tokens: int = 300) -> List[Chunk
         prefix = f"{drug.brand_name} — {field_labels[field_name]}"
         for raw_text in raw_texts:
             chunks.append(_build_chunk(
-                chunk_id=f"{drug.topic}_openfda_{drug.brand_name}_{index}",
+                chunk_id=f"{drug.brand_name}_openfda_{index}",
                 text=f"{prefix}: {raw_text}",
                 raw_text=raw_text,
                 source="openfda",
-                topics=[drug.topic],
+                topics=topics,
                 source_id=drug.brand_name,
                 chunk_index=index,
                 chunk_type="text",

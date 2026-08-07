@@ -67,14 +67,53 @@ def chunk_pubmed():
 
 
 def chunk_openfda():
-    total_chunks = 0
-    for topic in PUBMED_TOPICS:  # OpenFDA used the same 36-topic list
+    """
+    Unlike WHO (where shared documents are known upfront via fixed URL
+    groupings), OpenFDA's cross-topic drug sharing has to be discovered by
+    scanning the actual saved data - the same brand_name can legitimately
+    appear under several topics (e.g. naproxen across osteoarthritis,
+    rheumatoid arthritis, etc.), and each occurrence must be merged into
+    one chunked-once record rather than duplicated per topic, matching the
+    fix already applied to WHO's shared documents.
+    """
+    from collections import defaultdict
+
+    # Step 1: load every topic's drugs, group by brand_name to discover
+    # which topics each unique drug actually appears under
+    brand_to_topics = defaultdict(list)
+    brand_to_drug = {}
+
+    for topic in PUBMED_TOPICS:
         drugs = load_drugs(topic, output_dir=RAW_OPENFDA_DIR)
-        chunks = [c for drug in drugs for c in chunk_openfda_drug(drug)]
-        save_chunks(chunks, source="openfda", topic=topic, output_dir=CHUNK_OUTPUT_DIR)
+        for drug in drugs:
+            key = drug.brand_name.lower().strip()
+            brand_to_topics[key].append(topic)
+            if key not in brand_to_drug:
+                brand_to_drug[key] = drug  # first occurrence's full record is representative
+
+    # Step 2: chunk each unique drug ONCE, with its full topics list
+    topic_to_chunks = defaultdict(list)
+    total_chunks = 0
+    total_unique_drugs = len(brand_to_drug)
+
+    for key, drug in brand_to_drug.items():
+        topics = brand_to_topics[key]
+        chunks = chunk_openfda_drug(drug, topics=topics)
         total_chunks += len(chunks)
-        logger.info(f"openfda/{topic}: {len(drugs)} drugs -> {len(chunks)} chunks")
-    logger.info(f"=== OpenFDA chunking done: {total_chunks} total chunks ===")
+        for topic in topics:
+            topic_to_chunks[topic].extend(chunks)
+
+    # Step 3: save the accumulated chunks under every topic file
+    for topic in PUBMED_TOPICS:
+        chunks = topic_to_chunks.get(topic, [])
+        save_chunks(chunks, source="openfda", topic=topic, output_dir=CHUNK_OUTPUT_DIR)
+        drug_count = sum(1 for k in brand_to_drug if topic in brand_to_topics[k])
+        logger.info(f"openfda/{topic}: {drug_count} drugs -> {len(chunks)} chunks")
+
+    logger.info(
+        f"=== OpenFDA chunking done: {total_unique_drugs} unique drugs, "
+        f"{total_chunks} unique chunks across all topic files ==="
+    )
 
 
 def chunk_who():
