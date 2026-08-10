@@ -42,9 +42,9 @@ Additional decisions:
 
 ## Results
 
-- **28,392 total chunks** generated across all three sources (final, after the Phase 3 OpenFDA correction):
-  - PubMed: 5,391 chunks (4,680 articles → ~1.15 chunks/article; most abstracts stayed as one chunk, a minority of longer ones split cleanly)
-  - OpenFDA: 18,205 chunks (607 drugs after the exact-phrase matching fix removed false positives, recovered to include the `hiv aids`/`peptic ulcer disease` search-term corrections — see `docs/phase03_report.md`)
+- **22,688 total chunks** generated across all three sources (true final, after the Phase 3 OpenFDA data correction and all three cross-topic dedup fixes):
+  - PubMed: 4,725 chunks (4,159 unique articles — ~10% of articles, 425 PMIDs, genuinely span multiple topics, e.g. anxiety-depression comorbidity papers or anemia-in-pregnancy papers also covering malaria/malnutrition; deduplicated the same way as WHO/OpenFDA rather than storing/embedding each shared article once per topic)
+  - OpenFDA: 13,167 unique chunks (467 unique drugs) — deduplicated the same way as WHO: a drug genuinely shared across topics (e.g. naproxen across osteoarthritis, rheumatoid arthritis, etc.) is chunked once and tagged with every topic it belongs to, rather than being duplicated per topic
   - WHO: 4,796 unique chunks across 24 topic files (24 guideline documents, including ~1,204 table chunks alongside sentence-based text chunks)
 - Verified correct abbreviation handling with a direct before/after test: `"...compared in Fig. 3 of the study."` stayed intact as one sentence, versus an earlier broken attempt that split it into `"...in Fig."` and `"3 of the study."`
 - Verified sliding-window overlap worked correctly (a boundary-spanning sentence was confirmed present in both neighboring chunks) even though it wasn't chosen as the default.
@@ -54,19 +54,22 @@ Additional decisions:
 
 Between this phase's original run and its final numbers above, a review (documented in `docs/phase03_report.md`) found and fixed a real accuracy bug in Phase 3's OpenFDA matching logic — exact-phrase search matching was added, removing false-positive drug-topic associations (e.g. a diabetes drug incorrectly filed under irritable bowel syndrome), followed by two targeted search-term corrections (`hiv aids`, `peptic ulcer disease`) for topics whose project label didn't match real FDA wording. `run_chunking.py` was re-run against the corrected data to produce the final totals above. PubMed and WHO numbers were unaffected throughout (Phase 3's fix only touched OpenFDA data).
 
-## Final Review: Two Issues Found and Fixed
+## Final Review: Four Issues Found and Fixed
 
-A deliberate end-to-end review of the whole phase, done before moving to Phase 7, caught two real issues:
+A deliberate end-to-end review of the whole phase, done before moving to Phase 7, caught four real issues — the same cross-topic duplication pattern turned out to affect all three sources, discovered and fixed one at a time:
 
 1. **WHO shared-document duplication.** Topics sharing one underlying document (asthma/copd via the PEN package; coronary artery disease/heart failure/stroke/hyperlipidemia via the CVD risk guideline; depression/anxiety disorder/epilepsy via mhGAP) were each being chunked independently, producing ~24% exact content duplicates (6,336 chunks where only 4,796 were actually unique) — wasting future embedding cost (Phase 7) and risking near-duplicate results crowding out genuinely different content in retrieval (Phase 9/11).
-2. **`chunk_id` strings are not valid Qdrant point IDs.** Qdrant (Phase 9) requires point IDs to be an unsigned integer or a UUID, not an arbitrary string like `"diabetes_pubmed_12345678_0"`.
+2. **OpenFDA cross-topic drug duplication (found later, fixed separately).** The same review that caught the WHO issue also surfaced that individual drugs can legitimately (or via residual imprecise matching) appear under multiple topics — e.g. `naproxen` under 13 topics, `prednisone` under 4 — but unlike WHO, this was initially only diagnosed, not fixed in code. Applying it required a different mechanism than WHO's fixed URL groupings, since OpenFDA's cross-topic sharing isn't known upfront: `chunk_openfda()` now scans all loaded drugs across every topic first, groups by `brand_name`, chunks each unique drug exactly once, and saves the result under every topic file it belongs to. Confirmed on real data: OpenFDA dropped from 18,205 to **13,167 unique chunks** (467 unique drugs).
+3. **`chunk_id` strings are not valid Qdrant point IDs.** Qdrant (Phase 9) requires point IDs to be an unsigned integer or a UUID, not an arbitrary string like `"diabetes_pubmed_12345678_0"`.
+4. **PubMed had the same cross-topic duplication as OpenFDA (checked after fixing OpenFDA's).** 425 of 4,159 unique PMIDs (~10%) genuinely appear under multiple topics — judged as real scientific overlap (comorbidity papers, co-occurring conditions), not a search-matching bug. Fixed the same way: `chunk_pubmed_article()` now requires a `topics` list, `chunk_id` changed from topic-prefixed to `pmid`-based, and `chunk_pubmed()` discovers cross-topic sharing by scanning all loaded articles first. Confirmed on real data: PubMed dropped from 5,391 to **4,725 unique chunks** (4,159 unique articles).
 
-**Both were fixed directly in Phase 6** rather than deferred:
-- The `Chunk` model changed from a single `topic: str` field to `topics: List[str]`, so a shared document's chunks list every topic that references it once, instead of being duplicated per topic.
+**All four were fixed directly in Phase 6** rather than deferred:
+- The `Chunk` model changed from a single `topic: str` field to `topics: List[str]`, so a shared document's or drug's chunks list every topic that references it once, instead of being duplicated per topic.
 - A new `point_id` field holds a deterministic UUID5 derived from `chunk_id` (`Chunk.make_point_id()`), generated at chunk-creation time — ready for direct use in Phase 9 without any later rework.
-- `chunk_who_guideline()` now accepts the full `topics` list for a shared document and uses a canonical id (topics joined with `"+"`, e.g. `"asthma+copd"`) for both `chunk_id` and `source_id`.
-- The runner script (`run_chunking.py`) groups shared-document topics (`WHO_TOPIC_GROUPS`) and chunks each group exactly once, then saves the identical result under every topic's file — no duplicate computation, no divergent IDs for the same content.
-- Re-running the full batch confirmed the fix: WHO chunk count dropped from 6,336 to **4,796 unique chunks** (1,540 fewer duplicates, matching the exact estimate made during the review), with all 24 topic files still correctly populated.
+- `chunk_who_guideline()` accepts the full `topics` list for a shared document and uses a canonical id (topics joined with `"+"`, e.g. `"asthma+copd"`) for both `chunk_id` and `source_id`; `chunk_openfda_drug()` similarly requires a `topics` list built by the caller.
+- The runner script (`run_chunking.py`) groups WHO shared documents (`WHO_TOPIC_GROUPS`, known upfront) and discovers OpenFDA's cross-topic drug sharing dynamically (by scanning all loaded drugs first, since which drugs are shared isn't known in advance) — both are chunked exactly once and saved under every topic file they belong to.
+- `chunk_who_guideline()`, `chunk_openfda_drug()`, and `chunk_pubmed_article()` all now require a `topics` list built by the caller; WHO's shared documents are known upfront (`WHO_TOPIC_GROUPS`), while OpenFDA's and PubMed's cross-topic sharing is discovered dynamically by scanning all loaded records first and grouping by `brand_name`/`pmid` respectively.
+- Re-running the full batch confirmed all three fixes: WHO dropped from 6,336 to **4,796 unique chunks**; OpenFDA dropped from 18,205 to **13,167 unique chunks**; PubMed dropped from 5,391 to **4,725 unique chunks**.
 
 ## Challenges & Solutions
 
@@ -81,7 +84,7 @@ A deliberate end-to-end review of the whole phase, done before moving to Phase 7
 - `backend/src/medrag/processing/chunker.py` (spaCy pipeline, `sentence_based_chunk`, per-source chunking functions, `_build_chunk`/`Chunk.make_point_id` for deterministic IDs)
 - `backend/src/medrag/processing/storage.py` (`save_chunks`/`load_chunks`)
 - `backend/scripts/run_chunking.py` (including `WHO_TOPIC_GROUPS` for shared-document dedup)
-- `data/processed/chunks/pubmed/*.jsonl` (36 files, 5,391 chunks)
-- `data/processed/chunks/openfda/*.jsonl` (36 files, 18,205 chunks)
+- `data/processed/chunks/pubmed/*.jsonl` (36 files, 4,725 unique chunks across 4,159 unique articles)
+- `data/processed/chunks/openfda/*.jsonl` (36 files, 13,167 unique chunks across 467 unique drugs)
 - `data/processed/chunks/who/*.jsonl` (24 files, 4,796 unique chunks, shared correctly across topic groups)
 - `docs/phase06_report.md`

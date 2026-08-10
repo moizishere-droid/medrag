@@ -56,14 +56,46 @@ WHO_TOPIC_GROUPS = [
 
 
 def chunk_pubmed():
-    total_chunks = 0
+    """
+    Same reasoning as OpenFDA: a single article's PMID can genuinely appear
+    under more than one topic (confirmed in this project's data - ~10% of
+    articles, e.g. anxiety-depression comorbidity papers, or anemia in
+    pregnancy papers also covering malaria/malnutrition), discovered by
+    scanning all topics' saved articles first rather than known upfront.
+    """
+    from collections import defaultdict
+
+    pmid_to_topics = defaultdict(list)
+    pmid_to_article = {}
+
     for topic in PUBMED_TOPICS:
         articles = load_articles(topic, output_dir=RAW_PUBMED_DIR)
-        chunks = [c for article in articles for c in chunk_pubmed_article(article)]
-        save_chunks(chunks, source="pubmed", topic=topic, output_dir=CHUNK_OUTPUT_DIR)
+        for article in articles:
+            pmid_to_topics[article.pmid].append(topic)
+            if article.pmid not in pmid_to_article:
+                pmid_to_article[article.pmid] = article
+
+    topic_to_chunks = defaultdict(list)
+    total_chunks = 0
+    total_unique_articles = len(pmid_to_article)
+
+    for pmid, article in pmid_to_article.items():
+        topics = pmid_to_topics[pmid]
+        chunks = chunk_pubmed_article(article, topics=topics)
         total_chunks += len(chunks)
-        logger.info(f"pubmed/{topic}: {len(articles)} articles -> {len(chunks)} chunks")
-    logger.info(f"=== PubMed chunking done: {total_chunks} total chunks ===")
+        for topic in topics:
+            topic_to_chunks[topic].extend(chunks)
+
+    for topic in PUBMED_TOPICS:
+        chunks = topic_to_chunks.get(topic, [])
+        save_chunks(chunks, source="pubmed", topic=topic, output_dir=CHUNK_OUTPUT_DIR)
+        article_count = sum(1 for p in pmid_to_article if topic in pmid_to_topics[p])
+        logger.info(f"pubmed/{topic}: {article_count} articles -> {len(chunks)} chunks")
+
+    logger.info(
+        f"=== PubMed chunking done: {total_unique_articles} unique articles, "
+        f"{total_chunks} unique chunks across all topic files ==="
+    )
 
 
 def chunk_openfda():

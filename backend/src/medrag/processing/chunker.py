@@ -133,11 +133,22 @@ def _build_chunk(chunk_id: str, **kwargs) -> Chunk:
 
 # --- Per-source chunking functions ---------------------------------------
 
-def chunk_pubmed_article(article: Article, target_tokens: int = 500) -> List[Chunk]:
+def chunk_pubmed_article(article: Article, topics: List[str], target_tokens: int = 500) -> List[Chunk]:
     """
     Chunk a PubMed article's abstract. Abstracts are typically short enough
     (~1,900 chars average) to stay as one chunk; sentence_based_chunk only
     splits further if a particular abstract genuinely exceeds target_tokens.
+
+    topics is the full list of project topics this article was returned
+    under. A single paper genuinely can be relevant to more than one topic
+    (e.g. a paper on anxiety-depression comorbidity, or anemia in pregnancy
+    co-occurring with malaria/malnutrition) - confirmed as real overlap in
+    this project's data (~10% of PubMed articles), not a search-matching
+    bug like the one found in OpenFDA. Callers must group by pmid across
+    all topics and call this once per unique article, passing every topic
+    it was returned under, to avoid duplicate storage/embedding of
+    identical abstract content - the same reasoning applied to WHO's
+    shared documents and OpenFDA's shared drugs.
 
     Each chunk's text is prefixed with the article title for context, since
     an isolated sentence from a split abstract otherwise loses its anchor
@@ -146,11 +157,11 @@ def chunk_pubmed_article(article: Article, target_tokens: int = 500) -> List[Chu
     raw_texts = sentence_based_chunk(article.abstract, target_tokens=target_tokens)
     return [
         _build_chunk(
-            chunk_id=f"{article.topic}_pubmed_{article.pmid}_{i}",
+            chunk_id=f"{article.pmid}_pubmed_{i}",
             text=f"{article.title}: {raw_text}",
             raw_text=raw_text,
             source="pubmed",
-            topics=[article.topic],
+            topics=topics,
             source_id=article.pmid,
             chunk_index=i,
             chunk_type="text",
