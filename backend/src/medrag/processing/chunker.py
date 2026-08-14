@@ -9,7 +9,9 @@ comparison and reasoning):
   - WHO clean_text: sentence-based chunking, spaCy sentencizer + a custom
     medical-abbreviation fix (NOT spaCy's statistical parser, which refused
     manual sentence-boundary overrides)
-  - WHO tables: each table is kept as one atomic chunk, never split
+  - WHO tables: each table is kept as one atomic chunk where it fits under
+    the embedding model's token limit, or split into row-groups if it
+    doesn't (see _split_table_by_rows)
   - WHO images: not chunked at all - handled separately in Phase 8
 
 Section-header-based chunking was tested and rejected: it worked well on
@@ -19,15 +21,19 @@ cancer/anemia in pregnancy, near-zero detection on mhGAP-based documents,
 TB, and COVID-19) - a safe adaptive threshold would have needed non-trivial
 extra validation logic not justified by the benefit.
 
-WHO documents shared across multiple project topics (e.g. the PEN package
-covering both asthma and copd) are chunked ONCE, not once per topic - see
-chunk_who_guideline()'s `topics` parameter. This avoids storing/embedding
-duplicate content, which would otherwise waste embedding cost (Phase 7) and
-crowd out genuinely different results in retrieval (Phase 9/11).
+Chunks from a document/drug/article shared across multiple project topics
+(WHO shared guidelines, OpenFDA drugs used for multiple conditions, PubMed
+papers relevant to multiple topics - all confirmed as real in this
+project's data) are built ONCE by the caller (run_chunking.py), which
+groups by the underlying content's identity and passes the full list of
+topics it belongs to, rather than duplicating the same content once per
+topic.
 """
 
+import re
 import logging
 from typing import List, Optional
+from uuid import uuid5, NAMESPACE_URL
 
 import tiktoken
 import spacy
@@ -40,10 +46,6 @@ logger = logging.getLogger("medrag.processing")
 
 ENCODING = tiktoken.get_encoding("cl100k_base")  # matches text-embedding-3-small
 
-# Abbreviations spaCy's small model does not reliably treat as non-sentence-
-# ending on its own (matched with trailing periods stripped, since spaCy
-# sometimes tokenizes the period separately, e.g. "Fig" + "." rather than
-# keeping "Fig." as one token).
 ABBREVIATIONS = {
     "Fig", "Eq", "Ref", "Vol", "e.g.", "i.e.", "vs.", "Dr", "Mr", "Mrs",
     "et al", "approx", "cf", "mg", "mL", "no", "cm", "kg",
@@ -57,19 +59,17 @@ def get_spacy_pipeline() -> Language:
     Build (once) and return the spaCy pipeline used for sentence splitting.
     Uses the rule-based sentencizer, not the statistical parser - the parser
     recalculates its own sentence starts and refuses manual overrides
-    (raises ValueError: E043 if you try), so it can't be used with a custom
-    abbreviation-boundary fix.
+    (raises ValueError: E043 if you try). parser and ner are both excluded
+    (neither needed for sentence splitting), which also lets max_length be
+    raised safely to handle the largest WHO document (malaria, ~1.18M chars)
+    without the components that limit exists to protect against.
     """
     global _nlp
     if _nlp is not None:
         return _nlp
 
     nlp = spacy.load("en_core_web_sm", exclude=["parser", "ner"])
-    nlp.max_length = 2_000_000  # malaria's clean_text alone is ~1.18M chars;
-                                  # safe to raise since parser/ner (the memory-
-                                  # heavy components this limit protects
-                                  # against) are excluded - we only use the
-                                  # lightweight rule-based sentencizer
+    nlp.max_length = 2_000_000
     nlp.add_pipe("sentencizer")
 
     @Language.component("fix_abbreviation_boundaries")
@@ -78,9 +78,6 @@ def get_spacy_pipeline() -> Language:
             text = token.text.rstrip(".")
             is_abbrev = text in ABBREVIATIONS or token.text in ABBREVIATIONS
             if is_abbrev:
-                # If the abbreviation's period is its own separate token
-                # (e.g. "Fig" + "."), the sentence boundary lands on the
-                # token AFTER that period - unset it two tokens ahead.
                 if token.text != "." and i + 1 < len(doc) and doc[i + 1].text == "." and i + 2 < len(doc):
                     doc[i + 2].is_sent_start = False
                 elif i + 1 < len(doc):
@@ -126,12 +123,25 @@ def sentence_based_chunk(text: str, target_tokens: int = 300) -> List[str]:
     return chunks
 
 
-def _build_chunk(chunk_id: str, **kwargs) -> Chunk:
-    """Construct a Chunk with its point_id automatically derived from chunk_id."""
-    return Chunk(chunk_id=chunk_id, point_id=Chunk.make_point_id(chunk_id), **kwargs)
+def _build_chunk(chunk_id: str, text: str, raw_text: str, source: str, topics: List[str],
+                  source_id: str, chunk_index: int, chunk_type: str = "text",
+                  metadata: Optional[dict] = None) -> Chunk:
+    """Shared helper: builds a Chunk with its deterministic point_id derived from chunk_id."""
+    return Chunk(
+        chunk_id=chunk_id,
+        point_id=Chunk.make_point_id(chunk_id),
+        text=text,
+        raw_text=raw_text,
+        source=source,
+        topics=topics,
+        source_id=source_id,
+        chunk_index=chunk_index,
+        chunk_type=chunk_type,
+        metadata=metadata,
+    )
 
 
-# --- Per-source chunking functions ---------------------------------------
+# --- PubMed ----------------------------------------------------------------
 
 def chunk_pubmed_article(article: Article, topics: List[str], target_tokens: int = 500) -> List[Chunk]:
     """
@@ -141,18 +151,11 @@ def chunk_pubmed_article(article: Article, topics: List[str], target_tokens: int
 
     topics is the full list of project topics this article was returned
     under. A single paper genuinely can be relevant to more than one topic
-    (e.g. a paper on anxiety-depression comorbidity, or anemia in pregnancy
-    co-occurring with malaria/malnutrition) - confirmed as real overlap in
-    this project's data (~10% of PubMed articles), not a search-matching
-    bug like the one found in OpenFDA. Callers must group by pmid across
-    all topics and call this once per unique article, passing every topic
-    it was returned under, to avoid duplicate storage/embedding of
-    identical abstract content - the same reasoning applied to WHO's
-    shared documents and OpenFDA's shared drugs.
+    (confirmed as real overlap in this project's data, ~10% of PubMed
+    articles, not a search-matching bug). Callers must group by pmid across
+    all topics and call this once per unique article.
 
-    Each chunk's text is prefixed with the article title for context, since
-    an isolated sentence from a split abstract otherwise loses its anchor
-    to which paper it came from.
+    Each chunk's text is prefixed with the article title for context.
     """
     raw_texts = sentence_based_chunk(article.abstract, target_tokens=target_tokens)
     return [
@@ -171,6 +174,8 @@ def chunk_pubmed_article(article: Article, topics: List[str], target_tokens: int
     ]
 
 
+# --- OpenFDA -----------------------------------------------------------------
+
 def chunk_openfda_drug(drug: DrugRecord, topics: List[str], target_tokens: int = 300) -> List[Chunk]:
     """
     Chunk an OpenFDA drug record field-by-field - each labeled section
@@ -179,13 +184,9 @@ def chunk_openfda_drug(drug: DrugRecord, topics: List[str], target_tokens: int =
     sentence_based_chunk rather than kept as one oversized chunk.
 
     topics is the full list of project topics this drug legitimately
-    appeared under (OpenFDA searches independently per topic, and the same
-    drug - e.g. a widely-used NSAID, or a false-positive text match on
-    indications_and_usage - can surface under several topics). Callers must
-    group by brand_name across all topics and call this once per unique
-    drug, passing every topic it appeared under, rather than calling this
-    once per topic - avoiding duplicate storage/embedding of the same
-    drug's identical field content.
+    appeared under (confirmed as real, e.g. naproxen across osteoarthritis,
+    rheumatoid arthritis, etc.). Callers must group by brand_name across
+    all topics and call this once per unique drug.
 
     Each chunk's text is prefixed with "{brand_name} — {readable field
     name}:" for context.
@@ -236,19 +237,52 @@ def chunk_openfda_drug(drug: DrugRecord, topics: List[str], target_tokens: int =
     return chunks
 
 
+# --- WHO ---------------------------------------------------------------------
+
+def _split_table_by_rows(table_data: list, max_tokens: int = 6000) -> List[list]:
+    """
+    Split a table's rows into groups that each stay under max_tokens.
+    Used only for tables large enough to exceed the embedding model's hard
+    8,192-token input limit - most tables stay as a single atomic chunk,
+    but a genuinely large table (many rows, e.g. some of the 275 tables in
+    the 451-page malaria guideline) needs row-group splitting rather than
+    being silently truncated or rejected by the embedding API.
+    """
+    groups = []
+    current_rows = []
+    current_tokens = 0
+
+    for row in table_data:
+        row_text = " | ".join(str(cell) if cell is not None else "" for cell in row)
+        row_tokens = len(ENCODING.encode(row_text))
+
+        if current_rows and current_tokens + row_tokens > max_tokens:
+            groups.append(current_rows)
+            current_rows = []
+            current_tokens = 0
+
+        current_rows.append(row)
+        current_tokens += row_tokens
+
+    if current_rows:
+        groups.append(current_rows)
+
+    return groups
+
+
 def chunk_who_guideline(guideline: Guideline, tables: List[dict], topics: List[str], target_tokens: int = 300) -> List[Chunk]:
     """
     Chunk a WHO guideline: clean_text via sentence-based chunking (the
-    validated final strategy - see module docstring), plus each extracted
-    table kept as one atomic chunk (never split, to preserve row/column
-    meaning). Images are not chunked - handled separately in Phase 8.
+    validated final strategy), plus each extracted table kept as one atomic
+    chunk where it fits under the embedding model's token limit, or split
+    into row-groups if it doesn't (see _split_table_by_rows). Images are
+    not chunked - handled separately in Phase 8.
 
-    topics is the FULL list of project topics that share this document
-    (e.g. ["asthma", "copd"] for the PEN package) - callers must chunk each
-    unique document only once and pass all its topics here, rather than
-    calling this once per topic, to avoid storing/embedding duplicate
-    content. A canonical id (topics joined with "+") is used for chunk_id/
-    source_id instead of a single topic name.
+    topics is the full list of project topics this document (or shared
+    document group, e.g. the PEN package covering both asthma and copd)
+    belongs to - a canonical id (topics joined with "+") is used for
+    chunk_id/source_id so shared documents are chunked once, not once per
+    topic.
 
     Each chunk's text is prefixed with the guideline's title for context.
     """
@@ -272,21 +306,49 @@ def chunk_who_guideline(guideline: Guideline, tables: List[dict], topics: List[s
         index += 1
 
     for table in tables:
-        table_text = "\n".join(
+        table_data = table["table_data"]
+        full_table_text = "\n".join(
             " | ".join(str(cell) if cell is not None else "" for cell in row)
-            for row in table["table_data"]
+            for row in table_data
         )
-        chunks.append(_build_chunk(
-            chunk_id=f"{canonical_id}_who_table_{index}",
-            text=f"{guideline.title} (table, page {table['page_number']}): {table_text}",
-            raw_text=table_text,
-            source="who",
-            topics=topics,
-            source_id=canonical_id,
-            chunk_index=index,
-            chunk_type="table",
-            metadata={"title": guideline.title, "page_number": table["page_number"]},
-        ))
-        index += 1
+        full_table_tokens = len(ENCODING.encode(full_table_text))
+
+        if full_table_tokens <= 6000:
+            chunks.append(_build_chunk(
+                chunk_id=f"{canonical_id}_who_table_{index}",
+                text=f"{guideline.title} (table, page {table['page_number']}): {full_table_text}",
+                raw_text=full_table_text,
+                source="who",
+                topics=topics,
+                source_id=canonical_id,
+                chunk_index=index,
+                chunk_type="table",
+                metadata={"title": guideline.title, "page_number": table["page_number"]},
+            ))
+            index += 1
+        else:
+            row_groups = _split_table_by_rows(table_data)
+            for group_idx, row_group in enumerate(row_groups):
+                group_text = "\n".join(
+                    " | ".join(str(cell) if cell is not None else "" for cell in row)
+                    for row in row_group
+                )
+                chunks.append(_build_chunk(
+                    chunk_id=f"{canonical_id}_who_table_{index}",
+                    text=f"{guideline.title} (table, page {table['page_number']}, part {group_idx + 1}/{len(row_groups)}): {group_text}",
+                    raw_text=group_text,
+                    source="who",
+                    topics=topics,
+                    source_id=canonical_id,
+                    chunk_index=index,
+                    chunk_type="table",
+                    metadata={
+                        "title": guideline.title,
+                        "page_number": table["page_number"],
+                        "table_part": group_idx + 1,
+                        "table_parts_total": len(row_groups),
+                    },
+                ))
+                index += 1
 
     return chunks
