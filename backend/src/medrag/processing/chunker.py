@@ -239,6 +239,36 @@ def chunk_openfda_drug(drug: DrugRecord, topics: List[str], target_tokens: int =
 
 # --- WHO ---------------------------------------------------------------------
 
+def _token_window_fallback_split(content_text: str, prefix: str, max_tokens: int = 7500) -> List[str]:
+    """
+    Last-resort fallback: split raw content into token windows sized to
+    leave room for the context prefix, then prepend that SAME prefix to
+    EVERY resulting piece - not just the first. Only reached when row-group
+    splitting still isn't enough (e.g. a single table row containing one
+    very large text cell - row-grouping alone can't help when the
+    oversized content is inside one row, not spread across many).
+
+    Splitting the already-prefixed text as one blob would only keep the
+    prefix on the first piece; every later piece would be bare,
+    context-free continuation text with no title/page/part information -
+    defeating the purpose of contextual prefixing applied everywhere else
+    in this module. Reserving prefix-sized budget and re-prepending it to
+    each piece keeps every piece self-contained for embedding.
+    """
+    prefix_tokens = len(ENCODING.encode(prefix))
+    content_budget = max(max_tokens - prefix_tokens, 500)  # keep a sane floor
+
+    content_tokens = ENCODING.encode(content_text)
+    if len(content_tokens) + prefix_tokens <= max_tokens:
+        return [f"{prefix}{content_text}"]
+
+    pieces = []
+    for i in range(0, len(content_tokens), content_budget):
+        piece_content = ENCODING.decode(content_tokens[i:i + content_budget])
+        pieces.append(f"{prefix}{piece_content}")
+    return pieces
+
+
 def _split_table_by_rows(table_data: list, max_tokens: int = 6000) -> List[list]:
     """
     Split a table's rows into groups that each stay under max_tokens.
@@ -247,6 +277,11 @@ def _split_table_by_rows(table_data: list, max_tokens: int = 6000) -> List[list]
     but a genuinely large table (many rows, e.g. some of the 275 tables in
     the 451-page malaria guideline) needs row-group splitting rather than
     being silently truncated or rejected by the embedding API.
+
+    Note: this alone does not guarantee every group is small enough - a
+    single row can itself exceed max_tokens (e.g. one cell with a huge
+    block of text). chunk_who_guideline applies _hard_token_split as a
+    final safety net to guarantee correctness regardless of this case.
     """
     groups = []
     current_rows = []
@@ -314,9 +349,12 @@ def chunk_who_guideline(guideline: Guideline, tables: List[dict], topics: List[s
         full_table_tokens = len(ENCODING.encode(full_table_text))
 
         if full_table_tokens <= 6000:
+            # Fits comfortably under the embedding model's 8,192-token
+            # limit as one atomic chunk - the normal case for most tables
+            prefixed_text = f"{guideline.title} (table, page {table['page_number']}): {full_table_text}"
             chunks.append(_build_chunk(
                 chunk_id=f"{canonical_id}_who_table_{index}",
-                text=f"{guideline.title} (table, page {table['page_number']}): {full_table_text}",
+                text=prefixed_text,
                 raw_text=full_table_text,
                 source="who",
                 topics=topics,
@@ -326,28 +364,48 @@ def chunk_who_guideline(guideline: Guideline, tables: List[dict], topics: List[s
                 metadata={"title": guideline.title, "page_number": table["page_number"]},
             ))
             index += 1
-        else:
-            row_groups = _split_table_by_rows(table_data)
-            for group_idx, row_group in enumerate(row_groups):
-                group_text = "\n".join(
-                    " | ".join(str(cell) if cell is not None else "" for cell in row)
-                    for row in row_group
-                )
+            continue
+
+        # Table too large for one chunk - split by rows first
+        row_groups = _split_table_by_rows(table_data)
+
+        for group_idx, row_group in enumerate(row_groups):
+            group_text = "\n".join(
+                " | ".join(str(cell) if cell is not None else "" for cell in row)
+                for row in row_group
+            )
+            group_prefix = (
+                f"{guideline.title} (table, page {table['page_number']}, "
+                f"part {group_idx + 1}/{len(row_groups)}): "
+            )
+
+            # Safety net: even a single row-group can still exceed the
+            # embedding limit if it contains one very large cell - split
+            # further by token windows, with the context prefix re-applied
+            # to every resulting piece (not just the first)
+            final_pieces = _token_window_fallback_split(group_text, group_prefix)
+
+            for sub_idx, piece_text in enumerate(final_pieces):
+                metadata = {
+                    "title": guideline.title,
+                    "page_number": table["page_number"],
+                    "table_part": group_idx + 1,
+                    "table_parts_total": len(row_groups),
+                }
+                if len(final_pieces) > 1:
+                    metadata["token_split_part"] = sub_idx + 1
+                    metadata["token_split_parts_total"] = len(final_pieces)
+
                 chunks.append(_build_chunk(
                     chunk_id=f"{canonical_id}_who_table_{index}",
-                    text=f"{guideline.title} (table, page {table['page_number']}, part {group_idx + 1}/{len(row_groups)}): {group_text}",
-                    raw_text=group_text,
+                    text=piece_text,
+                    raw_text=piece_text,
                     source="who",
                     topics=topics,
                     source_id=canonical_id,
                     chunk_index=index,
                     chunk_type="table",
-                    metadata={
-                        "title": guideline.title,
-                        "page_number": table["page_number"],
-                        "table_part": group_idx + 1,
-                        "table_parts_total": len(row_groups),
-                    },
+                    metadata=metadata,
                 ))
                 index += 1
 
