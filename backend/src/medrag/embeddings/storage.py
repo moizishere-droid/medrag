@@ -56,3 +56,43 @@ def load_embeddings(source: str, output_dir: str) -> Tuple[np.ndarray, List[dict
             index.append(json.loads(line))
 
     return embeddings, index
+
+
+def save_image_embeddings(records, embeddings: np.ndarray, topics_per_record, output_dir: str) -> Tuple[Path, Path]:
+    """
+    Save WHO image embeddings as a .npy array and a parallel .jsonl index
+    (same row order) to output_dir/who_images_embeddings.npy and
+    who_images_index.jsonl.
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    npy_path = Path(output_dir) / "who_images_embeddings.npy"
+    np.save(npy_path, embeddings)
+
+    index_path = Path(output_dir) / "who_images_index.jsonl"
+    with open(index_path, "w", encoding="utf-8") as f:
+        for record, topics in zip(records, topics_per_record):
+            entry = {
+                "filename": record.filename,
+                "topics": topics,
+                "page_number": record.page_number,
+                "image_type": record.image_type,
+            }
+            f.write(json.dumps(entry) + "\n")
+
+    return npy_path, index_path
+
+
+def load_image_embeddings(output_dir: str) -> Tuple[np.ndarray, List[dict]]:
+    """Load WHO image embeddings and their index back."""
+    npy_path = Path(output_dir) / "who_images_embeddings.npy"
+    index_path = Path(output_dir) / "who_images_index.jsonl"
+
+    embeddings = np.load(npy_path)
+
+    index = []
+    with open(index_path, "r", encoding="utf-8") as f:
+        for line in f:
+            index.append(json.loads(line))
+
+    return embeddings, index
