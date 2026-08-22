@@ -121,14 +121,14 @@ A topic missing coverage from one source (e.g., no WHO guidance, or few OpenFDA-
 
 ## 7. Data Schema (As Actually Implemented)
 
-| Stage | Shape |
-|---|---|
-| Raw (PubMed) | `Article{pmid, title, abstract, authors, journal, pub_date, language, topic, source, url}` |
-| Raw (OpenFDA) | `DrugRecord{brand_name, generic_name, drug_class, indications_and_usage, dosage_and_administration, contraindications, warnings_and_cautions, adverse_reactions, drug_interactions, mechanism_of_action, topic, source}` |
-| Raw (WHO) | `Guideline{title, topic, clean_text, raw_text, num_pages, num_tables, num_images, source_url, source}` + `WhoTable{topic, page_number, table_data}` + `WhoImage{topic, page_number, image_index, filename, width, height, image_type}` |
-| Chunked | `Chunk{chunk_id, point_id, text, raw_text, source, topics: List[str], source_id, chunk_index, chunk_type, metadata}` |
-| Text Embedded | `.npy` array (float32) + JSONL index `{point_id, chunk_id, source, topics, source_id, chunk_type}` |
-| Image Embedded | `.npy` array (float32, 512-dim) + JSONL index `{filename, topics, page_number, image_type}` |
+| Stage          | Shape                                                                                                                  |
+|----------------|------------------------------------------------------------------------------------------------------------------------|
+| Raw (PubMed)   | `Article{pmid, title, abstract, authors, journal, pub_date, language, topic, source, url}`                             |
+| Raw (OpenFDA)  | `DrugRecord{brand_name, generic_name, drug_class, indications_and_usage, dosage_and_administration, contraindications, warnings_and_cautions, adverse_reactions, drug_interactions, mechanism_of_action, topic, source}`                                         |
+| Raw (WHO)      | `Guideline{title, topic, clean_text, raw_text, num_pages, num_tables, num_images, source_url, source}` + `WhoTable{topic, page_number, table_data}` + `WhoImage{topic, page_number, image_index, filename, width, height, image_type}`                              |
+| Chunked        | `Chunk{chunk_id, point_id, text, raw_text, source, topics: List[str], source_id, chunk_index, chunk_type, metadata}`   |
+| Text Embedded  | `.npy` array (float32) + JSONL index `{point_id, chunk_id, source, topics, source_id, chunk_type}`                     |
+| Image Embedded | `.npy` array (float32, 512-dim) + JSONL index `{filename, topics, page_number, image_type}`                            |
 
 ## 8. Actual Data Scope (Confirmed Through Phase 7, Supersedes Earlier Estimates)
 
@@ -187,16 +187,3 @@ medrag/
 ├── docker-compose.yml
 └── README.md
 ```
-
-## 12. Completed Phases (Status as of This Update)
-
-| Phase | Status |
-|---|---|
-| 0 — Documentation & Architecture | Complete (this document) |
-| 1 — Environment Setup | Complete |
-| 2 — PubMed Ingestion | Complete (4,680 → 4,159 unique after dedup) |
-| 3 — OpenFDA Ingestion | Complete, revised twice (exact-phrase matching fix, search-term overrides) |
-| 4 — WHO Guidelines Ingestion | Complete, revised (unified text/table/image extraction) |
-| 5 — Text Chunking | Complete, revised three times (WHO/OpenFDA/PubMed cross-topic dedup) |
-| 6 — Text Embeddings | Complete |
-| 7 — Image Embeddings | Complete (image-to-chunk linking step designed, not yet implemented) |
