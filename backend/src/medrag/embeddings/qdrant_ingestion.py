@@ -6,6 +6,13 @@ logic handles PubMed, OpenFDA, and WHO chunks identically. WHO chunks
 additionally carry a linked_images payload field (from Phase 7's
 image-chunk linking); PubMed and OpenFDA chunks simply get an empty list
 for that field, since they have no associated images.
+
+Phase 9+: every text point carries both a dense vector (precomputed in
+Phase 6, loaded from disk) and a sparse BM25 vector (computed here, at
+upload time, via fastembed's Qdrant/bm25 encoder) under the named-vector
+keys defined in qdrant_client.py. Image points are unaffected - they keep
+a single unnamed dense (CLIP) vector, since there's no sparse/keyword
+counterpart for images.
 """
 
 import logging
@@ -15,10 +22,13 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
+from fastembed import SparseTextEmbedding
 
 from medrag.embeddings.qdrant_client import (
     TEXT_COLLECTION,
     IMAGE_COLLECTION,
+    DENSE_VECTOR_NAME,
+    SPARSE_VECTOR_NAME,
     generate_image_point_id,
 )
 from medrag.processing.models import Chunk
@@ -26,6 +36,20 @@ from medrag.processing.models import Chunk
 logger = logging.getLogger("medrag.embeddings")
 
 DEFAULT_BATCH_SIZE = 250
+SPARSE_MODEL_NAME = "Qdrant/bm25"
+
+_sparse_model_cache: Optional[SparseTextEmbedding] = None
+
+
+def get_sparse_model() -> SparseTextEmbedding:
+    """Load (once, cached) fastembed's BM25 sparse encoder. Loading this
+    model has real startup cost, so it's cached at module level rather
+    than reloaded per batch or per call."""
+    global _sparse_model_cache
+    if _sparse_model_cache is None:
+        logger.info(f"Loading sparse model '{SPARSE_MODEL_NAME}'...")
+        _sparse_model_cache = SparseTextEmbedding(model_name=SPARSE_MODEL_NAME)
+    return _sparse_model_cache
 
 
 def dedupe_links(links: List[dict]) -> List[dict]:
@@ -79,10 +103,14 @@ def build_link_maps(links: List[dict]) -> Tuple[Dict[str, List[dict]], Dict[str,
 
 def build_text_point(
     chunk: Chunk,
-    vector: np.ndarray,
+    dense_vector: np.ndarray,
+    sparse_vector,
     chunk_to_images: Optional[Dict[str, List[dict]]] = None,
 ) -> qmodels.PointStruct:
-    """Build a single Qdrant point for a text chunk. linked_images is
+    """Build a single Qdrant point for a text chunk, carrying both a
+    dense and a sparse vector under their named-vector keys. sparse_vector
+    is a fastembed SparseEmbedding (has .indices / .values attributes),
+    as returned by get_sparse_model().embed(...). linked_images is
     populated from chunk_to_images when provided (WHO chunks); PubMed
     and OpenFDA chunks pass no map and get an empty list, since they
     have no associated images."""
@@ -98,7 +126,17 @@ def build_text_point(
         "metadata": chunk.metadata or {},
         "linked_images": (chunk_to_images or {}).get(chunk.chunk_id, []),
     }
-    return qmodels.PointStruct(id=chunk.point_id, vector=vector.tolist(), payload=payload)
+    return qmodels.PointStruct(
+        id=chunk.point_id,
+        vector={
+            DENSE_VECTOR_NAME: dense_vector.tolist(),
+            SPARSE_VECTOR_NAME: qmodels.SparseVector(
+                indices=sparse_vector.indices.tolist(),
+                values=sparse_vector.values.tolist(),
+            ),
+        },
+        payload=payload,
+    )
 
 
 def build_image_point(
@@ -109,9 +147,11 @@ def build_image_point(
     vector: np.ndarray,
     image_to_chunks: Optional[Dict[str, List[dict]]] = None,
 ) -> qmodels.PointStruct:
-    """Build a single Qdrant point for a WHO image. Uses the deterministic
-    filename-based point_id so this always matches whatever id a chunk's
-    linked_images payload already points to."""
+    """Build a single Qdrant point for a WHO image. Unaffected by the
+    Phase 9 hybrid migration - images keep a single unnamed dense (CLIP)
+    vector, since medrag_images has no sparse counterpart. Uses the
+    deterministic filename-based point_id so this always matches
+    whatever id a chunk's linked_images payload already points to."""
     point_id = generate_image_point_id(filename)
     payload = {
         "filename": filename,
@@ -130,10 +170,10 @@ def upload_points(
     batch_size: int = DEFAULT_BATCH_SIZE,
     label: str = "",
 ) -> int:
-    """Upload points in batches rather than one giant request, so a very
-    large source doesn't risk a request timeout or memory spike building
-    everything at once, and so progress is visible / a mid-upload failure
-    doesn't lose all prior work."""
+    """Upload already-built points in batches rather than one giant
+    request, so a very large source doesn't risk a request timeout or
+    memory spike, and progress is visible / a mid-upload failure doesn't
+    lose all prior work."""
     prefix = f"{label}: " if label else ""
     for i in range(0, len(points), batch_size):
         batch = points[i:i + batch_size]
@@ -152,21 +192,43 @@ def upload_source_chunks(
     batch_size: int = DEFAULT_BATCH_SIZE,
 ) -> int:
     """Build and upload all points for one source (pubmed / openfda / who)
-    into the shared medrag_text collection. Rows whose chunk_id has no
-    matching entry in chunk_lookup are skipped and counted, rather than
-    raising - this can legitimately happen if embeddings and chunk files
-    have drifted out of sync, and should be visible, not silent."""
-    points = []
-    skipped = 0
-    for row, vector in zip(index_rows, embeddings):
-        chunk = chunk_lookup.get(row["chunk_id"])
-        if chunk is None:
-            skipped += 1
-            continue
-        points.append(build_text_point(chunk, vector, chunk_to_images))
+    into the shared medrag_text collection, computing both dense (already
+    precomputed, loaded from disk) and sparse (computed here, batched)
+    vectors for every point.
 
-    logger.info(f"{source_name}: {len(points)} points to upload ({skipped} skipped, missing chunk)")
-    return upload_points(client, TEXT_COLLECTION, points, batch_size=batch_size, label=source_name)
+    Sparse vectors are computed per upload-batch rather than per point -
+    calling the BM25 encoder once per batch of chunk texts is far more
+    efficient than once per individual chunk.
+
+    Rows whose chunk_id has no matching entry in chunk_lookup are skipped
+    and counted, rather than raising - this can legitimately happen if
+    embeddings and chunk files have drifted out of sync, and should be
+    visible, not silent."""
+    sparse_model = get_sparse_model()
+
+    rows = [
+        (row, vector) for row, vector in zip(index_rows, embeddings)
+        if row["chunk_id"] in chunk_lookup
+    ]
+    skipped = len(index_rows) - len(rows)
+    logger.info(f"{source_name}: {len(rows)} points to upload ({skipped} skipped, missing chunk)")
+
+    total_uploaded = 0
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i:i + batch_size]
+        chunks = [chunk_lookup[row["chunk_id"]] for row, _ in batch]
+        texts = [c.text for c in chunks]
+        sparse_vectors = list(sparse_model.embed(texts))
+
+        points = [
+            build_text_point(chunk, dense_vector, sparse_vector, chunk_to_images)
+            for (row, dense_vector), chunk, sparse_vector in zip(batch, chunks, sparse_vectors)
+        ]
+        client.upsert(collection_name=TEXT_COLLECTION, points=points)
+        total_uploaded += len(points)
+        logger.info(f"  {source_name}: uploaded {min(i + batch_size, len(rows))}/{len(rows)}")
+
+    return total_uploaded
 
 
 def upload_images(
@@ -176,7 +238,8 @@ def upload_images(
     image_to_chunks: Optional[Dict[str, List[dict]]] = None,
 ) -> int:
     """Build and upload all WHO image points into medrag_images. Small
-    enough (76 images) to upload in a single batch."""
+    enough (76 images) to upload in a single batch. Unaffected by the
+    Phase 9 hybrid migration."""
     points = [
         build_image_point(
             filename=row["filename"],

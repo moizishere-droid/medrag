@@ -6,11 +6,16 @@ Run from the backend/ folder, same convention as other run_*.py scripts:
     cd backend
     python scripts/run_qdrant_ingestion.py
 
-By default this only creates collections if they don't already exist
-(ensure_collections) - it never drops existing data. Pass --reset to
-explicitly drop and recreate both collections first (e.g. after a payload
-schema change, or to clear out stale/test data) - this is opt-in and
-logged loudly since it is destructive.
+Phase 9+: medrag_text points now carry both a dense vector (Phase 6,
+loaded from disk) and a sparse BM25 vector (computed here at upload time
+via fastembed) under named vector keys, enabling hybrid retrieval. This
+is a genuine schema change from the original Phase 8 single-unnamed-vector
+collection - an existing pre-hybrid medrag_text collection is NOT
+automatically migrated by a normal run (ensure_collections() leaves an
+existing collection untouched). Pass --reset to drop and recreate both
+collections under the new hybrid schema; this is required at least once
+to move off an old Phase 8 collection, and is otherwise opt-in/destructive
+for the same reason it always was: it discards existing data.
 
 Reads:
   - PubMed / OpenFDA / WHO chunks (Phase 6, data/processed/chunks/)
@@ -78,7 +83,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--reset", action="store_true",
-        help="Drop and recreate both collections before uploading (destroys existing data)",
+        help=(
+            "Drop and recreate both collections before uploading (destroys "
+            "existing data). Required at least once to migrate an existing "
+            "Phase 8 medrag_text collection to the Phase 9 hybrid "
+            "(dense+sparse named vector) schema."
+        ),
     )
     args = parser.parse_args()
 
@@ -111,8 +121,8 @@ def main():
     openfda_chunk_lookup = load_all_chunks_for_source("openfda", CHUNKS_DIR)
     openfda_embeddings, openfda_index = load_embeddings("openfda", EMBEDDINGS_DIR)
 
-    # --- Upload all three sources into medrag_text ---
-    logger.info("Uploading text chunks...")
+    # --- Upload all three sources into medrag_text (dense + sparse per point) ---
+    logger.info("Uploading text chunks (dense + sparse)...")
     total_text = 0
     total_text += upload_source_chunks(
         client, "who", who_chunk_lookup, who_embeddings, who_index,
