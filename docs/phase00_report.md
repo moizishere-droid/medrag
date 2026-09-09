@@ -6,13 +6,9 @@
 
 ## 1. Problem Statement
 
-Medical knowledge — research papers, clinical guidelines, drug databases — is overwhelmingly published in English. PubMed, WHO guidelines, and drug regulatory data are almost entirely English-first resources. This creates a real barrier:
+Medical knowledge is mostly published in English and includes important text, images, and tables, making it difficult for non-English users to access and understand. LLMs can also hallucinate or provide incorrect medical information, which can be dangerous and potentially put patients at risk.
 
-- Non-English-speaking patients cannot understand medical literature relevant to their own care.
-- Doctors and healthcare workers in non-English-speaking regions face friction accessing the latest medical evidence quickly.
-- Medical information also isn't purely text — diagrams, X-rays, and dosage tables carry critical meaning that plain-text search tools ignore entirely.
-
-There is no simple, free, production-grade system that lets a person ask a medical question in their own language and get an accurate, cited answer synthesized from real English medical literature — across text, images, and tables.
+To address this, we use Retrieval-Augmented Generation (RAG) to ground the LLM in trusted medical sources such as PubMed, WHO guidelines, and drug databases, enabling it to provide accurate, cited, multilingual answers using relevant text, images, and tables.
 
 ## 2. Solution
 
