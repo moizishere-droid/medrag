@@ -25,3 +25,4 @@ wandb/
 
 # Environment
 .env
+neo4j_data/
