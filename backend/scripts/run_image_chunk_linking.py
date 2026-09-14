@@ -21,9 +21,29 @@ Reads:
 """
 
 import logging
+from pathlib import Path
+
+
+def find_project_root(marker: str = "backend", start: Path = None) -> Path:
+    """Walk upward from `start` (or this file's location) until a folder
+    containing `marker` is found. Anchors data paths to the real project
+    root regardless of which directory the script is invoked from - a
+    bare relative path like "data/processed/chunks" only appears to work
+    when run from one specific directory (the project root), even though
+    this script's own docstring says to run it from backend/. Confirmed
+    as a real, previously-undiscovered issue project-wide during Phase 13
+    development."""
+    current = (start or Path(__file__).resolve()).parent
+    for candidate in [current, *current.parents]:
+        if (candidate / marker).is_dir():
+            return candidate
+    raise RuntimeError(f"Could not find a '{marker}' folder above {current}")
+
+
+PROJECT_ROOT = find_project_root()
 
 from medrag.processing.storage import load_chunks
-from medrag.embeddings.storage import load_image_embeddings
+
 from medrag.ingestion.models import WhoImage
 from medrag.processing.image_linking import link_images_to_chunks, save_image_chunk_links
 
@@ -34,8 +54,8 @@ from run_chunking import WHO_TOPIC_GROUPS
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("medrag.processing")
 
-CHUNKS_DIR = "data/processed/chunks"
-EMBEDDINGS_DIR = "data/processed/embeddings"
+CHUNKS_DIR = str(PROJECT_ROOT / "data" / "processed" / "chunks")
+EMBEDDINGS_DIR = str(PROJECT_ROOT / "data" / "processed" / "embeddings")
 
 
 def load_all_who_chunks() -> list:
@@ -64,6 +84,7 @@ def main():
     logger.info(f"  Loaded {len(chunks)} unique WHO chunks")
 
     logger.info("Loading WHO image index...")
+    from medrag.embeddings.storage import load_image_embeddings
     _, image_index = load_image_embeddings(EMBEDDINGS_DIR)
 
     # Reconstruct WhoImage records + their topics lists from the saved
@@ -90,7 +111,6 @@ def main():
     logger.info(f"  {stats['figure_mentions_found']} figure mentions found across all chunks")
     logger.info(f"  {stats['figure_mentions_out_of_range']} mentions fell outside their document's image count")
     logger.info(f"  {stats['unique_images_linked']}/{stats['total_images']} unique images linked")
-    logger.info(f"  {stats['documents_with_neither_matched']} documents had images but no matching chunks")
     logger.info(f"  {stats['documents_with_neither_matched']} documents had images but no matching chunks")
     logger.info(f"  {stats.get('listing_chunks_skipped', 0)} List-of-Figures chunks skipped")
 

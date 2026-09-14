@@ -28,6 +28,25 @@ import argparse
 import logging
 from pathlib import Path
 
+
+def find_project_root(marker: str = "backend", start: Path = None) -> Path:
+    """Walk upward from `start` (or this file's location) until a folder
+    containing `marker` is found. Anchors data paths to the real project
+    root regardless of which directory the script is invoked from - a
+    bare relative path like "data/processed/chunks" only appears to work
+    when run from one specific directory (the project root), even though
+    this script's own docstring says to run it from backend/. Confirmed
+    as a real, previously-undiscovered issue project-wide during Phase 13
+    development, and retroactively fixed here."""
+    current = (start or Path(__file__).resolve()).parent
+    for candidate in [current, *current.parents]:
+        if (candidate / marker).is_dir():
+            return candidate
+    raise RuntimeError(f"Could not find a '{marker}' folder above {current}")
+
+
+PROJECT_ROOT = find_project_root()
+
 from medrag.embeddings.storage import load_embeddings, load_image_embeddings
 from medrag.embeddings.qdrant_client import get_qdrant_client, ensure_collections, reset_collections
 from medrag.embeddings.qdrant_ingestion import (
@@ -47,8 +66,8 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)  # suppress per-request noise
 logger = logging.getLogger("medrag.embeddings")
 
-CHUNKS_DIR = "data/processed/chunks"
-EMBEDDINGS_DIR = "data/processed/embeddings"
+CHUNKS_DIR = str(PROJECT_ROOT / "data" / "processed" / "chunks")
+EMBEDDINGS_DIR = str(PROJECT_ROOT / "data" / "processed" / "embeddings")
 
 
 def load_all_chunks_for_source(source: str, chunks_dir: str) -> dict:
