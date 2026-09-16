@@ -1,0 +1,128 @@
+[
+  {
+    "id": "eval_01",
+    "question": "What does metformin treat?",
+    "ground_truth": "Metformin is an antihyperglycemic agent used to treat type 2 diabetes mellitus, improving glycemic control as an adjunct to diet and exercise.",
+    "source": "openfda",
+    "notes": "Verified in Phase 13/14 against Metformin Hydrochloride's indications_and_usage section."
+  },
+  {
+    "id": "eval_02",
+    "question": "What are the contraindications of metformin?",
+    "ground_truth": "Metformin is contraindicated in patients with severe renal impairment (eGFR below 30 mL/min/1.73 m^2), hypersensitivity to metformin, and acute or chronic metabolic acidosis, including diabetic ketoacidosis, with or without coma.",
+    "source": "openfda",
+    "notes": "Verified in Phase 13 (graph facts) and Phase 16 (reformulation fix test) end-to-end."
+  },
+  {
+    "id": "eval_03",
+    "question": "What is the recommended starting dose of metformin?",
+    "ground_truth": "The recommended starting dose is 500 mg orally twice a day or 850 mg once a day, taken with meals.",
+    "source": "openfda",
+    "notes": "Verified directly against a raw Metformin Hydrochloride dosage_and_administration chunk (Phase 13 testing)."
+  },
+  {
+    "id": "eval_04",
+    "question": "When should metformin be discontinued based on kidney function?",
+    "ground_truth": "Metformin should be discontinued if the patient's eGFR later falls below 30 mL/minute/1.73 m^2.",
+    "source": "openfda",
+    "notes": "Verified directly against a raw Metformin Hydrochloride dosage/discontinuation chunk (Phase 13 testing)."
+  },
+  {
+    "id": "eval_05",
+    "question": "What effect can metformin have on vitamin B12 levels?",
+    "ground_truth": "Metformin may lower vitamin B12 levels; hematological parameters should be measured annually, and vitamin B12 levels measured periodically, in patients on long-term metformin therapy.",
+    "source": "openfda",
+    "notes": "Verified directly against a raw Metformin Hydrochloride warnings_and_cautions chunk discussing Vitamin B12 deficiency (Phase 13 testing)."
+  },
+  {
+    "id": "eval_06",
+    "question": "What is metformin-associated lactic acidosis characterized by?",
+    "ground_truth": "Metformin-associated lactic acidosis is characterized by elevated blood lactate concentrations (greater than 5 mmol/L) and anion gap acidosis, without evidence of ketonuria or ketonemia.",
+    "source": "openfda",
+    "notes": "Verified directly against a raw Metformin Hydrochloride warnings_and_cautions chunk (Phase 13 testing)."
+  },
+  {
+    "id": "eval_07",
+    "question": "What are the major side effects of ACE inhibitors?",
+    "ground_truth": "Major adverse effects of ACE inhibitors include dry cough, renal dysfunction in patients with impaired renal function, angioedema, hypotension, hyperkalemia, hypersensitivity reactions, and rarely cholestatic jaundice or hepatic failure.",
+    "source": "who",
+    "notes": "Verified repeatedly across Phases 11, 14, 15 against a WHO adverse-effects table (coronary artery disease+heart failure+hyperlipidemia+stroke_who_table_263)."
+  },
+  {
+    "id": "eval_08",
+    "question": "What are the warnings associated with ACE inhibitor use, particularly regarding elderly or volume-depleted patients?",
+    "ground_truth": "ACE inhibitor use has been associated with angioedema (with increased risk in patients with a prior history), and elderly or volume-depleted patients have increased risk of adverse effects, including when used concomitantly with NSAIDs/COX-2 inhibitors.",
+    "source": "openfda",
+    "notes": "Verified against Ramipril and Trandolapril warnings_and_cautions chunks (Phase 11 testing)."
+  },
+  {
+    "id": "eval_09",
+    "question": "What is the mechanism of action of glimepiride?",
+    "ground_truth": "Glimepiride primarily lowers blood glucose by stimulating the release of insulin from pancreatic beta cells.",
+    "source": "openfda",
+    "notes": "Verified directly against a raw Glimepiride mechanism_of_action chunk (Phase 11 testing)."
+  },
+  {
+    "id": "eval_10",
+    "question": "What is the mechanism of action of glipizide?",
+    "ground_truth": "The primary mode of action of glipizide is the stimulation of insulin secretion from pancreatic beta cells.",
+    "source": "openfda",
+    "notes": "Verified directly against a raw Glipizide mechanism_of_action chunk (Phase 10 testing)."
+  },
+  {
+    "id": "eval_11",
+    "question": "Why is early screening important for first-degree relatives of type 1 diabetes patients?",
+    "ground_truth": "First-degree relatives of type 1 diabetes patients are at high risk for developing type 1 diabetes. Early screening enables timely intervention, but participation in screening remains suboptimal, missing opportunities in this high-risk group.",
+    "source": "pubmed",
+    "notes": "Verified directly against PubMed chunk 42480168_pubmed_0 (a qualitative study on T1D screening determinants)."
+  },
+  {
+    "id": "eval_12",
+    "question": "Is there an association between diabetes and bone-health knowledge in women?",
+    "ground_truth": "A study of women aged 40 to 65 with limited income in Shanghai found that diabetes was associated with slightly lower bone-health knowledge scores (beta = -1.10, p < 0.001), as was hypertension (beta = -0.73, p < 0.001).",
+    "source": "pubmed",
+    "notes": "Verified directly against PubMed chunk 42480103_pubmed_1 (a bone-health attitudes/awareness study)."
+  },
+  {
+    "id": "eval_13",
+    "question": "How does the body regulate blood sugar?",
+    "ground_truth": "Blood sugar is primarily regulated by insulin (which lowers blood glucose by promoting cellular uptake and storage) and glucagon (which raises blood glucose by triggering release of stored glucose from the liver), both secreted by the pancreas in response to blood glucose levels.",
+    "source": "none (weak coverage case)",
+    "notes": "Deliberately included as a known weak-coverage case (documented in Phase 10/11): the corpus (guidelines/labels/abstracts) does not contain a direct physiological explanation of blood sugar regulation. Expected to score poorly on context recall/precision - this is the honest, correct outcome, not a system failure to hide."
+  },
+  {
+    "id": "eval_14",
+    "question": "What is the anatomical structure of the human heart's chambers?",
+    "ground_truth": "The human heart has four chambers: two atria (left and right) that receive blood, and two ventricles (left and right) that pump blood out - the right side handling deoxygenated blood to the lungs, the left side handling oxygenated blood to the body.",
+    "source": "none (weak coverage case)",
+    "notes": "Deliberate weak-coverage case: the corpus discusses cardiovascular disease treatment/guidelines, not basic cardiac anatomy. Expected low context recall/precision."
+  },
+  {
+    "id": "eval_15",
+    "question": "What is the general biological mechanism of the immune system's inflammatory response?",
+    "ground_truth": "The inflammatory response is triggered when immune cells detect pathogens or tissue damage, releasing signaling molecules (cytokines) that recruit additional immune cells, increase blood flow, and increase vascular permeability to the affected area, aiding pathogen clearance and tissue repair.",
+    "source": "none (weak coverage case)",
+    "notes": "Deliberate weak-coverage case: general immunology mechanism, not a topic directly explained in guideline/label/abstract text. Expected low context recall/precision."
+  },
+  {
+    "id": "eval_16",
+    "question": "What role does adiponectin play in COVID-19 and metabolic regulation?",
+    "ground_truth": "Adiponectin is a pleiotropic adipocytokine with anti-inflammatory, antioxidant, and insulin-sensitizing functions, playing a regulatory role in glucose and lipid metabolism, endothelial homeostasis, and immune responses - positioning it as a key determinant of immunometabolic resilience, with dysregulation implicated in COVID-19 severity.",
+    "source": "pubmed",
+    "notes": "Verified directly against PubMed chunk 42480062_pubmed_0 (adiponectin signaling in COVID-19 review)."
+  },
+  {
+    "id": "eval_17",
+    "question": "What are the long-term health outcomes studied for children conceived via IVF or ICSI?",
+    "ground_truth": "Research on children conceived using conventional IVF (cIVF) and intracytoplasmic sperm injection (ICSI) focuses on long-term health and developmental outcomes, informing decisions about fertilization technique choice and appropriate follow-up strategies.",
+    "source": "pubmed",
+    "notes": "Verified directly against PubMed chunk 42480128_pubmed_0 (a meta-analysis of ART outcomes)."
+  },
+  {
+    "id": "eval_18",
+    "question": "What barriers affect bone health awareness among lower-income women in China?",
+    "ground_truth": "Women age 40 to 65 with limited income in Shanghai generally had limited bone-health knowledge and did not consistently take preventive action, despite most believing bone health was important - with health conditions like hypertension and diabetes further associated with lower knowledge scores.",
+    "source": "pubmed",
+    "notes": "Verified directly against PubMed chunks 42480103_pubmed_0 and 42480103_pubmed_1 (bone-health attitudes/awareness study)."
+  }
+]
