@@ -30,17 +30,28 @@ different metric implementation or judge is validated. The other three
 metrics (faithfulness, answer_relevancy, context_precision) did not show
 this behavior and are considered reportable.
 
-A required workaround before importing ragas: apply_vertexai_stub()
-must be called before any `import ragas` (directly or transitively).
-This works around a confirmed, currently-open upstream bug where ragas
-imports ChatVertexAI from a langchain_community path that no longer
-exists in any current langchain-community release - unrelated to this
-project's code, and unrelated to whether VertexAI is actually used
-(it isn't).
+Two required workarounds before/while calling ragas, both for confirmed
+issues unrelated to this project's own code:
+
+1. apply_vertexai_stub() must be called before any `import ragas`
+   (directly or transitively). Works around a confirmed, currently-open
+   upstream bug where ragas imports ChatVertexAI from a
+   langchain_community path that no longer exists in any current
+   langchain-community release. This project never uses VertexAI.
+
+2. OPENAI_API_KEY must be set as a real OS environment variable before
+   calling evaluate(), even though this project's own OpenAI calls go
+   through config.settings.openai_api_key. Some ragas metrics (e.g.
+   answer_relevancy) construct their own internal OpenAIEmbeddings
+   client, which reads OPENAI_API_KEY directly from the OS environment
+   rather than from any value passed to evaluate() or the judge LLM -
+   confirmed by a MissingCredentials error even with a fully configured,
+   working judge_llm.
 """
 
 import json
 import logging
+import os
 import sys
 import types
 from pathlib import Path
@@ -63,11 +74,10 @@ def apply_vertexai_stub() -> None:
     sys.modules before ragas is imported. Works around a confirmed,
     currently-open upstream ragas bug (ragas/llms/base.py still imports
     ChatVertexAI from a path removed from every current
-    langchain-community release - see e.g. github.com/vibrantlabsai/
-    ragas issues #2745, #2753, #2995). This project never uses
-    VertexAI; the stub class raises if anyone ever tries to actually
-    instantiate it, so a real attempt to use VertexAI would fail loudly
-    rather than silently doing nothing."""
+    langchain-community release). This project never uses VertexAI;
+    the stub class raises if anyone ever tries to actually instantiate
+    it, so a real attempt to use VertexAI would fail loudly rather than
+    silently doing nothing."""
     if "langchain_community.chat_models.vertexai" in sys.modules:
         return  # already applied
 
@@ -152,6 +162,10 @@ def run_ragas_evaluation(
     treated as exploratory/unreliable rather than reported at face
     value (see module docstring)."""
     apply_vertexai_stub()
+
+    # ragas's internal embeddings client (used by e.g. answer_relevancy)
+    # reads this directly from the OS environment - see module docstring.
+    os.environ["OPENAI_API_KEY"] = openai_api_key
 
     from datasets import Dataset
     from ragas import evaluate

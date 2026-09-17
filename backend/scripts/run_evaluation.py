@@ -96,18 +96,27 @@ def main():
         include_unreliable_metrics=args.include_unreliable_metrics,
     )
 
-    logger.info(f"Aggregate results: {result}")
+    # Compute the aggregate from the per-question dataframe rather than
+    # dict(result) - confirmed this ragas version's EvaluationResult
+    # object does not support plain dict conversion the way its API
+    # otherwise suggests (raises KeyError: 0 internally). Column means
+    # over the per-question scores are the same numbers RAGAS itself
+    # would report as the aggregate, computed more robustly.
+    df = result.to_pandas()
+    metric_columns = [c for c in df.columns if c not in ("user_input", "retrieved_contexts", "response", "reference")]
+    aggregate = {col: float(df[col].mean()) for col in metric_columns}
+
+    logger.info(f"Aggregate results: {aggregate}")
     if args.include_unreliable_metrics:
         logger.warning(
             f"Reminder: {UNRELIABLE_METRIC_NAMES} was included but is NOT reliable - "
             "see evaluation.py's module docstring before reporting this number."
         )
 
-    df = result.to_pandas()
     output = {
         "generation_model": args.generation_model,
         "judge_model": args.judge_model,
-        "aggregate": {k: v for k, v in dict(result).items()},
+        "aggregate": aggregate,
         "per_question": df.to_dict(orient="records"),
     }
 
