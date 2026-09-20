@@ -2,12 +2,18 @@
 numpy==1.26.4
 
 # --- LLM / Embeddings ---
-openai==1.35.14
+# NOTE: openai bumped from the originally-pinned 1.35.14 to 2.53.0 (a
+# major SDK version) over the course of this project - confirmed this
+# is what has actually been running successfully since Phase 14.
+openai==2.53.0
 httpx==0.27.2
-tiktoken==0.7.0
+tiktoken==0.13.0
 
 # --- Vector DB ---
-qdrant-client==1.9.1
+# CRITICAL: was pinned at 1.9.1, the version that predates Modifier.IDF
+# support and caused a real failure in Phase 9 (AttributeError on
+# qmodels.Modifier). 1.19.0 is the confirmed-working version used since.
+qdrant-client==1.19.0
 
 # --- Graph DB ---
 neo4j==5.20.0
@@ -17,19 +23,31 @@ sqlalchemy==2.0.30
 psycopg2-binary==2.9.9
 
 # --- Config loading ---
-pydantic-settings==2.2.1
+pydantic==2.13.4
+pydantic-settings==2.15.0
 python-dotenv==1.0.1
 
 # --- Medical NER ---
 spacy==3.7.5
 scispacy==0.5.4
+# Model wheels: pip resolves these as direct URLs, not PyPI lookups.
+en_core_sci_md @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_md-0.5.4.tar.gz
+en_ner_bc5cdr_md @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 
 # --- Image embeddings ---
 torch==2.3.1
 open-clip-torch==2.24.0
-pillow==10.3.0
+pillow==12.3.0
 
 # --- Sparse retrieval (BM25) ---
+# fastembed was completely missing from the previous requirements.txt -
+# this is Phase 9's core dependency (SparseTextEmbedding/Qdrant-bm25).
+fastembed==0.8.0
+# rank-bm25 is a leftover from before Phase 9 settled on Qdrant-native
+# sparse vectors instead of a standalone BM25 library - not currently
+# imported anywhere in production code; kept for now since it's
+# harmless, but a candidate for removal on a future cleanup pass.
 rank-bm25==0.2.2
 
 # --- Reranking / cross-encoder ---
@@ -39,16 +57,31 @@ transformers==4.41.2
 # --- Backend API ---
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
+# Not yet used, but required by FastAPI for file upload endpoints -
+# added proactively since Phase 19 (user document upload) is next.
+python-multipart==0.0.32
 
 # --- Data ingestion ---
-requests==2.31.0
+requests==2.34.2
 biopython==1.83
 pypdf==4.2.0
 pdfplumber==0.11.4
 pymupdf==1.28.0
 
-# --- Evaluation ---
-ragas==0.1.9
+# --- Evaluation (RAGAS + its LangChain dependency chain) ---
+# CRITICAL: was pinned at 0.1.9, an old version incompatible with
+# current langchain-core (Phase 17's whole environment investigation).
+# 0.3.9 is the confirmed-working version - see evaluation.py's
+# apply_vertexai_stub() for a required workaround this version still
+# needs (a currently-open upstream ragas bug, unrelated to this pin).
+# Do not casually upgrade ragas/langchain-* without re-testing that
+# workaround still applies.
+ragas==0.3.9
+datasets==5.0.1
+langchain==1.4.0
+langchain-community==0.4.2
+langchain-core==1.6.3
+langchain-openai==1.6.2
 
 # --- Experiment tracking ---
 wandb==0.17.0
