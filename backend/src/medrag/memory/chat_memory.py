@@ -123,6 +123,18 @@ def build_message_history(conn: PGConnection, session_id: str, bounded_turns: in
     messages = get_session_history(conn, session_id, limit=bounded_turns * 2)
     return [{"role": m["role"], "content": m["content"]} for m in messages]
 
+def update_message_citations(conn, message_id: str, citations: list) -> None:
+    """Attach citations to an already-stored message. Citations can only
+    be built (Phase 15's build_citations()) after generation has
+    returned the retrieved results, but the assistant message is
+    persisted inside generate_answer_with_memory() before the caller
+    has a chance to build them - so citations are attached in this
+    separate update step, after the fact, rather than passed in upfront."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE messages SET citations = %s WHERE message_id = %s",
+            (json.dumps(citations) if citations else None, message_id),
+        )
 
 def reformulate_query(
     conn: PGConnection,
@@ -148,6 +160,12 @@ def reformulate_query(
     )
     return response.choices[0].message.content.strip()
 
+def session_exists(conn, session_id: str) -> bool:
+    """Check whether a session_id actually corresponds to a created
+    session, distinct from an empty (but real) session's history."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM sessions WHERE session_id = %s", (session_id,))
+        return cur.fetchone() is not None
 
 def generate_answer_with_memory(
     query: str,
@@ -196,6 +214,6 @@ def generate_answer_with_memory(
     answer = response.choices[0].message.content
 
     add_message(conn, session_id, "user", query)
-    add_message(conn, session_id, "assistant", answer, citations=citations)
+    assistant_message_id = add_message(conn, session_id, "assistant", answer)
 
-    return answer
+    return answer, results, assistant_message_id
