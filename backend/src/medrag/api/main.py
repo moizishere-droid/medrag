@@ -11,6 +11,14 @@ a fresh Neo4j driver connection on every single API call.
 Deliberately out of scope for this phase: authentication and rate
 limiting. Reasonable for a portfolio project without public production
 traffic; a stated, documented boundary rather than an oversight.
+
+Isolation model (revised): uploaded documents are scoped to the
+session_id they were uploaded in, not a separate user_id concept. A
+session's own uploads are visible only within that same session;
+opening a new session starts with no access to any prior session's
+uploads. This is a deliberate simplification over an earlier
+multi-session-per-user design - see docs/phase19_report.md for the
+full history of that design change.
 """
 
 import sys
@@ -55,13 +63,11 @@ from medrag.memory.chat_memory import (
     create_session,
     get_session_history,
     session_exists,
-    get_session_user_id,  # Phase 19
     generate_answer_with_memory,
     update_message_citations,
 )
 from medrag.citations.citations import build_who_source_url_lookup, build_citations
 
-# Phase 19
 from medrag.ingestion.user_upload import (
     validate_upload_size,
     extract_text_from_pdf,
@@ -80,7 +86,7 @@ from medrag.api.models import (
     ChatResponse,
     HealthResponse,
     DependencyStatus,
-    UploadDocumentResponse,  # Phase 19
+    UploadDocumentResponse,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -163,11 +169,7 @@ async def health(request: Request):
 
 @app.post("/sessions", response_model=CreateSessionResponse)
 async def create_session_endpoint(payload: CreateSessionRequest, request: Request):
-    # Phase 19: user_id passed through so this session can share
-    # upload access with any other session belonging to the same user
-    session_id = create_session(
-        request.app.state.pg_conn, title=payload.title, user_id=payload.user_id
-    )
+    session_id = create_session(request.app.state.pg_conn, title=payload.title)
     return CreateSessionResponse(session_id=session_id)
 
 
@@ -184,24 +186,15 @@ async def get_session_endpoint(session_id: str, request: Request):
     )
 
 
-# Phase 19: new endpoint - accepts a PDF upload for a given session,
-# extracts/chunks/embeds/upserts it under that session's user_id.
 @app.post("/sessions/{session_id}/documents", response_model=UploadDocumentResponse)
 async def upload_document_endpoint(session_id: str, request: Request, file: UploadFile = File(...)):
+    """Uploads are scoped to session_id directly - the session a
+    document is uploaded in is the only session that can retrieve it.
+    No separate user_id concept; see module docstring."""
     conn = request.app.state.pg_conn
 
     if not session_exists(conn, session_id):
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
-
-    user_id = get_session_user_id(conn, session_id)
-    if user_id is None:
-        # Upload isolation requires a user_id - a session created
-        # without one has no way to scope who can later retrieve this
-        # document, so we refuse rather than silently upload it unscoped.
-        raise HTTPException(
-            status_code=400,
-            detail="This session has no user_id. Create a session with a user_id to enable document uploads.",
-        )
 
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
@@ -221,7 +214,7 @@ async def upload_document_endpoint(session_id: str, request: Request, file: Uplo
     document_id = str(uuid.uuid4())
     chunks = chunk_user_upload(
         text=full_text,
-        user_id=user_id,
+        user_id=session_id,  # session_id IS the isolation key now
         session_id=session_id,
         document_id=document_id,
         filename=file.filename,
@@ -252,10 +245,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     if not session_exists(state.pg_conn, payload.session_id):
         raise HTTPException(status_code=404, detail=f"Session '{payload.session_id}' not found")
 
-    # Phase 19: look up this session's user_id so uploaded documents
-    # (if any) are actually retrievable during chat, not just at upload time
-    user_id = get_session_user_id(state.pg_conn, payload.session_id)
-
     answer, results, assistant_message_id = generate_answer_with_memory(
         payload.message,
         payload.session_id,
@@ -263,7 +252,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         qdrant_client=state.qdrant_client,
         openai_client=state.openai_client,
         neo4j_driver=state.neo4j_driver,
-        user_id=user_id,
+        user_id=payload.session_id,  # session_id IS the isolation key now
     )
 
     citations = build_citations(answer, results, state.who_source_urls)

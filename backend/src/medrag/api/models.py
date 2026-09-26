@@ -12,7 +12,6 @@ from pydantic import BaseModel
 
 class CreateSessionRequest(BaseModel):
     title: Optional[str] = None
-    user_id: Optional[str] = None
 
 
 class CreateSessionResponse(BaseModel):
