@@ -26,6 +26,10 @@ data rather than assumed uniform across sources:
   the project's established pattern of stating real gaps plainly
   (e.g. the WHO 12-topic coverage gap, Phase 12/13's NER noise
   limitations).
+- User uploads (Phase 19): private, session-scoped documents with no
+  public URL - title is the filename the user uploaded, which is the
+  only meaningful "source name" available for something that isn't a
+  published document.
 """
 
 import json
@@ -99,6 +103,10 @@ def get_display_info(payload: dict, who_source_urls: Dict[str, str]) -> Dict[str
         title = payload["metadata"].get("title", f"PubMed article {payload['source_id']}")
         pmid = payload["source_id"]
         return {"title": title, "url": PUBMED_URL_TEMPLATE.format(pmid=pmid)}
+
+    if source == "user_upload":
+        filename = payload["metadata"].get("filename", "Uploaded document")
+        return {"title": filename, "url": None}
 
     logger.warning(f"Unrecognized source '{source}' for chunk {payload.get('chunk_id')}")
     return {"title": "Unknown source", "url": None}

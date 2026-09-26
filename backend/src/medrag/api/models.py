@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 class CreateSessionRequest(BaseModel):
     title: Optional[str] = None
+    user_id: Optional[str] = None
 
 
 class CreateSessionResponse(BaseModel):
@@ -59,3 +60,9 @@ class DependencyStatus(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     dependencies: DependencyStatus
+
+
+class UploadDocumentResponse(BaseModel):
+    document_id: str
+    filename: str
+    chunk_count: int

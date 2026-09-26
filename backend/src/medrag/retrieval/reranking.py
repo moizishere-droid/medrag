@@ -12,23 +12,16 @@ retrieval-narrowed candidate pool.
 
 Model: cross-encoder/ms-marco-MiniLM-L-6-v2 (sentence-transformers) - a
 small, CPU-fast, general-purpose cross-encoder trained on real
-search-relevance data (MS MARCO). A biomedical-specific cross-encoder
-was considered and not used here, since the general-purpose model is
-the more standard choice and this project already has scispaCy scoped
-separately (Phase 12) to handle medical-term precision.
+search-relevance data (MS MARCO).
 
-Note on scores: ms-marco-MiniLM outputs a raw logit, not a bounded
-probability or similarity score - negative values are normal and do not
-by themselves mean "irrelevant". Only relative ordering within one
-query's candidate pool is meaningful for ranking; the score's magnitude
-and sign (validated during Phase 11 development) can additionally serve
-as a rough per-query confidence signal - a candidate pool that tops out
-negative suggests weak corpus coverage for that query, distinct from a
-pool topping out strongly positive.
+Phase 19: user_id is passed straight through to hybrid_search() - see
+that module for the isolation mechanism. Reranking itself needs no
+changes beyond that, since it only ever operates on whatever candidate
+pool hybrid_search() already correctly filtered.
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 
 from sentence_transformers import CrossEncoder
 
@@ -44,8 +37,6 @@ _cross_encoder_cache = None
 
 
 def get_cross_encoder() -> CrossEncoder:
-    """Cached cross-encoder - loading has real startup cost, so it's
-    loaded once per process rather than per call."""
     global _cross_encoder_cache
     if _cross_encoder_cache is None:
         logger.info(f"Loading cross-encoder '{CROSS_ENCODER_MODEL}'...")
@@ -54,11 +45,6 @@ def get_cross_encoder() -> CrossEncoder:
 
 
 def rerank(query_text: str, candidates: List[dict], top_n: int = DEFAULT_TOP_N) -> List[dict]:
-    """Score each candidate's raw_text against the query with the
-    cross-encoder and return the top_n by that score, descending.
-    candidates must be hybrid_search()-shaped dicts (each with a
-    payload containing raw_text) - mutates each dict in place, adding
-    a 'cross_score' key, and returns a new sorted+truncated list."""
     model = get_cross_encoder()
     pairs = [(query_text, c["payload"]["raw_text"]) for c in candidates]
     scores = model.predict(pairs)
@@ -74,18 +60,15 @@ def search_with_reranking(
     query_text: str,
     candidate_pool_size: int = DEFAULT_CANDIDATE_POOL_SIZE,
     top_n: int = DEFAULT_TOP_N,
+    user_id: Optional[str] = None,
 ) -> List[dict]:
-    """Full pipeline: retrieve a wider candidate pool via hybrid_search()
-    (Phase 10), then rerank it down to the top_n most relevant results
-    via the cross-encoder. candidate_pool_size should be comfortably
-    larger than top_n, since reranking is only useful if it has enough
-    candidates to meaningfully reorder - retrieving exactly top_n and
-    then reranking that same top_n gives the cross-encoder no chance to
-    surface a relevant chunk that hybrid search ranked outside its own
-    top N."""
+    """user_id, when provided, restricts retrieval to the curated corpus
+    plus this user's own uploaded documents (Phase 19) - passed straight
+    through to hybrid_search()."""
     candidates = hybrid_search(
         client, query_text,
         limit=candidate_pool_size,
         per_signal_limit=candidate_pool_size,
+        user_id=user_id,
     )
     return rerank(query_text, candidates, top_n=top_n)

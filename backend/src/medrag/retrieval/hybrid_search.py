@@ -15,14 +15,23 @@ native path in the Phase 10 notebook before this choice was made.
 Note: dense + sparse + fusion alone is known to surface some
 low-relevance results (e.g. bibliography/reference-list chunks that sit
 near a topic in embedding space without discussing it, or BM25 matches
-on incidental shared terms) — this is expected and is the direct
+on incidental shared terms) - this is expected and is the direct
 motivation for Phase 11's cross-encoder reranking, not something this
 module tries to work around.
+
+Phase 19: optional user_id parameter applies a Qdrant filter to BOTH
+the dense and sparse queries - "either this point has no user_id field
+at all (the curated corpus) OR its user_id matches this exact value."
+This is the sole mechanism that keeps one user's uploaded documents
+invisible to everyone else, while remaining visible across all of that
+same user's own chat sessions (validated directly in the Phase 19
+notebook: same user_id, different session_id, still retrievable;
+different user_id, completely invisible).
 """
 
 import logging
 from collections import defaultdict
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple
 
 import openai
 from fastembed import SparseTextEmbedding
@@ -43,7 +52,6 @@ _sparse_model_cache = None
 
 
 def get_openai_client() -> openai.OpenAI:
-    """Cached OpenAI client, keyed off settings.openai_api_key."""
     global _openai_client
     if _openai_client is None:
         _openai_client = openai.OpenAI(api_key=settings.openai_api_key)
@@ -51,10 +59,6 @@ def get_openai_client() -> openai.OpenAI:
 
 
 def get_sparse_model() -> SparseTextEmbedding:
-    """Cached fastembed BM25 encoder - same model used to build the
-    sparse vectors stored in Qdrant during Phase 9 ingestion. Using a
-    different sparse encoder here would produce vectors in an
-    incompatible term-hash space."""
     global _sparse_model_cache
     if _sparse_model_cache is None:
         logger.info(f"Loading sparse model '{SPARSE_MODEL_NAME}'...")
@@ -63,32 +67,35 @@ def get_sparse_model() -> SparseTextEmbedding:
 
 
 def embed_query_dense(text: str) -> List[float]:
-    """Embed a query string with the same model used for all stored
-    chunk embeddings (text-embedding-3-small) - a query embedded with a
-    different model would land in an unrelated vector space."""
     client = get_openai_client()
     response = client.embeddings.create(model=DENSE_EMBEDDING_MODEL, input=text)
     return response.data[0].embedding
 
 
 def embed_query_sparse(text: str):
-    """Embed a query string with the same BM25 encoder used for all
-    stored chunk sparse vectors. Returns a fastembed SparseEmbedding
-    (has .indices / .values)."""
     model = get_sparse_model()
     return list(model.embed([text]))[0]
+
+
+def build_user_filter(user_id: Optional[str]) -> Optional[qmodels.Filter]:
+    """Build the Qdrant filter that enforces upload isolation: match
+    points with no user_id field at all (the curated corpus, which
+    never has this field) OR points whose user_id matches exactly.
+    Returns None (no filter at all) when user_id is None."""
+    if user_id is None:
+        return None
+    return qmodels.Filter(
+        should=[
+            qmodels.IsEmptyCondition(is_empty=qmodels.PayloadField(key="user_id")),
+            qmodels.FieldCondition(key="user_id", match=qmodels.MatchValue(value=user_id)),
+        ]
+    )
 
 
 def reciprocal_rank_fusion(
     result_lists: List[list],
     k: int = DEFAULT_RRF_K,
 ) -> Tuple[List[Tuple[str, float]], Dict[str, dict]]:
-    """Fuse multiple ranked result lists (each a list of Qdrant
-    ScoredPoint objects with payload['chunk_id']) using Reciprocal Rank
-    Fusion. Each result contributes 1/(k + rank) to its chunk's running
-    fused score, rank starting at 1 - a chunk appearing in multiple
-    lists accumulates contributions from each. Returns (ranked list of
-    (chunk_id, fused_score) sorted descending, chunk_id -> payload map)."""
     fused_scores: Dict[str, float] = defaultdict(float)
     chunk_payloads: Dict[str, dict] = {}
 
@@ -108,24 +115,19 @@ def hybrid_search(
     limit: int = 10,
     per_signal_limit: int = 10,
     k: int = DEFAULT_RRF_K,
+    user_id: Optional[str] = None,
 ) -> List[dict]:
-    """Run dense and sparse retrieval against medrag_text independently,
-    then fuse the two ranked lists via RRF.
-
-    per_signal_limit controls how many results each individual signal
-    (dense, sparse) contributes before fusion - kept separate from the
-    final `limit` so a caller can widen the candidate pool per signal
-    without changing how many final fused results are returned.
-
-    Returns a list of {chunk_id, fused_score, payload} dicts, sorted by
-    fused_score descending, capped at `limit`."""
+    """user_id, when provided, restricts BOTH signals to the curated
+    corpus plus this user's own uploaded documents (Phase 19)."""
     dense_vec = embed_query_dense(query_text)
     sparse_vec = embed_query_sparse(query_text)
+    query_filter = build_user_filter(user_id)
 
     dense_results = client.query_points(
         collection_name=TEXT_COLLECTION,
         query=dense_vec,
         using=DENSE_VECTOR_NAME,
+        query_filter=query_filter,
         limit=per_signal_limit,
     ).points
 
@@ -136,6 +138,7 @@ def hybrid_search(
             values=sparse_vec.values.tolist(),
         ),
         using=SPARSE_VECTOR_NAME,
+        query_filter=query_filter,
         limit=per_signal_limit,
     ).points
 

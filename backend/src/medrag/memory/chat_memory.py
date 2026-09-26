@@ -3,23 +3,27 @@ Chat memory: persists conversation sessions/messages to Postgres, and
 extends Phase 14's generate_answer() with conversation history so
 follow-up questions can reference earlier turns.
 
-Core problem this module solves, found and fixed during Phase 16
+Core problem this module solves (Phase 16), found and fixed during
 development: a follow-up question like "What are its contraindications?"
-has almost no retrievable semantic content on its own - confirmed
-directly, an early version sent the raw follow-up straight to retrieval
-and got back essentially unrelated drug chunks. The LLM itself could
-correctly resolve "its" from conversation history when generating the
-final answer, but retrieval (vector search + knowledge graph drug
-detection) runs BEFORE the LLM sees anything, on the raw new query text
-alone - it has no access to history unless we explicitly give it some.
+has almost no retrievable semantic content on its own. Fix: query
+reformulation - before retrieval, the LLM rewrites the follow-up into a
+standalone question using recent history, and that rewritten query -
+not the original - drives retrieval and knowledge-graph drug detection.
+The model's final answer is still generated using the ORIGINAL user
+query plus full conversation history, so the response reads naturally.
 
-Fix: query reformulation. Before retrieval, the LLM rewrites the
-follow-up into a standalone question using recent history (e.g. "What
-are its contraindications?" -> "What are the contraindications of
-metformin?"), and that rewritten query - not the original - is used
-for retrieval and knowledge-graph drug detection. The model's final
-answer is still generated using the ORIGINAL user query plus full
-conversation history, so the response reads naturally.
+Phase 19: generate_answer_with_memory() accepts an optional user_id,
+passed straight through to search_with_reranking() (and therefore
+hybrid_search()'s isolation filter) - this is what lets a chat actually
+retrieve a user's own uploaded documents, on top of the curated corpus,
+without any chance of surfacing a different user's uploads.
+
+Phase 18 integration note: citations can only be built (Phase 15) after
+this function returns the retrieved results, which only exist inside
+this call - so this function returns (answer, results,
+assistant_message_id), and citations are attached to the already-stored
+assistant message via update_message_citations() as a separate,
+post-generation step, rather than passed in upfront.
 """
 
 import json
@@ -59,11 +63,36 @@ Follow-up question: {query}
 Standalone question:"""
 
 
-def create_session(conn: PGConnection, title: Optional[str] = None) -> str:
-    """Create a new chat session, return its session_id."""
+def create_session(conn: PGConnection, title: Optional[str] = None, user_id: Optional[str] = None) -> str:
+    """Create a new chat session, return its session_id. user_id (Phase
+    19) groups multiple sessions/chats under the same person - passing
+    None keeps a session usable but without shared upload access across
+    other sessions."""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("INSERT INTO sessions (title) VALUES (%s) RETURNING session_id", (title,))
+        cur.execute(
+            "INSERT INTO sessions (title, user_id) VALUES (%s, %s) RETURNING session_id",
+            (title, user_id),
+        )
         return str(cur.fetchone()["session_id"])
+
+
+def session_exists(conn: PGConnection, session_id: str) -> bool:
+    """Check whether a session_id actually corresponds to a created
+    session, distinct from an empty (but real) session's history."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM sessions WHERE session_id = %s", (session_id,))
+        return cur.fetchone() is not None
+
+
+def get_session_user_id(conn: PGConnection, session_id: str) -> Optional[str]:
+    """Look up the user_id a session belongs to (Phase 19) - used by
+    the /chat and /documents endpoints to apply upload isolation
+    without requiring the caller to separately track and re-send it on
+    every request."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT user_id FROM sessions WHERE session_id = %s", (session_id,))
+        row = cur.fetchone()
+        return row[0] if row else None
 
 
 def add_message(
@@ -89,11 +118,21 @@ def add_message(
     return str(message_id)
 
 
+def update_message_citations(conn: PGConnection, message_id: str, citations: list) -> None:
+    """Attach citations to an already-stored message - see module
+    docstring's Phase 18 integration note for why this is a separate
+    step rather than passed in upfront."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE messages SET citations = %s WHERE message_id = %s",
+            (json.dumps(citations) if citations else None, message_id),
+        )
+
+
 def get_session_history(conn: PGConnection, session_id: str, limit: Optional[int] = None) -> List[dict]:
     """Load a session's messages in chronological order. limit=None
-    returns the full history (e.g. for displaying a resumed session);
-    an integer limit returns only the most recent N messages (e.g. for
-    a bounded generation window)."""
+    returns the full history; an integer limit returns only the most
+    recent N messages (e.g. for a bounded generation window)."""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         if limit is None:
             cur.execute(
@@ -115,26 +154,11 @@ def get_session_history(conn: PGConnection, session_id: str, limit: Optional[int
 
 def build_message_history(conn: PGConnection, session_id: str, bounded_turns: int = DEFAULT_BOUNDED_TURNS) -> List[dict]:
     """Load recent messages formatted for an OpenAI chat call, bounded
-    to the last N turns (a turn = one user+assistant pair, so
-    bounded_turns=8 loads up to 16 messages). Citations are stripped -
-    the model only needs the conversational text, not structured
-    citation metadata, which would add prompt size with no benefit to
-    the model's understanding of the conversation."""
+    to the last N turns. Citations are stripped - the model only needs
+    the conversational text."""
     messages = get_session_history(conn, session_id, limit=bounded_turns * 2)
     return [{"role": m["role"], "content": m["content"]} for m in messages]
 
-def update_message_citations(conn, message_id: str, citations: list) -> None:
-    """Attach citations to an already-stored message. Citations can only
-    be built (Phase 15's build_citations()) after generation has
-    returned the retrieved results, but the assistant message is
-    persisted inside generate_answer_with_memory() before the caller
-    has a chance to build them - so citations are attached in this
-    separate update step, after the fact, rather than passed in upfront."""
-    with conn.cursor() as cur:
-        cur.execute(
-            "UPDATE messages SET citations = %s WHERE message_id = %s",
-            (json.dumps(citations) if citations else None, message_id),
-        )
 
 def reformulate_query(
     conn: PGConnection,
@@ -145,9 +169,7 @@ def reformulate_query(
 ) -> str:
     """Rewrite a follow-up question into a standalone query using
     conversation history, so retrieval and knowledge-graph drug
-    detection have meaningful content to work with. Returns the query
-    unchanged if there's no history yet (first turn in a session) or
-    if the question is already standalone."""
+    detection have meaningful content to work with."""
     history_messages = build_message_history(conn, session_id, bounded_turns=4)
     if not history_messages:
         return query
@@ -160,12 +182,6 @@ def reformulate_query(
     )
     return response.choices[0].message.content.strip()
 
-def session_exists(conn, session_id: str) -> bool:
-    """Check whether a session_id actually corresponds to a created
-    session, distinct from an empty (but real) session's history."""
-    with conn.cursor() as cur:
-        cur.execute("SELECT 1 FROM sessions WHERE session_id = %s", (session_id,))
-        return cur.fetchone() is not None
 
 def generate_answer_with_memory(
     query: str,
@@ -176,21 +192,21 @@ def generate_answer_with_memory(
     neo4j_driver: Optional[Driver] = None,
     model: str = DEFAULT_GENERATION_MODEL,
     bounded_turns: int = DEFAULT_BOUNDED_TURNS,
-    citations: Optional[list] = None,
-) -> str:
+    user_id: Optional[str] = None,
+):
     """Full history-aware pipeline: reformulate the query for retrieval
     purposes -> hybrid retrieval + reranking + optional knowledge graph
-    enrichment (using the reformulated query) -> generation (using the
-    ORIGINAL query + full conversation history, so the response reads
-    naturally) -> persist both the user turn and the assistant turn.
+    enrichment (using the reformulated query, and user_id-filtered per
+    Phase 19 if provided) -> generation (using the ORIGINAL query + full
+    conversation history) -> persist both turns.
 
-    citations, if provided by the caller (e.g. from Phase 15's
-    build_citations(), run against this call's retrieval results),
-    are stored alongside the assistant message for later display when
-    a session is resumed."""
+    Returns (answer, results, assistant_message_id)."""
     retrieval_query = reformulate_query(conn, openai_client, session_id, query, model=model)
 
-    results = search_with_reranking(qdrant_client, retrieval_query, candidate_pool_size=20, top_n=5)
+    results = search_with_reranking(
+        qdrant_client, retrieval_query,
+        candidate_pool_size=20, top_n=5, user_id=user_id,
+    )
     context = format_context(results)
 
     graph_section = ""
