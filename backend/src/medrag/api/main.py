@@ -3,10 +3,10 @@ FastAPI application: exposes the MedRAG pipeline (hybrid retrieval,
 reranking, generation, citations, knowledge graph, chat memory) as an
 HTTP API.
 
-Backend clients (Qdrant, Neo4j, Postgres, OpenAI) are created once at
-startup via the lifespan context manager and stored on app.state, not
-recreated per-request - this avoids the cost and waste of e.g. opening
-a fresh Neo4j driver connection on every single API call.
+Backend clients (Qdrant, Neo4j, OpenAI) are created once at startup via
+the lifespan context manager and stored on app.state, not recreated
+per-request - this avoids the cost and waste of e.g. opening a fresh
+Neo4j driver connection on every single API call.
 
 Deliberately out of scope for this phase: authentication and rate
 limiting. Reasonable for a portfolio project without public production
@@ -19,9 +19,41 @@ opening a new session starts with no access to any prior session's
 uploads. This is a deliberate simplification over an earlier
 multi-session-per-user design - see docs/phase19_report.md for the
 full history of that design change.
+
+Concurrency fix (Phase 20, two-part):
+
+Part 1 - event loop blocking: every route here is declared async def,
+but the actual pipeline work underneath (psycopg2, the Neo4j driver,
+the Qdrant client, and openai.OpenAI()) are all SYNCHRONOUS/blocking
+clients, not async-native ones. Calling them directly inside an async
+def route with no await freezes uvicorn's single event loop for the
+entire duration of that call - confirmed live: a slow /chat request
+caused a concurrent /sessions request to hang until /chat finished,
+even though the server process itself was alive and idle from the OS's
+point of view. Fixed by wrapping the two genuinely slow, blocking calls
+(generate_answer_with_memory in /chat, embed_and_upsert_upload_chunks
+in /documents) in starlette.concurrency.run_in_threadpool, so they run
+on a worker thread instead of the event loop thread. Verified fixed:
+/sessions now responds instantly even while a /chat request is still
+"Thinking..." in Streamlit.
+
+Part 2 - shared-connection thread safety: Part 1's fix means a
+blocking pipeline call can now genuinely run on a worker thread at the
+same time another request is being handled on the event loop thread
+(or another worker thread). The original code held ONE single
+psycopg2 connection (app.state.pg_conn), created once at startup and
+reused by every request - psycopg2 connections are not safe for
+concurrent use across threads, so this became a real (if not yet
+visibly triggered) correctness bug the moment Part 1 landed. Fixed by
+replacing the single connection with a psycopg2.pool.ThreadedConnectionPool
+(app.state.pg_pool, see db.py). Every route now checks out its own
+connection via the get_conn() context manager below for the duration
+of that request, and returns it to the pool when done, instead of
+sharing one connection object across threads.
 """
 
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -55,13 +87,15 @@ import openai
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
+from starlette.concurrency import run_in_threadpool
 
 from config.settings import settings
 from medrag.embeddings.qdrant_client import get_qdrant_client
-from medrag.memory.db import get_postgres_connection, ensure_schema
+from medrag.memory.db import get_postgres_pool, ensure_schema_via_pool
 from medrag.memory.chat_memory import (
     create_session,
     get_session_history,
+    list_sessions,
     session_exists,
     generate_answer_with_memory,
     update_message_citations,
@@ -86,11 +120,26 @@ from medrag.api.models import (
     ChatResponse,
     HealthResponse,
     DependencyStatus,
+    SessionListResponse,
     UploadDocumentResponse,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("medrag.api")
+
+
+@contextmanager
+def get_conn(app: FastAPI):
+    """Check out one connection from the pool for the duration of a
+    single request, and always return it - even if the request raises.
+    Replaces the old pattern of reaching for one shared, long-lived
+    app.state.pg_conn directly."""
+    conn = app.state.pg_pool.getconn()
+    conn.autocommit = True
+    try:
+        yield conn
+    finally:
+        app.state.pg_pool.putconn(conn)
 
 
 @asynccontextmanager
@@ -107,12 +156,12 @@ async def lifespan(app: FastAPI):
     app.state.neo4j_driver.verify_connectivity()
     logger.info("  Neo4j connected")
 
-    app.state.pg_conn = get_postgres_connection(
+    app.state.pg_pool = get_postgres_pool(
         settings.postgres_host, settings.postgres_port,
         settings.postgres_db, settings.postgres_user, settings.postgres_password,
     )
-    ensure_schema(app.state.pg_conn)
-    logger.info("  Postgres connected")
+    ensure_schema_via_pool(app.state.pg_pool)
+    logger.info("  Postgres connected (pool ready)")
 
     app.state.openai_client = openai.OpenAI(api_key=settings.openai_api_key)
     logger.info("  OpenAI client ready")
@@ -125,7 +174,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Shutting down - closing backend connections...")
     app.state.neo4j_driver.close()
-    app.state.pg_conn.close()
+    app.state.pg_pool.closeall()
 
 
 app = FastAPI(title="MedRAG API", lifespan=lifespan)
@@ -158,8 +207,9 @@ async def health(request: Request):
         deps["neo4j"] = f"error: {e}"
 
     try:
-        with state.pg_conn.cursor() as cur:
-            cur.execute("SELECT 1")
+        with get_conn(request.app) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
     except Exception as e:
         deps["postgres"] = f"error: {e}"
 
@@ -169,17 +219,18 @@ async def health(request: Request):
 
 @app.post("/sessions", response_model=CreateSessionResponse)
 async def create_session_endpoint(payload: CreateSessionRequest, request: Request):
-    session_id = create_session(request.app.state.pg_conn, title=payload.title)
+    with get_conn(request.app) as conn:
+        session_id = create_session(conn, title=payload.title)
     return CreateSessionResponse(session_id=session_id)
 
 
 @app.get("/sessions/{session_id}", response_model=SessionHistoryResponse)
 async def get_session_endpoint(session_id: str, request: Request):
-    conn = request.app.state.pg_conn
-    if not session_exists(conn, session_id):
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+    with get_conn(request.app) as conn:
+        if not session_exists(conn, session_id):
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+        messages = get_session_history(conn, session_id)
 
-    messages = get_session_history(conn, session_id)
     return SessionHistoryResponse(
         session_id=session_id,
         messages=[MessageOut(**m) for m in messages],
@@ -191,10 +242,9 @@ async def upload_document_endpoint(session_id: str, request: Request, file: Uplo
     """Uploads are scoped to session_id directly - the session a
     document is uploaded in is the only session that can retrieve it.
     No separate user_id concept; see module docstring."""
-    conn = request.app.state.pg_conn
-
-    if not session_exists(conn, session_id):
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+    with get_conn(request.app) as conn:
+        if not session_exists(conn, session_id):
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
 
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
@@ -219,13 +269,23 @@ async def upload_document_endpoint(session_id: str, request: Request, file: Uplo
         document_id=document_id,
         filename=file.filename,
     )
-    chunk_count = embed_and_upsert_upload_chunks(
-        chunks, request.app.state.qdrant_client, request.app.state.openai_client
+
+    # Blocking (embedding + Qdrant upsert) - offloaded to a worker
+    # thread so it doesn't freeze the event loop for other requests.
+    chunk_count = await run_in_threadpool(
+        embed_and_upsert_upload_chunks,
+        chunks, request.app.state.qdrant_client, request.app.state.openai_client,
     )
 
     return UploadDocumentResponse(
         document_id=document_id, filename=file.filename, chunk_count=chunk_count
     )
+
+@app.get("/sessions", response_model=SessionListResponse)
+async def list_sessions_endpoint(request: Request):
+    with get_conn(request.app) as conn:
+        sessions = list_sessions(conn)
+    return SessionListResponse(sessions=sessions)
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -239,23 +299,37 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     returns (they need the retrieved results, which only exist inside
     that call) - see chat_memory.py's update_message_citations() for
     why this is a separate post-generation step rather than passed in
-    upfront."""
+    upfront.
+
+    Checks out ONE connection from the pool and holds it for this
+    request's full duration (including the run_in_threadpool call) -
+    generate_answer_with_memory() internally does several sequential
+    queries against the same conn (reformulation history lookup,
+    message inserts, etc.) that all need to see a single consistent
+    connection, not one newly checked-out connection per internal
+    call."""
     state = request.app.state
 
-    if not session_exists(state.pg_conn, payload.session_id):
-        raise HTTPException(status_code=404, detail=f"Session '{payload.session_id}' not found")
+    with get_conn(request.app) as conn:
+        if not session_exists(conn, payload.session_id):
+            raise HTTPException(status_code=404, detail=f"Session '{payload.session_id}' not found")
 
-    answer, results, assistant_message_id = generate_answer_with_memory(
-        payload.message,
-        payload.session_id,
-        state.pg_conn,
-        qdrant_client=state.qdrant_client,
-        openai_client=state.openai_client,
-        neo4j_driver=state.neo4j_driver,
-        user_id=payload.session_id,  # session_id IS the isolation key now
-    )
+        # Blocking (two sequential OpenAI calls + cross-encoder rerank +
+        # Postgres/Neo4j/Qdrant I/O) - offloaded to a worker thread so it
+        # doesn't freeze the event loop for other requests (this is what
+        # was causing concurrent /health and /sessions calls to hang).
+        answer, results, assistant_message_id = await run_in_threadpool(
+            generate_answer_with_memory,
+            payload.message,
+            payload.session_id,
+            conn,
+            qdrant_client=state.qdrant_client,
+            openai_client=state.openai_client,
+            neo4j_driver=state.neo4j_driver,
+            user_id=payload.session_id,  # session_id IS the isolation key now
+        )
 
-    citations = build_citations(answer, results, state.who_source_urls)
-    update_message_citations(state.pg_conn, assistant_message_id, citations)
+        citations = build_citations(answer, results, state.who_source_urls)
+        update_message_citations(conn, assistant_message_id, citations)
 
     return ChatResponse(answer=answer, citations=citations)

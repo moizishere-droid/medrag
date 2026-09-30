@@ -159,6 +159,19 @@ def build_message_history(conn: PGConnection, session_id: str, bounded_turns: in
     messages = get_session_history(conn, session_id, limit=bounded_turns * 2)
     return [{"role": m["role"], "content": m["content"]} for m in messages]
 
+def list_sessions(conn) -> list[dict]:
+    """Return all sessions, most recently updated first."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT session_id, title, created_at, updated_at
+            FROM sessions
+            ORDER BY updated_at DESC
+            """
+        )
+        rows = cur.fetchall()
+        columns = [desc[0] for desc in cur.description]
+        return [dict(zip(columns, row)) for row in rows]
 
 def reformulate_query(
     conn: PGConnection,

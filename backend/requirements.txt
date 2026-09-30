@@ -55,11 +55,31 @@ sentence-transformers==2.7.0
 transformers==4.41.2
 
 # --- Backend API ---
-fastapi==0.111.0
-uvicorn[standard]==0.29.0
+# Phase 20 finding: upgrading `streamlit` pulled in a newer `starlette`
+# as a transitive dependency, which broke compatibility with the
+# fastapi/uvicorn versions pinned below (Router.__init__() got an
+# unexpected keyword argument 'on_startup' - fastapi 0.111.0's
+# APIRouter no longer matched the newer starlette's Router signature).
+# All three (fastapi, uvicorn, starlette) are pinned together here as a
+# confirmed-compatible trio - do not bump any ONE of these three
+# without re-verifying the app still boots (uvicorn ... --reload,
+# confirm "Application startup complete").
+fastapi==0.142.1
+starlette==1.7.0
+uvicorn[standard]==0.54.0
 # Not yet used, but required by FastAPI for file upload endpoints -
 # added proactively since Phase 19 (user document upload) is next.
 python-multipart==0.0.32
+
+# --- Frontend (Phase 20) ---
+# NOTE: streamlit 1.35.0 (the version originally installed) had a
+# known, long-standing frontend bug ("Bad message format: Cannot read
+# properties of undefined (reading 'setIn')") that appeared on every
+# page load - a real, reproducible bug in that Streamlit version
+# itself, not a bug in this project's code. Fixed by upgrading to
+# 1.64.0. See the starlette/fastapi/uvicorn note above for the
+# compatibility fix this upgrade required elsewhere.
+streamlit==1.64.0
 
 # --- Data ingestion ---
 requests==2.34.2

@@ -6,8 +6,8 @@ FastAPI's auto-generated /docs UI.
 
 from typing import List, Optional
 from datetime import datetime
-
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class CreateSessionRequest(BaseModel):
@@ -65,3 +65,13 @@ class UploadDocumentResponse(BaseModel):
     document_id: str
     filename: str
     chunk_count: int
+    
+class SessionSummary(BaseModel):
+    session_id: UUID
+    title: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class SessionListResponse(BaseModel):
+    sessions: list[SessionSummary]

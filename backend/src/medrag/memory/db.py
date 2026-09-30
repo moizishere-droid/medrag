@@ -4,11 +4,29 @@ Postgres connection and schema management for MedRAG's chat memory.
 Runs in its own dedicated Postgres container/database (medrag_chat, on
 host port 5433) - deliberately isolated from any other project's
 database.
+
+Concurrency note (Phase 20 fix): originally this module handed out one
+single psycopg2 connection, created once at API startup and reused for
+every request via app.state.pg_conn. That was safe only because the
+API's routes were, until a separate fix, effectively blocking/serial -
+once /chat's pipeline was moved onto a worker thread (via
+starlette.concurrency.run_in_threadpool) so it wouldn't freeze the
+event loop, it became possible for two threads to touch that same
+single connection at genuinely the same time. psycopg2 connections are
+NOT safe for concurrent use across threads, so this was a real, latent
+correctness bug even though it hadn't yet caused a visible failure.
+
+Fix: use psycopg2.pool.ThreadedConnectionPool instead of one shared
+connection. Each request now checks out its own connection for the
+duration of that request (see main.py's get_conn() context manager)
+and returns it when done, instead of every request sharing one
+connection object across threads.
 """
 
 import logging
 
 import psycopg2
+import psycopg2.pool
 from psycopg2.extensions import connection as PGConnection
 
 logger = logging.getLogger("medrag.memory")
@@ -48,9 +66,31 @@ CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id, creat
 
 
 def get_postgres_connection(host: str, port: int, dbname: str, user: str, password: str) -> PGConnection:
+    """Kept for any script/notebook still using a single direct
+    connection (e.g. one-off verification scripts). The live API no
+    longer uses this - see get_postgres_pool() below."""
     conn = psycopg2.connect(host=host, port=port, dbname=dbname, user=user, password=password)
     conn.autocommit = True
     return conn
+
+
+def get_postgres_pool(
+    host: str,
+    port: int,
+    dbname: str,
+    user: str,
+    password: str,
+    minconn: int = 1,
+    maxconn: int = 10,
+) -> psycopg2.pool.ThreadedConnectionPool:
+    """Create a thread-safe connection pool. minconn/maxconn=1/10 is a
+    reasonable default for a portfolio project's traffic level (not
+    tuned against real concurrent load, which this project doesn't
+    have) - raise maxconn if request volume ever actually requires
+    it."""
+    return psycopg2.pool.ThreadedConnectionPool(
+        minconn, maxconn, host=host, port=port, dbname=dbname, user=user, password=password
+    )
 
 
 def ensure_schema(conn: PGConnection) -> None:
@@ -61,3 +101,15 @@ def ensure_schema(conn: PGConnection) -> None:
     with conn.cursor() as cur:
         cur.execute(CREATE_SCHEMA_SQL)
     logger.info("Chat memory schema ensured (sessions with user_id, messages)")
+
+
+def ensure_schema_via_pool(pool: psycopg2.pool.ThreadedConnectionPool) -> None:
+    """Run ensure_schema() using a connection checked out from the
+    pool, for use during lifespan startup (which now creates a pool,
+    not a single connection)."""
+    conn = pool.getconn()
+    try:
+        conn.autocommit = True
+        ensure_schema(conn)
+    finally:
+        pool.putconn(conn)
