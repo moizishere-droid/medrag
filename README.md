@@ -59,16 +59,16 @@ WHO ─────────┘                              │
 | Text embeddings                  | ✅      |
 | Image embeddings                 | ✅      |
 | Embedding storage                | ✅      |
-| Qdrant retrieval                 | 🔜     |
-| BM25 / Hybrid Search             | 🔜     |
-| Reranking                        | 🔜     |
-| Neo4j Knowledge Graph            | 🔜     |
-| LLM Generation                   | 🔜     |
-| Citations                        | 🔜     |
-| PostgreSQL Memory                | 🔜     |
-| RAGAS Evaluation                 | 🔜     |
-| FastAPI                          | 🔜     |
-| Streamlit UI                     | 🔜     |
+| Qdrant retrieval                 | ✅     |
+| BM25 / Hybrid Search             | ✅     |
+| Reranking                        | ✅     |
+| Neo4j Knowledge Graph            | ✅     |
+| LLM Generation                   | ✅     |
+| Citations                        | ✅     |
+| PostgreSQL Memory                | ✅     |
+| RAGAS Evaluation                 | ✅     |
+| FastAPI                          | ✅     |
+| Streamlit UI                     | ✅     |
 
 ---
 
