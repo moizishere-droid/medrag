@@ -107,4 +107,5 @@ langchain-openai==1.6.2
 wandb==0.17.0
 
 # --- Testing ---
-pytest==8.2.2
+pytest 
+pytest-cov

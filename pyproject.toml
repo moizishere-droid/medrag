@@ -23,3 +23,12 @@ where = ["backend/src"]              # "look inside this folder for packages"
 "" = "backend/src"                  # "and treat that folder as the root" --> we donot have to write in 
                                     # this way --> import backend.src.medrag.retrieval --> instead we can 
                                     # write import medrag.retrieval
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["backend"]
+addopts = "-ra --strict-markers -m 'not integration and not live'"
+markers = [
+    "integration: needs docker compose services running (Qdrant/Neo4j/Postgres)",
+    "live: calls paid external APIs (OpenAI); manual only",
+]
