@@ -32,6 +32,7 @@ from medrag.embeddings.qdrant_client import (
     generate_image_point_id,
 )
 from medrag.processing.models import Chunk
+from medrag.embeddings.storage import validate_alignment
 
 logger = logging.getLogger("medrag.embeddings")
 
@@ -174,6 +175,8 @@ def upload_points(
     request, so a very large source doesn't risk a request timeout or
     memory spike, and progress is visible / a mid-upload failure doesn't
     lose all prior work."""
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
     prefix = f"{label}: " if label else ""
     for i in range(0, len(points), batch_size):
         batch = points[i:i + batch_size]
@@ -204,6 +207,9 @@ def upload_source_chunks(
     and counted, rather than raising - this can legitimately happen if
     embeddings and chunk files have drifted out of sync, and should be
     visible, not silent."""
+    validate_alignment(embeddings, index_rows, source_name)
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
     sparse_model = get_sparse_model()
 
     rows = [
@@ -219,6 +225,8 @@ def upload_source_chunks(
         chunks = [chunk_lookup[row["chunk_id"]] for row, _ in batch]
         texts = [c.text for c in chunks]
         sparse_vectors = list(sparse_model.embed(texts))
+        if len(sparse_vectors) != len(chunks):
+            raise ValueError("Sparse response count does not match input count")
 
         points = [
             build_text_point(chunk, dense_vector, sparse_vector, chunk_to_images)
@@ -240,6 +248,7 @@ def upload_images(
     """Build and upload all WHO image points into medrag_images. Small
     enough (76 images) to upload in a single batch. Unaffected by the
     Phase 9 hybrid migration."""
+    validate_alignment(img_embeddings, img_index_rows, "images")
     points = [
         build_image_point(
             filename=row["filename"],

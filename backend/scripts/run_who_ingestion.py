@@ -106,6 +106,8 @@ def main():
 
     success_count = sum(1 for r in results if "success" in r["status"])
     logger.info(f"=== DONE === {success_count}/{len(results)} succeeded")
+    if success_count != len(results):
+        raise RuntimeError(f"WHO refresh incomplete: {len(results) - success_count} topics failed")
 
 
 if __name__ == "__main__":

@@ -19,9 +19,10 @@ on incidental shared terms) - this is expected and is the direct
 motivation for Phase 11's cross-encoder reranking, not something this
 module tries to work around.
 
-Phase 19: optional user_id parameter applies a Qdrant filter to BOTH
-the dense and sparse queries - "either this point has no user_id field
-at all (the curated corpus) OR its user_id matches this exact value."
+An omitted user_id retrieves only recognized curated sources with an empty
+ownership field. An explicit user_id adds that exact key's uploads. BOTH
+dense and sparse queries enforce the same filter. Only trusted internal
+evaluation callers may opt into full_corpus_evaluation=True.
 This is the sole mechanism that keeps one user's uploaded documents
 invisible to everyone else, while remaining visible across all of that
 same user's own chat sessions (validated directly in the Phase 19
@@ -77,16 +78,33 @@ def embed_query_sparse(text: str):
     return list(model.embed([text]))[0]
 
 
-def build_user_filter(user_id: Optional[str]) -> Optional[qmodels.Filter]:
-    """Build the Qdrant filter that enforces upload isolation: match
-    points with no user_id field at all (the curated corpus, which
-    never has this field) OR points whose user_id matches exactly.
-    Returns None (no filter at all) when user_id is None."""
-    if user_id is None:
-        return None
-    return qmodels.Filter(
-        should=[
+def build_user_filter(
+    user_id: Optional[str], *, full_corpus_evaluation: bool = False,
+) -> qmodels.Filter:
+    """Match recognized curated sources with empty ownership, optionally
+    adding points whose user_id matches exactly.
+    A missing isolation key restricts retrieval to the curated corpus.
+    Trusted internal callers may explicitly include all users' uploads for
+    evaluation; staged uploads remain hidden in every mode. This option must
+    never be exposed as a client-controlled API parameter."""
+    if type(full_corpus_evaluation) is not bool:
+        raise ValueError("full_corpus_evaluation must be a boolean")
+    if full_corpus_evaluation and user_id is not None:
+        raise ValueError("full_corpus_evaluation cannot be combined with user_id")
+    unpublished = qmodels.FieldCondition(key="upload_ready", match=qmodels.MatchValue(value=False))
+    if full_corpus_evaluation:
+        return qmodels.Filter(must_not=[unpublished])
+    curated = qmodels.Filter(must=[
+            qmodels.FieldCondition(key="source", match=qmodels.MatchAny(any=["pubmed", "openfda", "who"])),
             qmodels.IsEmptyCondition(is_empty=qmodels.PayloadField(key="user_id")),
+        ])
+    if user_id is None:
+        curated.must_not = [unpublished]
+        return curated
+    return qmodels.Filter(
+        must_not=[unpublished],
+        should=[
+            curated,
             qmodels.FieldCondition(key="user_id", match=qmodels.MatchValue(value=user_id)),
         ]
     )
@@ -116,12 +134,17 @@ def hybrid_search(
     per_signal_limit: int = 10,
     k: int = DEFAULT_RRF_K,
     user_id: Optional[str] = None,
+    *,
+    full_corpus_evaluation: bool = False,
 ) -> List[dict]:
-    """user_id, when provided, restricts BOTH signals to the curated
-    corpus plus this user's own uploaded documents (Phase 19)."""
+    """Search curated content by default, or curated + the exact user's uploads.
+
+    full_corpus_evaluation=True is an internal opt-in to all published uploads
+    and cannot be combined with user_id. Both signals always share the filter.
+    """
+    query_filter = build_user_filter(user_id, full_corpus_evaluation=full_corpus_evaluation)
     dense_vec = embed_query_dense(query_text)
     sparse_vec = embed_query_sparse(query_text)
-    query_filter = build_user_filter(user_id)
 
     dense_results = client.query_points(
         collection_name=TEXT_COLLECTION,

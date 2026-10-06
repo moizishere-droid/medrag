@@ -43,6 +43,7 @@ logger = logging.getLogger("medrag.citations")
 PUBMED_URL_TEMPLATE = "https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
 
 _who_source_url_cache: Optional[Dict[str, str]] = None
+_who_source_url_cache_dir: Optional[str] = None
 
 
 def build_who_source_url_lookup(who_raw_dir: str, use_cache: bool = True) -> Dict[str, str]:
@@ -53,8 +54,9 @@ def build_who_source_url_lookup(who_raw_dir: str, use_cache: bool = True) -> Dic
     the original raw ingestion output instead of requiring a chunker
     change. Cached at module level - the WHO source set only changes
     when Phase 4 ingestion is re-run, not per citation lookup."""
-    global _who_source_url_cache
-    if use_cache and _who_source_url_cache is not None:
+    global _who_source_url_cache, _who_source_url_cache_dir
+    cache_dir = str(Path(who_raw_dir).resolve())
+    if use_cache and _who_source_url_cache is not None and _who_source_url_cache_dir == cache_dir:
         return _who_source_url_cache
 
     lookup = {}
@@ -64,6 +66,7 @@ def build_who_source_url_lookup(who_raw_dir: str, use_cache: bool = True) -> Dic
         lookup[filepath.stem] = data.get("source_url")
 
     _who_source_url_cache = lookup
+    _who_source_url_cache_dir = cache_dir
     return lookup
 
 
@@ -76,7 +79,7 @@ def get_who_source_url(source_id: str, who_source_urls: Dict[str, str]) -> Optio
     is correct. Confirmed necessary: a naive direct-key lookup silently
     returned None for every multi-topic WHO document."""
     for topic in source_id.split("+"):
-        if topic in who_source_urls:
+        if who_source_urls.get(topic):
             return who_source_urls[topic]
     return None
 
@@ -86,26 +89,27 @@ def get_display_info(payload: dict, who_source_urls: Dict[str, str]) -> Dict[str
     metadata structure confirmed available for each source during
     Phase 15 development (see module docstring)."""
     source = payload["source"]
+    metadata = payload.get("metadata") or {}
 
     if source == "who":
-        title = payload["metadata"].get("title", payload.get("source_id", "WHO Guideline"))
+        title = metadata.get("title", payload.get("source_id", "WHO Guideline"))
         url = get_who_source_url(payload["source_id"], who_source_urls)
         return {"title": title, "url": url}
 
     if source == "openfda":
         drug_name = payload["source_id"]
-        field = payload["metadata"].get("field", "")
+        field = metadata.get("field", "")
         field_display = field.replace("_", " ").title()
         title = f"{drug_name} — FDA Label ({field_display})" if field else f"{drug_name} — FDA Label"
         return {"title": title, "url": None}
 
     if source == "pubmed":
-        title = payload["metadata"].get("title", f"PubMed article {payload['source_id']}")
+        title = metadata.get("title", f"PubMed article {payload['source_id']}")
         pmid = payload["source_id"]
         return {"title": title, "url": PUBMED_URL_TEMPLATE.format(pmid=pmid)}
 
     if source == "user_upload":
-        filename = payload["metadata"].get("filename", "Uploaded document")
+        filename = metadata.get("filename", "Uploaded document")
         return {"title": filename, "url": None}
 
     logger.warning(f"Unrecognized source '{source}' for chunk {payload.get('chunk_id')}")
@@ -145,8 +149,27 @@ def build_citations(
             "marker": n,
             "chunk_id": payload["chunk_id"],
             "source": payload["source"],
+            "source_id": payload.get("source_id"),
             "title": display["title"],
             "url": display["url"],
             "linked_images": payload.get("linked_images", []),
         })
     return citations
+
+
+def group_citations_by_source(citations: List[dict]) -> List[dict]:
+    """Display one document once without changing chunk-level answer markers.
+
+    Public URLs identify shared guideline documents. Private uploads use their
+    document ID, so different PDFs with the same filename remain distinct.
+    Historical citations lack source IDs and fall back to their display title.
+    """
+    grouped = {}
+    for citation in citations:
+        identity = citation.get("url") or citation.get("source_id") or citation["title"]
+        key = (citation["source"], identity)
+        if key not in grouped:
+            grouped[key] = {**citation, "markers": []}
+        if citation["marker"] not in grouped[key]["markers"]:
+            grouped[key]["markers"].append(citation["marker"])
+    return list(grouped.values())

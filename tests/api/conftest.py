@@ -32,10 +32,21 @@ class FakeCursor:
     def execute(self, sql, params=None):
         pass
 
+    def fetchone(self):
+        return None
+
 
 class FakeConn:
     def __init__(self):
         self.autocommit = False
+        self.committed = False
+        self.rolled_back = False
+
+    def commit(self):
+        self.committed = True
+
+    def rollback(self):
+        self.rolled_back = True
 
     def cursor(self, *args, **kwargs):
         return FakeCursor()
@@ -86,7 +97,8 @@ def message_row():
 
 
 @pytest.fixture
-def state():
+def state(monkeypatch):
+    monkeypatch.setattr(main.settings, "auth_required", False)
     s = main.app.state
     s.pg_pool = FakePool()
     s.qdrant_client = SimpleNamespace(get_collections=lambda: [])
@@ -180,4 +192,12 @@ def upload_pipeline(monkeypatch, db):
     monkeypatch.setattr(main, "extract_text_from_pdf", fake_extract)
     monkeypatch.setattr(main, "chunk_user_upload", fake_chunk)
     monkeypatch.setattr(main, "embed_and_upsert_upload_chunks", fake_embed)
+    def fake_index(conn, session_id, file_bytes, filename, qdrant_client, openai_client):
+        import uuid
+        text = main.extract_text_from_pdf(file_bytes)
+        chunks = fake_chunk(text=text, user_id=session_id, session_id=session_id,
+                            document_id=str(uuid.uuid4()), filename=filename)
+        count = fake_embed(chunks, qdrant_client, openai_client)
+        return {"document_id": rec.chunk_calls[-1]["document_id"], "filename": filename, "chunk_count": count}
+    monkeypatch.setattr(main.user_upload, "index_document", fake_index)
     return rec

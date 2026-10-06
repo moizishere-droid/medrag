@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 18: FastAPI — Report
 
 ## Phase Objective
@@ -40,3 +42,14 @@ Expose the full MedRAG pipeline — hybrid retrieval, reranking, grounded genera
 - Modified `backend/src/medrag/memory/chat_memory.py`: `generate_answer_with_memory()` signature changed to return `(answer, results, assistant_message_id)`; added `session_exists()` and `update_message_citations()`
 
 No notebook this phase (see Key Design Decisions #1). No separate runner script — the API itself, launched via `uvicorn`, is the entry point.
+
+## Audit corrections — 6 October 2026
+
+Blocking routes run in worker threads, including their database/citation work. Async uploads offload blocking stages. Added UUID/blank-message validation, bounded file reads, pool-exhaustion responses, and resource cleanup after partial startup failure.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/api/main.py](../backend/src/medrag/api/main.py)
+- [backend/src/medrag/api/models.py](../backend/src/medrag/api/models.py)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

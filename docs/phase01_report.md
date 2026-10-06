@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 1: Environment Setup – Report
 
 ## Phase Objective
@@ -44,3 +46,16 @@ Establish a reproducible development environment, organize the project structure
 - Centralized configuration system verified.
 - Project package registered and importable from all modules.
 - Development environment prepared for the data ingestion pipeline (Phase 2).
+
+## Audit corrections — 6 October 2026
+
+Installer referenced a deleted frontend requirements file and continued after failures. Fixed working-directory handling and failure checks. Sample database settings now match Compose. Removed unused incompatible experiment-tracking dependency.
+
+Changed or reviewed files:
+
+- [install.bat](../install.bat)
+- [.env.example](../.env.example)
+- [backend/requirements.txt](../backend/requirements.txt)
+- [pyproject.toml](../pyproject.toml)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # MedRAG — Multilingual Multimodal Medical Knowledge RAG System
 
 ### Phase 0: Project Documentation & Architecture (Updated Through Phase 7)
@@ -131,7 +133,7 @@ A topic missing coverage from one source (e.g., no WHO guidance, or few OpenFDA-
 - **36 project topics** (not the originally-discussed 32 — some were split further during PubMed ingestion), spanning chronic/metabolic, respiratory, cardiovascular, infectious, mental health, gastrointestinal, musculoskeletal, endocrine, neurological, renal, common cancers, and maternal/child health conditions.
 - **PubMed:** 4,159 unique articles → 4,725 chunks (after deduplicating ~10% genuine cross-topic overlap, e.g. comorbidity papers).
 - **OpenFDA:** 467 unique drugs → 13,167 chunks (24 of 36 topics reach the 25-drug target; several genuinely have fewer real FDA-labeled drugs, e.g. malnutrition, typhoid, dengue fever).
-- **WHO:** 24 of 36 topics have a real WHO guideline (17 unique documents, several shared across related topics); 4,804 unique chunks including row-split table pieces for oversized tables; 76 unique images.
+- **WHO:** 24 of 36 topics have a real WHO guideline (18 unique documents, several shared across related topics); 4,804 unique chunks including row-split table pieces for oversized tables; 76 unique images.
 - **12 topics have no dedicated WHO guideline** (osteoarthritis, rheumatoid arthritis, osteoporosis, chronic kidney disease, lung cancer, peptic ulcer disease, irritable bowel syndrome, arrhythmia, hypothyroidism, hyperthyroidism, migraine, Parkinson's disease) — confirmed genuine via broad, non-IRIS-restricted search, not a search-bias artifact.
 - **Total unique chunks across all sources: 22,688.** Total unique text embeddings: 22,696 (WHO count includes a small number of extra pieces from oversized-table row-splitting). Total unique image embeddings: 76.
 
@@ -183,3 +185,13 @@ medrag/
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Audit corrections — 6 October 2026
+
+Corrected outdated README status and documentation references. The image pipeline exists, but the chat API currently generates from retrieved text; full multimodal chat remains outside the implemented path.
+
+Changed or reviewed files:
+
+- [README.md](../README.md)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

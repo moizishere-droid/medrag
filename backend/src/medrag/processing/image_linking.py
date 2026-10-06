@@ -100,6 +100,8 @@ def group_images_by_document(
     Chunk.source_id ("+".join(sorted(topics))), so it lines up with chunks
     from the same underlying document without needing a shared literal id.
     """
+    if len(image_records) != len(topics_per_record):
+        raise ValueError("Image records and topics must have matching lengths")
     doc_images = defaultdict(list)
     for record, topics in zip(image_records, topics_per_record):
         canonical_id = "+".join(sorted(topics))

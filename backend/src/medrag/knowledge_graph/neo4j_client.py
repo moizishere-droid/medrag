@@ -23,7 +23,11 @@ def get_neo4j_driver(uri: str, user: str, password: str) -> Driver:
     bad connection rather than deferring the failure to the first real
     query."""
     driver = GraphDatabase.driver(uri, auth=(user, password))
-    driver.verify_connectivity()
+    try:
+        driver.verify_connectivity()
+    except Exception:
+        driver.close()
+        raise
     return driver
 
 

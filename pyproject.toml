@@ -8,8 +8,7 @@ name = "medrag"
 version = "0.1.0"
 description = "Multilingual Multimodal Medical Knowledge RAG System"
 requires-python = ">=3.10,<3.13"
-dependencies = []       # Actual dependencies are managed in backend/requirements.txt and
-                        # frontend/requirements.txt, not here. 
+dependencies = []       # Backend and frontend dependencies: backend/requirements.txt.
 
 
 # This file exists only to make

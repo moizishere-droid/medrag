@@ -1,4 +1,5 @@
 import sys
+import os
 from pathlib import Path
 
 # find_project_root-anchored path setup, same as your other scripts
@@ -16,9 +17,17 @@ sys.path.insert(0, str(project_root / "backend" / "src"))
 from fastapi.testclient import TestClient
 from medrag.api.main import app
 
-with TestClient(app) as client:
-    response = client.get("/sessions")
-    print("Status:", response.status_code)
-    print("Body:")
-    import json
-    print(json.dumps(response.json(), indent=2, default=str))
+def main():
+    token = os.environ.get("MEDRAG_VERIFY_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    with TestClient(app) as client:
+        if client.get("/auth/config").json()["required"] and not token:
+            raise RuntimeError("Set MEDRAG_VERIFY_TOKEN to an existing account token.")
+        response = client.get("/sessions", headers=headers)
+        response.raise_for_status()
+        import json
+        print(json.dumps(response.json(), indent=2, default=str))
+
+
+if __name__ == "__main__":
+    main()

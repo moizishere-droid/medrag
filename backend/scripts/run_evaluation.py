@@ -74,6 +74,8 @@ def main():
     parser.add_argument("--generation-model", default="gpt-4.1-nano")
     parser.add_argument("--judge-model", default="gpt-5.2")
     parser.add_argument("--include-unreliable-metrics", action="store_true")
+    parser.add_argument("--full-corpus-evaluation", action="store_true",
+                        help="Include all users' published uploads (trusted internal evaluation only)")
     args = parser.parse_args()
 
     qdrant = get_qdrant_client(settings.qdrant_url or "http://localhost:6333")
@@ -86,6 +88,7 @@ def main():
     eval_records = run_pipeline_on_test_set(
         test_set, qdrant, openai_client, neo4j_driver=neo4j_driver,
         generation_model=args.generation_model,
+        full_corpus_evaluation=args.full_corpus_evaluation,
     )
 
     logger.info(f"Scoring with judge model: {args.judge_model}")
@@ -115,6 +118,7 @@ def main():
 
     output = {
         "generation_model": args.generation_model,
+        "full_corpus_evaluation": args.full_corpus_evaluation,
         "judge_model": args.judge_model,
         "aggregate": aggregate,
         "per_question": df.to_dict(orient="records"),

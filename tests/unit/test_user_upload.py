@@ -172,8 +172,14 @@ class FakeQdrantWriter:
     def __init__(self):
         self.upserts = []
 
-    def upsert(self, collection_name, points):
+    def upsert(self, collection_name, points, wait=True):
         self.upserts.append((collection_name, points))
+
+    def set_payload(self, collection_name, payload, points, wait=True):
+        for _, stored in self.upserts:
+            for point in stored:
+                if passes_filter(points, point.payload):
+                    point.payload.update(payload)
 
 
 @pytest.fixture
@@ -227,14 +233,17 @@ def passes_filter(flt, payload):
     (OR semantics). Real enforcement by Qdrant is an integration test."""
     if flt is None:
         return True
-    for cond in flt.should:
+    def matches(cond):
+        if isinstance(cond, qmodels.Filter):
+            return passes_filter(cond, payload)
         if isinstance(cond, qmodels.IsEmptyCondition):
-            if not payload.get(cond.is_empty.key):
-                return True
-        elif isinstance(cond, qmodels.FieldCondition):
-            if payload.get(cond.key) == cond.match.value:
-                return True
-    return False
+            return not payload.get(cond.is_empty.key)
+        if isinstance(cond, qmodels.FieldCondition):
+            if isinstance(cond.match, qmodels.MatchAny):
+                return payload.get(cond.key) in cond.match.any
+            return payload.get(cond.key) == cond.match.value
+        return False
+    return all(matches(c) for c in flt.must or []) and (not flt.should or any(matches(c) for c in flt.should)) and not any(matches(c) for c in flt.must_not or [])
 
 
 def test_contract_uploaded_chunks_are_visible_to_their_owner_only(upserted):
@@ -249,3 +258,6 @@ def test_contract_uploaded_chunks_are_visible_to_their_owner_only(upserted):
     assert not passes_filter(build_user_filter("u2"), upload_payload)  # others do not
     assert passes_filter(build_user_filter("u2"), curated_payload)  # corpus stays visible
     assert passes_filter(build_user_filter("u1"), curated_payload)
+    legacy_upload = {"source": "user_upload", "chunk_id": "legacy"}
+    assert not passes_filter(build_user_filter(None), legacy_upload)
+    assert not passes_filter(build_user_filter("u1"), legacy_upload)

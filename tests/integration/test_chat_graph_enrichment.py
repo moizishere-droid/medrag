@@ -113,13 +113,24 @@ def test_drug_detection_runs_on_the_rewritten_query_not_the_follow_up(pg_conn, g
     assert graph.find_queries == ["What are metformin's contraindications?"]  # the rewrite
     assert graph.curated_calls == [(driver, "metformin")]
     prompt = system_prompt(openai_client)  # generation call is the last one
-    assert "Verified structured facts" in prompt
+    assert "Candidate relationships" in prompt
     assert "- Metformin CONTRAINDICATED_IN renal impairment" in prompt
 
 
 def test_the_original_follow_up_alone_would_have_missed_the_drug():
     """Why the rewrite matters: with the follow-up text, detection finds nothing."""
     assert cm.find_mentioned_drug("What are its contraindications?", ["metformin"]) is None
+
+
+def test_follow_up_language_uses_original_query_even_after_foreign_history(pg_conn, graph):
+    sid = cm.create_session(pg_conn)
+    cm.add_message(pg_conn, sid, "user", "Что такое гипертония?")
+    cm.add_message(pg_conn, sid, "assistant", "Повышенное давление.")
+    client = ScriptedOpenAI("Что значит антигипертензивное средство?", "An antihypertensive lowers blood pressure [1].")
+    cm.generate_answer_with_memory("antihypertensive what its means?", sid, pg_conn,
+                                  qdrant_client=object(), openai_client=client, user_id=sid)
+    assert "Respond exclusively in English" in system_prompt(client)
+    assert client.calls[-1][-1]["content"] == "antihypertensive what its means?"
 
 
 def test_no_neo4j_driver_means_no_graph_section_and_no_graph_calls(pg_conn, graph):
@@ -131,7 +142,7 @@ def test_no_neo4j_driver_means_no_graph_section_and_no_graph_calls(pg_conn, grap
         openai_client=openai_client, neo4j_driver=None,
     )
 
-    assert "Verified structured facts" not in system_prompt(openai_client)
+    assert "Candidate relationships" not in system_prompt(openai_client)
     assert graph.find_queries == [] and graph.curated_calls == []
 
 
@@ -146,4 +157,4 @@ def test_driver_present_but_no_known_drug_mentioned_adds_nothing(pg_conn, graph)
 
     assert graph.find_queries == ["What is hypertension?"]  # looked, found nothing
     assert graph.curated_calls == []
-    assert "Verified structured facts" not in system_prompt(openai_client)
+    assert "Candidate relationships" not in system_prompt(openai_client)

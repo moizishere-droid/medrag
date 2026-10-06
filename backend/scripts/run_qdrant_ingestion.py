@@ -26,6 +26,7 @@ Reads:
 
 import argparse
 import logging
+import sys
 from pathlib import Path
 
 
@@ -46,6 +47,9 @@ def find_project_root(marker: str = "backend", start: Path = None) -> Path:
 
 
 PROJECT_ROOT = find_project_root()
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+
+from config.settings import settings
 
 from medrag.embeddings.storage import load_embeddings, load_image_embeddings
 from medrag.embeddings.qdrant_client import get_qdrant_client, ensure_collections, reset_collections
@@ -111,7 +115,7 @@ def main():
     )
     args = parser.parse_args()
 
-    client = get_qdrant_client()
+    client = get_qdrant_client(settings.qdrant_url or "http://localhost:6333")
     client.get_collections()  # smoke test - raises if server unreachable
 
     if args.reset:

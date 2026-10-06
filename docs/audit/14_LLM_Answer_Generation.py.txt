@@ -1,0 +1,260 @@
+# CELL 0
+# Run from either the repository root or the notebooks directory.
+from pathlib import Path
+import os
+import sys
+PROJECT_ROOT = next((p for p in [Path.cwd(), *Path.cwd().parents]
+                     if (p / "backend" / "src" / "medrag").is_dir()), None)
+if PROJECT_ROOT is None:
+    raise RuntimeError("Start this notebook inside the MedRAG repository")
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+os.chdir(PROJECT_ROOT / "notebooks")
+from config.settings import settings
+
+
+# CELL 2
+import sys, os
+from pathlib import Path
+import logging
+
+def find_project_root(marker="backend", start=None):
+    current = Path(start or os.getcwd()).resolve()
+    for candidate in [current, *current.parents]:
+        if (candidate / marker).is_dir():
+            return candidate
+    raise RuntimeError(f"Could not find a '{marker}' folder above {current}")
+
+PROJECT_ROOT = find_project_root()
+print(f"Project root: {PROJECT_ROOT}")
+
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "scripts"))
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+from config.settings import settings
+from medrag.embeddings.qdrant_client import get_qdrant_client
+from medrag.retrieval.reranking import search_with_reranking
+
+import openai
+
+client = get_qdrant_client(settings.qdrant_url or "http://localhost:6333")
+client.get_collections()
+
+openai_client = openai.OpenAI(api_key=settings.openai_api_key)
+ 
+GENERATION_MODEL = "gpt-4.1-nano"
+
+print("Setup complete")
+
+# CELL 4
+models = openai_client.models.list()
+for m in sorted(models.data, key=lambda x: x.id):
+    print(m.id)
+
+# CELL 5
+BASE_SYSTEM_PROMPT = """You are a medical information assistant. Answer the user's question using ONLY the information in the provided context below. Do not use any outside knowledge.
+
+If the context does not contain enough information to answer the question, say so plainly - do not guess or fill gaps with your own knowledge.
+
+Context:
+{context}
+"""
+
+def format_context(results: list) -> str:
+    """Format reranked search results into a numbered context block."""
+    blocks = []
+    for i, r in enumerate(results, 1):
+        blocks.append(f"[{i}] (source: {r['payload']['source']})\n{r['payload']['raw_text']}")
+    return "\n\n".join(blocks)
+
+
+def generate_answer(query: str, model: str = GENERATION_MODEL) -> str:
+    results = search_with_reranking(client, query, candidate_pool_size=20, top_n=5)
+    context = format_context(results)
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": BASE_SYSTEM_PROMPT.format(context=context)},
+            {"role": "user", "content": query},
+        ],
+    )
+    return response.choices[0].message.content
+
+
+answer = generate_answer("side effects of ACE inhibitors")
+print(answer)
+
+# CELL 6
+answer = generate_answer("how does the body regulate blood sugar")
+print(answer)
+
+# CELL 8
+CITED_SYSTEM_PROMPT = """You are a medical information assistant. Answer the user's question using ONLY the information in the provided context below. Do not use any outside knowledge.
+
+If the context does not contain enough information to answer the question, say so plainly - do not guess or fill gaps with your own knowledge.
+
+After each claim or statement in your answer, add a bracketed citation referencing which numbered context block it came from, e.g. "ACE inhibitors can cause dry cough [1]." If a claim is supported by multiple sources, cite all of them, e.g. [1][3].
+
+Context:
+{context}
+"""
+
+def generate_answer_cited(query: str, model: str = GENERATION_MODEL) -> str:
+    results = search_with_reranking(client, query, candidate_pool_size=20, top_n=5)
+    context = format_context(results)
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": CITED_SYSTEM_PROMPT.format(context=context)},
+            {"role": "user", "content": query},
+        ],
+    )
+    return response.choices[0].message.content
+
+
+answer = generate_answer_cited("side effects of ACE inhibitors")
+print(answer)
+
+# CELL 10
+MULTILINGUAL_SYSTEM_PROMPT = """You are a medical information assistant. Answer the user's question using ONLY the information in the provided context below. Do not use any outside knowledge.
+
+If the context does not contain enough information to answer the question, say so plainly - do not guess or fill gaps with your own knowledge.
+
+The context below is in English. Detect the language of the user's question and respond in THAT SAME language, translating the relevant information from the English context as needed. If the question is in English, respond in English.
+
+After each claim or statement in your answer, add a bracketed citation referencing which numbered context block it came from, e.g. "ACE inhibitors can cause dry cough [1]." If a claim is supported by multiple sources, cite all of them, e.g. [1][3].
+
+Context:
+{context}
+"""
+
+def generate_answer_full(query: str, model: str = GENERATION_MODEL) -> str:
+    results = search_with_reranking(client, query, candidate_pool_size=20, top_n=5)
+    context = format_context(results)
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": MULTILINGUAL_SYSTEM_PROMPT.format(context=context)},
+            {"role": "user", "content": query},
+        ],
+    )
+    return response.choices[0].message.content
+
+
+# Test in Urdu (one of your 6 target languages)
+answer = generate_answer_full("ACE inhibitors ke side effects kya hain?")
+print(answer)
+
+# CELL 12
+from neo4j import GraphDatabase
+
+neo4j_driver = GraphDatabase.driver(
+    settings.neo4j_uri,
+    auth=(settings.neo4j_user, settings.neo4j_password),
+)
+neo4j_driver.verify_connectivity()
+
+def get_graph_facts_for_drug(drug_name: str) -> list:
+    """Query Neo4j for all known relationships for a drug, matched by
+    normalized (lowercase) name - same normalization used during Phase
+    13 ingestion."""
+    normalized = drug_name.strip().lower()
+    with neo4j_driver.session() as session:
+        result = session.run("""
+            MATCH (d:Drug {normalized_name: $name})-[rel]->(dis:Disease)
+            RETURN d.name AS drug, type(rel) AS relationship, dis.name AS disease
+        """, name=normalized)
+        return [dict(record) for record in result]
+
+
+from medrag.generation.generation import format_graph_facts
+
+
+# Test: query for a known drug
+facts = get_graph_facts_for_drug("Metformin Hydrochloride")
+print(format_graph_facts(facts))
+
+# CELL 14
+def get_graph_facts_for_drug_curated(drug_name: str, max_causes: int = 8) -> list:
+    """Same query as Cell 7, but curated before use in generation:
+    - drops any CAUSES fact whose disease also appears under TREATS for
+      the same drug (a direct contradiction - confirmed on real data,
+      e.g. metformin CAUSES/TREATS type 2 diabetes mellitus - resolved
+      in favor of TREATS, since indications_and_usage is the more
+      authoritative, lower-noise section)
+    - caps CAUSES to max_causes, since a drug can have dozens of listed
+      adverse effects and including all of them would both bloat the
+      prompt and bury the higher-value TREATS/CONTRAINDICATED_IN facts
+    """
+    facts = get_graph_facts_for_drug(drug_name)
+
+    treats_diseases = {f["disease"].lower() for f in facts if f["relationship"] == "TREATS"}
+    causes = [f for f in facts if f["relationship"] == "CAUSES" and f["disease"].lower() not in treats_diseases]
+    treats = [f for f in facts if f["relationship"] == "TREATS"]
+    contraindicated = [f for f in facts if f["relationship"] == "CONTRAINDICATED_IN"]
+
+    return treats + contraindicated + causes[:max_causes]
+
+
+facts_curated = get_graph_facts_for_drug_curated("Metformin Hydrochloride")
+print(format_graph_facts(facts_curated))
+
+# CELL 16
+def get_all_known_drug_names() -> list:
+    with neo4j_driver.session() as session:
+        result = session.run("MATCH (d:Drug) RETURN d.name AS name")
+        return [record["name"] for record in result]
+
+KNOWN_DRUG_NAMES = get_all_known_drug_names()
+print(f"Loaded {len(KNOWN_DRUG_NAMES)} known drug names")
+
+
+def find_mentioned_drug(query: str):
+    from medrag.generation.generation import find_mentioned_drug as find
+    return find(query, KNOWN_DRUG_NAMES)
+
+
+FULL_SYSTEM_PROMPT = """You are a medical information assistant. Answer the user's question using ONLY the information in the provided context below. Do not use any outside knowledge.
+
+If the context does not contain enough information to answer the question, say so plainly - do not guess or fill gaps with your own knowledge.
+
+The context below is in English. Detect the language of the user's question and respond in THAT SAME language, translating the relevant information from the English context as needed. If the question is in English, respond in English.
+
+After each claim or statement in your answer, add a bracketed citation referencing which numbered context block it came from, e.g. "ACE inhibitors can cause dry cough [1]." If a claim is supported by multiple sources, cite all of them, e.g. [1][3].
+
+{graph_section}
+
+Context:
+{context}
+"""
+
+def generate_final_answer(query: str, model: str = GENERATION_MODEL) -> str:
+    results = search_with_reranking(client, query, candidate_pool_size=20, top_n=5)
+    context = format_context(results)
+
+    mentioned_drug = find_mentioned_drug(query)
+    graph_section = ""
+    if mentioned_drug:
+        facts = get_graph_facts_for_drug_curated(mentioned_drug)
+        if facts:
+            graph_section = format_graph_facts(facts)
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": FULL_SYSTEM_PROMPT.format(context=context, graph_section=graph_section)},
+            {"role": "user", "content": query},
+        ],
+    )
+    return response.choices[0].message.content
+
+
+answer = generate_final_answer("What does metformin treat and what are its contraindications?")
+print(answer)

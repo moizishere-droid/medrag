@@ -38,9 +38,11 @@ def fetch_drugs_raw(topic: str, limit: int = 150, max_retries: int = 3, api_key:
     requires the exact phrase to appear, eliminating that class of false
     positive.
 
-    Retries on timeout/connection errors; returns an empty list if all retries
-    fail (the topic is skipped, not crashed, in that case).
+    Retries request failures and raises on exhaustion so callers preserve
+    saved data. A genuine no-results response (404) returns an empty list.
     """
+    if max_retries < 1:
+        raise ValueError("max_retries must be positive")
     query = search_term if search_term else topic
     params = {"search": f'indications_and_usage:"{query}"', "limit": limit}
     if api_key:
@@ -49,9 +51,9 @@ def fetch_drugs_raw(topic: str, limit: int = 150, max_retries: int = 3, api_key:
     for attempt in range(max_retries):
         try:
             response = requests.get(OPENFDA_URL, params=params, timeout=15)
-            if response.status_code != 200:
-                logger.warning(f"  OpenFDA returned status {response.status_code} for '{topic}'")
+            if response.status_code == 404:
                 return []
+            response.raise_for_status()
             data = response.json()
             return data.get("results", [])
 
@@ -61,7 +63,7 @@ def fetch_drugs_raw(topic: str, limit: int = 150, max_retries: int = 3, api_key:
                 time.sleep(2)
             else:
                 logger.error(f"  Giving up on '{topic}' after {max_retries} attempts")
-                return []
+                raise
 
 
 def parse_drug_record(raw: dict, topic: str) -> DrugRecord:
@@ -70,10 +72,10 @@ def parse_drug_record(raw: dict, topic: str) -> DrugRecord:
     Raises ValueError if the record lacks identifiable drug name data
     (a meaningful fraction of OpenFDA labels lack openfda metadata entirely).
     """
-    openfda = raw.get("openfda", {})
+    openfda = raw.get("openfda") or {}
 
-    brand_name = openfda.get("brand_name", [None])[0]
-    generic_name = openfda.get("generic_name", [None])[0]
+    brand_name = (openfda.get("brand_name") or [None])[0]
+    generic_name = (openfda.get("generic_name") or [None])[0]
 
     if not brand_name and not generic_name:
         raise ValueError("No brand_name or generic_name — cannot identify drug")
@@ -81,7 +83,7 @@ def parse_drug_record(raw: dict, topic: str) -> DrugRecord:
     return DrugRecord(
         brand_name=brand_name or generic_name,
         generic_name=generic_name or brand_name,
-        drug_class=openfda.get("pharm_class_epc", [None])[0],
+        drug_class=(openfda.get("pharm_class_epc") or [None])[0],
         indications_and_usage=" ".join(raw.get("indications_and_usage", [])),
         dosage_and_administration=" ".join(raw.get("dosage_and_administration", [])) or None,
         contraindications=" ".join(raw.get("contraindications", [])) or None,

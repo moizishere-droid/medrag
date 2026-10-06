@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 4: WHO Guidelines Ingestion — Report (Revised)
 
 ## Phase Objective
@@ -31,7 +33,7 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 
 ## Results
 
-- **24/24 topics** successfully processed in the final production run (17 unique documents).
+- **24/24 topics** successfully processed in the final production run (18 unique documents).
 - **~1,204 tables** extracted in total across all documents.
 - Text extraction verified dramatically cleaner than the original `pypdf` output — structured rows/columns instead of flattened, unreadable fragments; repeated document headers stripped from both `clean_text` and `raw_text`.
 - Image extraction reduced from ~300 mostly-duplicate files (some topics had 20+ repeats of a single logo) down to a clean, mostly-unique set of real figures per topic (roughly 0-8 each) — genuine content came through clearly (e.g. a malaria milestones/targets chart, dengue fever context photos, COVID-19 diagrams, hepatitis patient photos).
@@ -50,7 +52,7 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 
 ## Files Created
 
-- `notebooks/phase04_who_guidelines.ipynb`
+- `notebooks/04_who_guidelines.ipynb`
 - `backend/src/medrag/ingestion/who_client.py` (resolver + unified extraction + image filtering)
 - `backend/src/medrag/ingestion/models.py` (updated — `Guideline` revised, `WhoTable`/`WhoImage` added, `WhoImage.image_type` added)
 - `backend/src/medrag/ingestion/storage.py` (updated — table/image save/load functions added)
@@ -60,3 +62,14 @@ Ingest real WHO clinical guideline documents for the project's 36 topics, extrac
 - `data/tables/who/*.jsonl` (24 files — ~1,204 tables total)
 - `data/images/who/*.png` + `*_metadata.jsonl` (24 topics — clean, deduplicated real images)
 - `docs/phase04_report.md`
+
+## Audit corrections — 6 October 2026
+
+Fixed notebook use of undefined `__file__`. PDF extraction resources now close on both success and exceptions. Saved 24 topic documents represent 18 distinct source URLs.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/ingestion/who_client.py](../backend/src/medrag/ingestion/who_client.py)
+- [notebooks/04_who_guidelines.ipynb](../notebooks/04_who_guidelines.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

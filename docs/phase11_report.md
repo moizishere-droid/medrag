@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 11: Cross-Encoder Reranking — Report
 
 ## Phase Objective
@@ -33,6 +35,17 @@ Add a reranking layer on top of Phase 10's hybrid retrieval, using a cross-encod
 ## Files Created
 
 - `backend/src/medrag/retrieval/reranking.py` (`get_cross_encoder`, `rerank`, `search_with_reranking`)
-- `notebooks/phase11_reranking.ipynb`
+- `notebooks/11_Cross_Encoder_Retrieval.ipynb`
 
 No new runner script — same reasoning as Phase 10: reranking is a function library called on-demand, not a batch job with a standalone production entry point.
+
+## Audit corrections — 6 October 2026
+
+Empty candidate lists and nonpositive result counts return safely without model loading. Notebook final reranker uses the corrected implementation.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/retrieval/reranking.py](../backend/src/medrag/retrieval/reranking.py)
+- [notebooks/11_Cross_Encoder_Retrieval.ipynb](../notebooks/11_Cross_Encoder_Retrieval.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

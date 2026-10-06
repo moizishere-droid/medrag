@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 13: Medical Knowledge Graph (Neo4j) — Report
 
 ## Phase Objective
@@ -43,5 +45,16 @@ Build a structured drug-disease knowledge graph in Neo4j, extracting explicit re
 - `backend/src/medrag/knowledge_graph/neo4j_client.py` (`get_neo4j_driver`, `setup_constraints`)
 - `backend/src/medrag/knowledge_graph/graph_ingestion.py` (`normalize_entity`, `FIELD_TO_RELATIONSHIP`, `extract_relationships_from_chunk`, `aggregate_relationships`, `write_relationships_batched`)
 - `backend/scripts/run_graph_ingestion.py`
-- `notebooks/phase14_knowledge_graph.ipynb`
+- `notebooks/13_Neo4j_Knowledge_Graph.ipynb`
 - Neo4j graph database, persisted in a volume-mounted Docker container (`neo4j_data/`, gitignored)
+
+## Audit corrections — 6 October 2026
+
+Reviewed extraction, aggregation and writes. Relationships inferred from label sections remain noisy candidates; this audit does not establish their medical truth. Generation no longer treats them as verified evidence.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/generation/generation.py](../backend/src/medrag/generation/generation.py)
+- [notebooks/13_Neo4j_Knowledge_Graph.ipynb](../notebooks/13_Neo4j_Knowledge_Graph.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

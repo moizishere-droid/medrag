@@ -18,16 +18,17 @@ hybrid_search()'s isolation filter) - this is what lets a chat actually
 retrieve a user's own uploaded documents, on top of the curated corpus,
 without any chance of surfacing a different user's uploads.
 
-Phase 18 integration note: citations can only be built (Phase 15) after
-this function returns the retrieved results, which only exist inside
-this call - so this function returns (answer, results,
-assistant_message_id), and citations are attached to the already-stored
-assistant message via update_message_citations() as a separate,
-post-generation step, rather than passed in upfront.
+The API holds a database-backed session lock across generation and persists
+the user message, assistant message and resolved citations in one SQL
+transaction. This function returns (answer, results, assistant_message_id)
+so callers can attach citations before committing their outer transaction.
+Standalone callers also get atomic persistence of the message pair.
 """
 
 import json
+import uuid
 import logging
+from time import perf_counter
 from typing import List, Optional
 
 import openai
@@ -46,6 +47,9 @@ from medrag.generation.generation import (
     format_graph_facts,
 )
 from medrag.retrieval.reranking import search_with_reranking
+from medrag.memory.db import transaction
+from medrag.memory.session_titles import title_from_query
+from medrag.generation.language import language_instruction, complete_in_query_language
 
 logger = logging.getLogger("medrag.memory")
 
@@ -79,9 +83,22 @@ def create_session(conn: PGConnection, title: Optional[str] = None, user_id: Opt
 def session_exists(conn: PGConnection, session_id: str) -> bool:
     """Check whether a session_id actually corresponds to a created
     session, distinct from an empty (but real) session's history."""
+    try:
+        session_id = str(uuid.UUID(str(session_id)))
+    except (ValueError, TypeError, AttributeError):
+        return False
     with conn.cursor() as cur:
         cur.execute("SELECT 1 FROM sessions WHERE session_id = %s", (session_id,))
         return cur.fetchone() is not None
+
+
+def title_session_from_first_query(conn, session_id, query):
+    """Name only an untitled chat's first successful turn, inside its transaction."""
+    with conn.cursor() as cur:
+        cur.execute("""UPDATE sessions SET title = %s WHERE session_id = %s
+            AND (title IS NULL OR btrim(title) = '')
+            AND NOT EXISTS (SELECT 1 FROM messages WHERE session_id = %s)""",
+                    (title_from_query(query), session_id, session_id))
 
 
 def get_session_user_id(conn: PGConnection, session_id: str) -> Optional[str]:
@@ -114,7 +131,7 @@ def add_message(
             (session_id, role, content, json.dumps(citations) if citations else None),
         )
         message_id = cur.fetchone()["message_id"]
-        cur.execute("UPDATE sessions SET updated_at = now() WHERE session_id = %s", (session_id,))
+        cur.execute("UPDATE sessions SET updated_at = clock_timestamp() WHERE session_id = %s", (session_id,))
     return str(message_id)
 
 
@@ -136,7 +153,7 @@ def get_session_history(conn: PGConnection, session_id: str, limit: Optional[int
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         if limit is None:
             cur.execute(
-                "SELECT * FROM messages WHERE session_id = %s ORDER BY created_at ASC",
+                "SELECT * FROM messages WHERE session_id = %s ORDER BY created_at ASC, message_sequence ASC",
                 (session_id,),
             )
         else:
@@ -144,8 +161,8 @@ def get_session_history(conn: PGConnection, session_id: str, limit: Optional[int
                 """
                 SELECT * FROM (
                     SELECT * FROM messages WHERE session_id = %s
-                    ORDER BY created_at DESC LIMIT %s
-                ) sub ORDER BY created_at ASC
+                    ORDER BY created_at DESC, message_sequence DESC LIMIT %s
+                ) sub ORDER BY created_at ASC, message_sequence ASC
                 """,
                 (session_id, limit),
             )
@@ -159,15 +176,17 @@ def build_message_history(conn: PGConnection, session_id: str, bounded_turns: in
     messages = get_session_history(conn, session_id, limit=bounded_turns * 2)
     return [{"role": m["role"], "content": m["content"]} for m in messages]
 
-def list_sessions(conn) -> list[dict]:
+def list_sessions(conn, user_id=None) -> list[dict]:
     """Return all sessions, most recently updated first."""
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT session_id, title, created_at, updated_at
             FROM sessions
+            """ + ("WHERE user_id = %s " if user_id is not None else "") + """
             ORDER BY updated_at DESC
             """
+            , (user_id,) if user_id is not None else None
         )
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
@@ -214,13 +233,16 @@ def generate_answer_with_memory(
     conversation history) -> persist both turns.
 
     Returns (answer, results, assistant_message_id)."""
+    started = perf_counter()
     retrieval_query = reformulate_query(conn, openai_client, session_id, query, model=model)
+    reformulated = perf_counter()
 
     results = search_with_reranking(
         qdrant_client, retrieval_query,
         candidate_pool_size=20, top_n=5, user_id=user_id,
     )
     context = format_context(results)
+    retrieved = perf_counter()
 
     graph_section = ""
     if neo4j_driver is not None:
@@ -230,7 +252,7 @@ def generate_answer_with_memory(
             facts = get_graph_facts_for_drug_curated(neo4j_driver, mentioned_drug)
             graph_section = format_graph_facts(facts)
 
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, graph_section=graph_section)
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, graph_section=graph_section) + language_instruction(query)
     history_messages = build_message_history(conn, session_id, bounded_turns=bounded_turns)
 
     messages = (
@@ -238,11 +260,18 @@ def generate_answer_with_memory(
         + history_messages
         + [{"role": "user", "content": query}]
     )
+    prepared = perf_counter()
 
-    response = openai_client.chat.completions.create(model=model, messages=messages)
-    answer = response.choices[0].message.content
+    answer = complete_in_query_language(openai_client, model, messages, query)
+    generated = perf_counter()
+    logger.info(
+        "Chat pipeline seconds: reformulation=%.3f retrieval=%.3f graph_history=%.3f generation=%.3f",
+        reformulated - started, retrieved - reformulated,
+        prepared - retrieved, generated - prepared,
+    )
 
-    add_message(conn, session_id, "user", query)
-    assistant_message_id = add_message(conn, session_id, "assistant", answer)
+    with transaction(conn):
+        add_message(conn, session_id, "user", query)
+        assistant_message_id = add_message(conn, session_id, "assistant", answer)
 
     return answer, results, assistant_message_id

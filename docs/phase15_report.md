@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 15: Citation System — Report
 
 ## Phase Objective
@@ -38,6 +40,17 @@ Turn Phase 14's lightweight bracketed citation markers (`[1]`, `[1][3]`) into st
 
 - `backend/src/medrag/citations/__init__.py`
 - `backend/src/medrag/citations/citations.py` (`build_who_source_url_lookup`, `get_who_source_url`, `get_display_info`, `extract_used_citation_numbers`, `build_citations`)
-- `notebooks/phase15_citation_system.ipynb`
+- `notebooks/15_Citation.ipynb`
 
 No new runner script — citation resolution is a function library invoked per-generated-answer, not a batch job.
+
+## Audit corrections — 6 October 2026
+
+WHO source cache respects the input directory; missing/empty IDs and nullable metadata are handled. Notebook display/source lookup uses production helpers.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/citations/citations.py](../backend/src/medrag/citations/citations.py)
+- [notebooks/15_Citation.ipynb](../notebooks/15_Citation.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

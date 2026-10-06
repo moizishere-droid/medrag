@@ -1,0 +1,323 @@
+# CELL 0
+# Run from either the repository root or the notebooks directory.
+from pathlib import Path
+import os
+import sys
+PROJECT_ROOT = next((p for p in [Path.cwd(), *Path.cwd().parents]
+                     if (p / "backend" / "src" / "medrag").is_dir()), None)
+if PROJECT_ROOT is None:
+    raise RuntimeError("Start this notebook inside the MedRAG repository")
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+os.chdir(PROJECT_ROOT / "notebooks")
+from config.settings import settings
+
+
+# CELL 2
+import sys, os
+import logging
+from pathlib import Path
+
+def find_project_root(marker="backend", start=None):
+    """Walk upward from `start` (or cwd) until a folder containing `marker`
+    is found. Makes path setup independent of wherever the kernel's
+    working directory happens to be — avoids the notebook only working
+    if launched from one specific folder."""
+    current = Path(start or os.getcwd()).resolve()
+    for candidate in [current, *current.parents]:
+        if (candidate / marker).is_dir():
+            return candidate
+    raise RuntimeError(f"Could not find a '{marker}' folder above {current}")
+
+PROJECT_ROOT = find_project_root()
+print(f"Project root: {PROJECT_ROOT}")
+
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "scripts"))
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+# CELL 4
+from qdrant_client import QdrantClient
+from qdrant_client.http import models as qmodels
+
+client = QdrantClient(url="http://localhost:6333")
+client.get_collections()
+
+# CELL 6
+TEXT_COLLECTION = "medrag_notebook08_text"
+IMAGE_COLLECTION = "medrag_notebook08_images"
+TEXT_VECTOR_SIZE = 1536   # text-embedding-3-small
+IMAGE_VECTOR_SIZE = 512   # CLIP ViT-B-32
+
+for name in (TEXT_COLLECTION, IMAGE_COLLECTION):
+    if client.collection_exists(name):
+        client.delete_collection(name)
+        print(f"Dropped existing '{name}' (clearing stale pre-fix test data)")
+
+for name, size in [(TEXT_COLLECTION, TEXT_VECTOR_SIZE), (IMAGE_COLLECTION, IMAGE_VECTOR_SIZE)]:
+    client.create_collection(
+        collection_name=name,
+        vectors_config=qmodels.VectorParams(size=size, distance=qmodels.Distance.COSINE),
+    )
+    print(f"Created '{name}' (dim={size}, cosine)")
+
+client.get_collections()
+
+# CELL 8
+from medrag.embeddings.storage import load_embeddings, load_image_embeddings
+from medrag.processing.storage import load_chunks
+from medrag.processing.image_linking import load_image_chunk_links
+from run_chunking import WHO_TOPIC_GROUPS
+
+CHUNKS_DIR = str(PROJECT_ROOT / "data" / "processed" / "chunks")
+EMBEDDINGS_DIR = str(PROJECT_ROOT / "data" / "processed" / "embeddings")
+
+# load WHO text embeddings + index
+embeddings, index = load_embeddings("who", EMBEDDINGS_DIR)
+print(f"{len(index)} embedding rows")
+
+# load all WHO chunks, deduped by chunk_id (same pattern as the linking script)
+who_topics = [t for group in WHO_TOPIC_GROUPS for t in group]
+chunk_lookup = {}
+for topic in who_topics:
+    for chunk in load_chunks(source="who", topic=topic, output_dir=CHUNKS_DIR):
+        chunk_lookup.setdefault(chunk.chunk_id, chunk)
+print(f"{len(chunk_lookup)} unique chunks")
+
+# load Phase 7 links (post-fix: should be 55, not 61)
+links = load_image_chunk_links(EMBEDDINGS_DIR)
+print(f"{len(links)} links loaded")
+
+assert len(links) != 61, (
+    "Loaded 61 links — this is the pre-fix count. Re-run "
+    "scripts/run_image_chunk_linking.py before continuing."
+)
+print("Confirmed: not the stale pre-fix count.")
+
+# CELL 10
+seen_pairs = set()
+deduped_links = []
+duplicates_skipped = 0
+
+for link in links:
+    pair = (link["chunk_id"], link["image_filename"])
+    if pair in seen_pairs:
+        duplicates_skipped += 1
+        continue
+    seen_pairs.add(pair)
+    deduped_links.append(link)
+
+print(f"{len(links)} raw links -> {len(deduped_links)} deduped links ({duplicates_skipped} duplicates removed)")
+
+links = deduped_links  # use deduped links for everything from here on
+
+# CELL 12
+from collections import defaultdict
+from uuid import uuid5, NAMESPACE_URL
+
+def generate_image_point_id(filename: str) -> str:
+    """Deterministic UUID5 from filename — same filename always produces
+    the same point_id, so re-running this notebook (or the eventual
+    production script) never creates duplicate Qdrant points for the
+    same image."""
+    return str(uuid5(NAMESPACE_URL, filename))
+
+chunk_to_images = defaultdict(list)
+image_to_chunks = defaultdict(list)
+
+for link in links:
+    image_point_id = generate_image_point_id(link["image_filename"])
+
+    chunk_to_images[link["chunk_id"]].append({
+        "filename": link["image_filename"],
+        "point_id": image_point_id,
+        "figure_number": link["figure_number"],
+    })
+    image_to_chunks[link["image_filename"]].append({
+        "chunk_id": link["chunk_id"],
+        "point_id": link["point_id"],
+        "figure_number": link["figure_number"],
+    })
+
+print(f"{len(chunk_to_images)} chunks have at least one linked image")
+print(f"{len(image_to_chunks)} images have at least one linked chunk")
+
+# Sanity check: the former ToC chunk should no longer show up at all,
+# since it's now excluded by the linker before any links are recorded.
+if "hypertension_who_text_4" in chunk_to_images:
+    print("WARNING: hypertension_who_text_4 (the ToC chunk) still produced "
+          f"links: {chunk_to_images['hypertension_who_text_4']}")
+else:
+    print("Confirmed: hypertension_who_text_4 (ToC chunk) produced no links, as expected")
+
+# CELL 14
+linked_chunk_ids = set(chunk_to_images.keys())
+test_rows = [(row, vec) for row, vec in zip(index, embeddings) if row["chunk_id"] in linked_chunk_ids][:10]
+unlinked_rows = [(row, vec) for row, vec in zip(index, embeddings) if row["chunk_id"] not in linked_chunk_ids][:10]
+test_rows += unlinked_rows
+
+test_points = []
+for row, vector in test_rows:
+    chunk = chunk_lookup.get(row["chunk_id"])
+    if chunk is None:
+        continue
+    payload = {
+        "chunk_id": chunk.chunk_id,
+        "source": chunk.source,
+        "topics": chunk.topics,
+        "source_id": chunk.source_id,
+        "chunk_type": chunk.chunk_type,
+        "chunk_index": chunk.chunk_index,
+        "text": chunk.text,
+        "raw_text": chunk.raw_text,
+        "metadata": chunk.metadata or {},
+        "linked_images": chunk_to_images.get(chunk.chunk_id, []),
+    }
+    test_points.append(qmodels.PointStruct(id=row["point_id"], vector=vector.tolist(), payload=payload))
+
+print(f"Built {len(test_points)} test points")
+client.upsert(collection_name=TEXT_COLLECTION, points=test_points)
+
+# CELL 16
+query_vector = test_points[0].vector
+results = client.query_points(collection_name=TEXT_COLLECTION, query=query_vector, limit=3).points
+
+for r in results:
+    print(f"score={r.score:.4f}  chunk_id={r.payload['chunk_id']}  linked_images={len(r.payload['linked_images'])}")
+
+# CELL 18
+img_embeddings, img_index = load_image_embeddings(EMBEDDINGS_DIR)
+
+linked_filenames = set(image_to_chunks.keys())
+img_test_rows = [(row, vec) for row, vec in zip(img_index, img_embeddings) if row["filename"] in linked_filenames][:10]
+
+img_test_points = []
+for row, vector in img_test_rows:
+    point_id = generate_image_point_id(row["filename"])
+    payload = {
+        "filename": row["filename"],
+        "topics": row["topics"],
+        "page_number": row["page_number"],
+        "image_type": row["image_type"],
+        "linked_chunks": image_to_chunks.get(row["filename"], []),
+    }
+    img_test_points.append(qmodels.PointStruct(id=point_id, vector=vector.tolist(), payload=payload))
+
+print(f"Built {len(img_test_points)} test image points")
+client.upsert(collection_name=IMAGE_COLLECTION, points=img_test_points)
+
+# CELL 20
+img_query_vector = img_test_points[0].vector
+img_results = client.query_points(collection_name=IMAGE_COLLECTION, query=img_query_vector, limit=3).points
+
+for r in img_results:
+    print(f"score={r.score:.4f}  filename={r.payload['filename']}  linked_chunks={r.payload['linked_chunks']}")
+
+# CELL 22
+for p in test_points:
+    pairs = [img["filename"] for img in p.payload["linked_images"]]
+    assert len(pairs) == len(set(pairs)), f"Duplicate image link found in chunk {p.payload['chunk_id']}"
+
+for p in img_test_points:
+    pairs = [(c["chunk_id"], c["figure_number"]) for c in p.payload["linked_chunks"]]
+    assert len(pairs) == len(set(pairs)), f"Duplicate chunk link found in image {p.payload['filename']}"
+
+print("No duplicate (chunk, image) pairs found in the uploaded test payload.")
+print("Both the ToC-chunk fix and the mention-level dedup are confirmed in the data actually sitting in Qdrant.")
+
+# CELL 24
+def load_all_chunks_for_source(source: str, chunks_dir: str) -> dict:
+    """Load every saved topic file for `source`, deduped by chunk_id.
+    Reads whatever topic files actually exist on disk rather than assuming
+    a hardcoded topic list, since each source's per-topic files were
+    saved with duplicate lines by design (Phase 6 convention) — dedup
+    by chunk_id collapses that back to one entry per unique chunk, same
+    as the WHO loading pattern in Cell 4."""
+    source_dir = Path(chunks_dir) / source
+    lookup = {}
+    for filepath in sorted(source_dir.glob("*.jsonl")):
+        topic = filepath.stem
+        for chunk in load_chunks(source=source, topic=topic, output_dir=chunks_dir):
+            lookup.setdefault(chunk.chunk_id, chunk)
+    return lookup
+
+pubmed_chunk_lookup = load_all_chunks_for_source("pubmed", CHUNKS_DIR)
+openfda_chunk_lookup = load_all_chunks_for_source("openfda", CHUNKS_DIR)
+print(f"{len(pubmed_chunk_lookup)} unique PubMed chunks")
+print(f"{len(openfda_chunk_lookup)} unique OpenFDA chunks")
+
+pubmed_embeddings, pubmed_index = load_embeddings("pubmed", EMBEDDINGS_DIR)
+openfda_embeddings, openfda_index = load_embeddings("openfda", EMBEDDINGS_DIR)
+print(f"{len(pubmed_index)} PubMed embedding rows")
+print(f"{len(openfda_index)} OpenFDA embedding rows")
+
+# CELL 26
+def build_point(chunk, vector, chunk_to_images_map=None):
+    payload = {
+        "chunk_id": chunk.chunk_id,
+        "source": chunk.source,
+        "topics": chunk.topics,
+        "source_id": chunk.source_id,
+        "chunk_type": chunk.chunk_type,
+        "chunk_index": chunk.chunk_index,
+        "text": chunk.text,
+        "raw_text": chunk.raw_text,
+        "metadata": chunk.metadata or {},
+        "linked_images": (chunk_to_images_map or {}).get(chunk.chunk_id, []),
+    }
+    return qmodels.PointStruct(id=chunk.point_id, vector=vector.tolist(), payload=payload)
+
+def upload_source(source_name, chunk_lookup, embeddings_arr, index_rows, chunk_to_images_map=None, batch_size=250):
+    points = []
+    skipped = 0
+    for row, vector in zip(index_rows, embeddings_arr):
+        chunk = chunk_lookup.get(row["chunk_id"])
+        if chunk is None:
+            skipped += 1
+            continue
+        points.append(build_point(chunk, vector, chunk_to_images_map))
+
+    print(f"{source_name}: {len(points)} points to upload ({skipped} skipped, missing chunk)")
+
+    for i in range(0, len(points), batch_size):
+        batch = points[i:i + batch_size]
+        client.upsert(collection_name=TEXT_COLLECTION, points=batch)
+        print(f"  {source_name}: uploaded {min(i + batch_size, len(points))}/{len(points)}")
+
+    return len(points)
+
+total_uploaded = 0
+total_uploaded += upload_source("who", chunk_lookup, embeddings, index, chunk_to_images_map=chunk_to_images)
+total_uploaded += upload_source("pubmed", pubmed_chunk_lookup, pubmed_embeddings, pubmed_index)
+total_uploaded += upload_source("openfda", openfda_chunk_lookup, openfda_embeddings, openfda_index)
+
+print(f"\nTotal uploaded: {total_uploaded}")
+
+# CELL 28
+image_points = []
+for row, vector in zip(img_index, img_embeddings):
+    point_id = generate_image_point_id(row["filename"])
+    payload = {
+        "filename": row["filename"],
+        "topics": row["topics"],
+        "page_number": row["page_number"],
+        "image_type": row["image_type"],
+        "linked_chunks": image_to_chunks.get(row["filename"], []),
+    }
+    image_points.append(qmodels.PointStruct(id=point_id, vector=vector.tolist(), payload=payload))
+
+print(f"Built {len(image_points)} image points")
+client.upsert(collection_name=IMAGE_COLLECTION, points=image_points)
+
+# CELL 30
+text_count = client.count(collection_name=TEXT_COLLECTION, exact=True)
+image_count = client.count(collection_name=IMAGE_COLLECTION, exact=True)
+
+print(f"medrag_text count: {text_count.count} (expected 22696)")
+print(f"medrag_images count: {image_count.count} (expected 76)")
+
+assert text_count.count == 22696, "Text collection count mismatch!"
+assert image_count.count == 76, "Image collection count mismatch!"
+print("Both collections verified at full expected scale.")

@@ -35,6 +35,8 @@ def make_point(chunk_id, dim, user_id=None):
     payload = {"chunk_id": chunk_id, "source": "who", "raw_text": f"text {chunk_id}"}
     if user_id is not None:  # curated points have NO user_id field at all
         payload["user_id"] = user_id
+        payload["source"] = "user_upload"
+        payload["upload_ready"] = True
     return qmodels.PointStruct(
         id=point_id(chunk_id),
         vector={
@@ -85,13 +87,30 @@ def test_a_user_with_no_uploads_sees_only_the_curated_corpus(qdrant_client, seed
     assert visible_to(qdrant_client, "C") == {"curated_1", "curated_2"}
 
 
-def test_without_a_user_id_every_users_uploads_are_visible(qdrant_client, seeded):
-    """Characterization of a FAIL-OPEN default. user_id=None applies no filter at
-    all, so any code path that forgets to pass it exposes every user's uploads.
-    /chat always passes one, but generate_answer() (Phase 14), evaluation scripts
-    or a future endpoint would not. Hardening option: make None mean 'curated only'
-    and add an explicit opt-out for scripts that need everything."""
-    assert visible_to(qdrant_client, None) == {"curated_1", "curated_2", "upload_a", "upload_b"}
+def test_without_a_user_id_only_curated_points_are_visible(qdrant_client, seeded):
+    """Scripts that omit an isolation key must never see uploaded documents."""
+    assert visible_to(qdrant_client, None) == {"curated_1", "curated_2"}
+    results = hs.hybrid_search(qdrant_client, "query", limit=10, per_signal_limit=10)
+    assert {r["chunk_id"] for r in results} == {"curated_1", "curated_2"}
+
+
+def test_explicit_evaluation_includes_all_users_but_not_staged_uploads(qdrant_client, seeded, temp_collection):
+    staged = make_point("staged_a", temp_collection.dim, user_id="A")
+    staged.payload["upload_ready"] = False
+    qdrant_client.upsert(collection_name=temp_collection.name, points=[staged])
+    results = hs.hybrid_search(qdrant_client, "query", limit=10, per_signal_limit=10,
+                               full_corpus_evaluation=True)
+    assert {r["chunk_id"] for r in results} == {"curated_1", "curated_2", "upload_a", "upload_b"}
+    assert visible_to(qdrant_client, "A") == {"curated_1", "curated_2", "upload_a"}
+    assert visible_to(qdrant_client, None) == {"curated_1", "curated_2"}
+
+
+def test_legacy_upload_without_isolation_metadata_is_not_curated(qdrant_client, seeded, temp_collection):
+    point = make_point("legacy_upload", temp_collection.dim)
+    point.payload["source"] = "user_upload"
+    qdrant_client.upsert(collection_name=temp_collection.name, points=[point])
+    assert visible_to(qdrant_client, None) == {"curated_1", "curated_2"}
+    assert "legacy_upload" not in visible_to(qdrant_client, "A")
 
 
 def test_uploaded_document_round_trips_through_the_real_write_path(
@@ -126,3 +145,6 @@ def test_uploaded_document_round_trips_through_the_real_write_path(
     assert stored == 2
     assert visible_to(qdrant_client, "A") == {"doc1_upload_0", "doc1_upload_1"}
     assert visible_to(qdrant_client, "B") == set()
+    assert visible_to(qdrant_client, None) == set()
+    results = hs.hybrid_search(qdrant_client, "query", full_corpus_evaluation=True)
+    assert {r["chunk_id"] for r in results} == {"doc1_upload_0", "doc1_upload_1"}

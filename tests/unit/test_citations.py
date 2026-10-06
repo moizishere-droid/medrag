@@ -94,15 +94,6 @@ def test_who_url_first_matching_topic_wins():
     assert get_who_source_url("a+b", urls) == "https://who.int/a"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Suspected latent bug: the lookup returns the first topic that is PRESENT "
-        "even when its value is None, instead of the first non-None URL. Harmless "
-        "if every topic in a group shares one URL. Verify against data/raw/who, "
-        "fix get_who_source_url, then delete this marker."
-    ),
-)
 def test_who_url_skips_topics_whose_raw_json_had_no_source_url():
     urls = {"a": None, "b": "https://who.int/b"}
     assert get_who_source_url("a+b", urls) == "https://who.int/b"
@@ -230,6 +221,7 @@ def test_citation_object_shape_and_linked_images_passthrough():
         "marker": 1,
         "chunk_id": "c1",
         "source": "who",
+        "source_id": "diabetes",
         "title": "WHO Diabetes",
         "url": "https://who.int/d",
         "linked_images": ["img_7"],
@@ -260,6 +252,15 @@ def test_mixed_sources_in_one_answer():
 # --------------------------------------------------------------------------
 # build_who_source_url_lookup
 # --------------------------------------------------------------------------
+def test_group_sources_keeps_chunk_markers_and_distinct_documents():
+    from medrag.citations.citations import group_citations_by_source
+    citations = [dict(marker=n, source="user_upload", source_id=doc, title="same.pdf", url=None)
+                 for n, doc in [(1, "a"), (2, "a"), (3, "b")]]
+    groups = group_citations_by_source(citations)
+    assert [g["markers"] for g in groups] == [[1, 2], [3]]
+    assert all("markers" not in c for c in citations)
+
+
 def test_who_lookup_maps_filename_stem_to_source_url(tmp_path):
     (tmp_path / "diabetes.json").write_text(
         json.dumps({"source_url": "https://who.int/d"}), encoding="utf-8"

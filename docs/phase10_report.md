@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 10: Hybrid Retrieval (RRF) — Report
 
 ## Phase Objective
@@ -33,6 +35,17 @@ Combine the dense (semantic) and sparse (BM25 keyword) retrieval signals built i
 
 - `backend/src/medrag/retrieval/__init__.py`
 - `backend/src/medrag/retrieval/hybrid_search.py` (`get_openai_client`, `get_sparse_model`, `embed_query_dense`, `embed_query_sparse`, `reciprocal_rank_fusion`, `hybrid_search`)
-- `notebooks/phase10_hybrid_retrieval.ipynb`
+- `notebooks/10_Hybrid_Retrieval.ipynb`
 
 No new runner script this phase — unlike ingestion/embedding/upload (one-time batch jobs), retrieval is a function library called on-demand by other code (API endpoints, later phases), not something with a standalone production entry point to run.
+
+## Audit corrections — 6 October 2026
+
+Missing isolation keys now retrieve only curated sources. Untagged legacy uploads are excluded as well. Both dense and sparse queries receive the same filter. Notebook direct queries and final helper apply the corrected filter.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/retrieval/hybrid_search.py](../backend/src/medrag/retrieval/hybrid_search.py)
+- [notebooks/10_Hybrid_Retrieval.ipynb](../notebooks/10_Hybrid_Retrieval.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

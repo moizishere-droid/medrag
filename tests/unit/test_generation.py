@@ -74,22 +74,13 @@ def test_no_known_drug_in_query_returns_none():
     assert gen.find_mentioned_drug("anything", []) is None
 
 
-def test_first_match_in_list_order_wins():
+def test_longest_drug_name_wins():
     """Characterization: there is no longest-match rule. With both 'insulin' and
     'insulin glargine' known, whichever comes first in the list is returned."""
     names = ["insulin", "insulin glargine"]
-    assert gen.find_mentioned_drug("dosing for insulin glargine", names) == "insulin"
+    assert gen.find_mentioned_drug("dosing for insulin glargine", names) == "insulin glargine"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DEFECT (substring match, no word boundary): 'environmental' contains "
-        "'iron', so a query that never mentions the drug pulls in its graph facts. "
-        "Fix: match on word boundaries (regex \\b) and prefer the longest name, "
-        "then drop this marker."
-    ),
-)
 def test_drug_name_inside_another_word_is_not_a_mention():
     assert gen.find_mentioned_drug("environmental exposure risks", ["iron"]) is None
 
@@ -123,10 +114,13 @@ class FakeDriver:
 def test_known_drug_names_are_read_from_the_graph_and_cached():
     first = FakeDriver([{"name": "Metformin"}, {"name": "Lisinopril"}])
     assert gen.get_all_known_drug_names(first) == ["Metformin", "Lisinopril"]
+    calls = len(first.log)
+    assert gen.get_all_known_drug_names(first) == ["Metformin", "Lisinopril"]
+    assert len(first.log) == calls
 
     second = FakeDriver([{"name": "Different"}])
-    assert gen.get_all_known_drug_names(second) == ["Metformin", "Lisinopril"]  # cached
-    assert second.log == []  # never queried
+    assert gen.get_all_known_drug_names(second) == ["Different"]
+    assert second.log  # another graph must not reuse the first graph's cache
 
     assert gen.get_all_known_drug_names(second, use_cache=False) == ["Different"]
 
@@ -208,9 +202,9 @@ def test_no_facts_formats_to_empty_string():
 
 def test_facts_are_listed_with_the_priority_instruction():
     out = gen.format_graph_facts([fact("TREATS", "type 2 diabetes mellitus")])
-    assert "Verified structured facts" in out
+    assert "Candidate relationships" in out
     assert "- Metformin TREATS type 2 diabetes mellitus" in out
-    assert "prioritize these facts" in out
+    assert "do not override" in out
 
 
 # --------------------------------------------------------------------------
@@ -283,7 +277,7 @@ def test_prompt_has_system_context_then_the_raw_user_query(retrieval):
 def test_without_a_neo4j_driver_no_graph_section_is_added(retrieval):
     openai_client = FakeOpenAIChat()
     gen.generate_answer("metformin side effects", object(), openai_client, neo4j_driver=None)
-    assert "Verified structured facts" not in system_prompt(openai_client)
+    assert "Candidate relationships" not in system_prompt(openai_client)
 
 
 def test_graph_facts_are_injected_when_the_query_mentions_a_known_drug(retrieval, monkeypatch):
@@ -298,7 +292,7 @@ def test_graph_facts_are_injected_when_the_query_mentions_a_known_drug(retrieval
     gen.generate_answer("Is metformin safe?", object(), openai_client, neo4j_driver=object())
 
     prompt = system_prompt(openai_client)
-    assert "Verified structured facts" in prompt
+    assert "Candidate relationships" in prompt
     assert "- Metformin TREATS type 2 diabetes mellitus" in prompt
 
 
@@ -313,7 +307,7 @@ def test_graph_is_not_queried_when_no_known_drug_is_mentioned(retrieval, monkeyp
 
     gen.generate_answer("What is hypertension?", object(), openai_client, neo4j_driver=object())
 
-    assert "Verified structured facts" not in system_prompt(openai_client)
+    assert "Candidate relationships" not in system_prompt(openai_client)
 
 
 def test_braces_in_retrieved_text_do_not_break_prompt_formatting(retrieval):

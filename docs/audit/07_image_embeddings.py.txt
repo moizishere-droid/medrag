@@ -1,0 +1,245 @@
+# CELL 0
+# Run from either the repository root or the notebooks directory.
+from pathlib import Path
+import os
+import sys
+PROJECT_ROOT = next((p for p in [Path.cwd(), *Path.cwd().parents]
+                     if (p / "backend" / "src" / "medrag").is_dir()), None)
+if PROJECT_ROOT is None:
+    raise RuntimeError("Start this notebook inside the MedRAG repository")
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+os.chdir(PROJECT_ROOT / "notebooks")
+from config.settings import settings
+
+
+# CELL 4
+import sys, os
+from medrag.ingestion.storage import load_who_images
+
+backend_path = os.path.abspath(os.path.join("..", "backend"))
+sys.path.insert(0, backend_path)
+
+
+WHO_TOPICS = [
+    "tuberculosis", "hypertension", "diabetes", "obesity", "asthma", "copd",
+    "coronary artery disease", "heart failure", "stroke", "hyperlipidemia",
+    "pneumonia", "covid-19", "malaria", "hiv aids", "hepatitis b", "hepatitis c",
+    "dengue fever", "typhoid", "depression", "anxiety disorder", "epilepsy",
+    "malnutrition", "anemia in pregnancy", "breast cancer",
+]
+
+all_images = []
+for topic in WHO_TOPICS:
+    images = load_who_images(topic, output_dir="../data/images/who")
+    all_images.extend(images)
+    print(f"{topic}: {len(images)} images")
+
+print()
+print(f"Total image entries across all topic files: {len(all_images)}")
+
+# CELL 6
+import hashlib
+from pathlib import Path
+from collections import defaultdict
+
+def compute_file_hash(filepath):
+    with open(filepath, "rb") as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
+IMAGE_DIR = "../data/images/who"
+
+hash_to_topics = defaultdict(list)
+hash_to_image_record = {}
+
+for topic in WHO_TOPICS:
+    images = load_who_images(topic, output_dir=IMAGE_DIR)
+    for img in images:
+        filepath = Path(IMAGE_DIR) / img.filename
+        if not filepath.exists():
+            continue
+        file_hash = compute_file_hash(filepath)
+        hash_to_topics[file_hash].append(topic)
+        if file_hash not in hash_to_image_record:
+            hash_to_image_record[file_hash] = img
+
+print(f"Total image entries: {sum(len(load_who_images(t, output_dir=IMAGE_DIR)) for t in WHO_TOPICS)}")
+print(f"Unique images (by content hash): {len(hash_to_image_record)}")
+print()
+print("Examples of shared images:")
+for h, topics in list(hash_to_topics.items())[:5]:
+    if len(topics) > 1:
+        print(f"  {hash_to_image_record[h].filename}: {topics}")
+
+# CELL 8
+shared_count = 0
+for h, topics in hash_to_topics.items():
+    if len(topics) > 1:
+        shared_count += 1
+        print(f"  {hash_to_image_record[h].filename}: {topics}")
+
+print()
+print(f"Number of images shared across topics: {shared_count}")
+
+# Also check for any images that failed to load (missing files), which could explain the off-by-one
+missing_count = 0
+for topic in WHO_TOPICS:
+    images = load_who_images(topic, output_dir=IMAGE_DIR)
+    for img in images:
+        filepath = Path(IMAGE_DIR) / img.filename
+        if not filepath.exists():
+            missing_count += 1
+            print(f"  MISSING FILE: {img.filename} (referenced under topic '{topic}')")
+
+print(f"Missing files: {missing_count}")
+
+# CELL 10
+import re
+
+COVER_PAGE_PATTERN = re.compile(r"_page0_img0\.png$")
+
+hash_to_topics = defaultdict(list)
+hash_to_image_record = {}
+
+for topic in WHO_TOPICS:
+    images = load_who_images(topic, output_dir=IMAGE_DIR)
+    for img in images:
+        filepath = Path(IMAGE_DIR) / img.filename
+        if not filepath.exists():
+            continue
+
+        if COVER_PAGE_PATTERN.search(img.filename):
+            # Cover-page-position images are never merged across topics,
+            # even if their content hash matches another document's cover
+            # graphic (a shared PDF template banner, not real content) -
+            # use a per-topic-unique key instead of the content hash
+            key = f"{img.filename}_{topic}"
+        else:
+            key = compute_file_hash(filepath)
+
+        hash_to_topics[key].append(topic)
+        if key not in hash_to_image_record:
+            hash_to_image_record[key] = img
+
+print(f"Unique images (with cover-page exclusion rule): {len(hash_to_image_record)}")
+print()
+print("Shared images (excluding cover-page graphics):")
+for h, topics in hash_to_topics.items():
+    if len(topics) > 1:
+        print(f"  {hash_to_image_record[h].filename}: {topics}")
+
+# CELL 12
+import open_clip
+import torch
+from PIL import Image
+
+model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='openai')
+model.eval()
+
+print("Model loaded successfully")
+print("Preprocessing pipeline:", preprocess)
+
+# CELL 14
+sample_image_record = hash_to_image_record[list(hash_to_image_record.keys())[0]]
+sample_path = Path(IMAGE_DIR) / sample_image_record.filename
+
+img = Image.open(sample_path)
+img_tensor = preprocess(img).unsqueeze(0)  # add batch dimension
+
+with torch.no_grad():
+    image_features = model.encode_image(img_tensor)
+
+print("Sample image:", sample_image_record.filename)
+print("Embedding shape:", image_features.shape)
+print("First 5 values:", image_features[0][:5])
+
+# CELL 16
+def embed_image(filepath):
+    img = Image.open(filepath)
+    img_tensor = preprocess(img).unsqueeze(0)
+    with torch.no_grad():
+        features = model.encode_image(img_tensor)
+    return features[0]
+
+def cosine_similarity(a, b):
+    return torch.nn.functional.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
+
+# Two images from the SAME shared document (asthma/copd) - expect higher similarity
+asthma_img1 = embed_image(Path(IMAGE_DIR) / "asthma_page9_img0.png")
+asthma_img2 = embed_image(Path(IMAGE_DIR) / "asthma_page10_img1.png")
+
+# One image from a totally different document (hypertension) - expect lower similarity
+hypertension_img = embed_image(Path(IMAGE_DIR) / "hypertension_page2_img0.png")
+
+sim_same_doc = cosine_similarity(asthma_img1, asthma_img2)
+sim_diff_doc = cosine_similarity(asthma_img1, hypertension_img)
+
+print(f"Asthma image 1 vs Asthma image 2 (same document): {sim_same_doc:.4f}")
+print(f"Asthma image 1 vs Hypertension image (different document): {sim_diff_doc:.4f}")
+
+# CELL 18
+def embed_images_batch(image_records, image_dir):
+    """
+    Embed a list of unique image records (from the dedup step), returning
+    (successfully_embedded_records, embeddings_array).
+    """
+    embeddings = []
+    successful_records = []
+
+    for record in image_records:
+        filepath = Path(image_dir) / record.filename
+        try:
+            vec = embed_image(filepath)
+            embeddings.append(vec.numpy())
+            successful_records.append(record)
+        except Exception as e:
+            print(f"  Failed to embed {record.filename}: {e}")
+
+    return successful_records, np.array(embeddings)
+
+
+import numpy as np
+
+# Test on all 76 unique images
+unique_records = list(hash_to_image_record.values())
+successful_records, image_embeddings = embed_images_batch(unique_records, IMAGE_DIR)
+
+print(f"Successfully embedded: {len(successful_records)} / {len(unique_records)}")
+print(f"Embeddings array shape: {image_embeddings.shape}")
+
+# CELL 20
+import json
+
+def save_image_embeddings(records, embeddings, topics_map, output_dir="../data/processed/embeddings"):
+    from medrag.embeddings.storage import save_image_embeddings as save
+    topics = [topics_map[key_by_filename[record.filename]] for record in records]
+    return save(records, embeddings, topics, output_dir)
+
+
+# Build the record -> topics mapping directly from what we already computed
+key_by_filename = {v.filename: k for k, v in hash_to_image_record.items()}
+
+index_records = []
+for record in successful_records:
+    key = key_by_filename[record.filename]
+    index_records.append({
+        "filename": record.filename,
+        "topics": hash_to_topics[key],
+        "page_number": record.page_number,
+        "image_type": record.image_type,
+    })
+
+npy_path = Path("../data/processed/embeddings/who_images_embeddings.npy")
+npy_path.parent.mkdir(parents=True, exist_ok=True)
+np.save(npy_path, image_embeddings)
+
+index_path = Path("../data/processed/embeddings/who_images_index.jsonl")
+with open(index_path, "w", encoding="utf-8") as f:
+    for rec in index_records:
+        f.write(json.dumps(rec) + "\n")
+
+print("Saved to:", npy_path.resolve())
+print("Index saved to:", index_path.resolve())
+print()
+print("Sample index entry:", index_records[0])

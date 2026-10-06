@@ -57,16 +57,6 @@ def test_a_slow_chat_does_not_block_other_requests(pipeline, state, sid):
     assert fast_done < SLOW / 2  # and /sessions did not wait for it
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DEFECT: only embed_and_upsert_upload_chunks is offloaded to a worker thread. "
-        "extract_text_from_pdf (pdfplumber) and chunk_user_upload (spaCy) are called "
-        "directly inside the async route, so a large PDF freezes every other request, "
-        "the same bug class fixed for /chat in Phase 20. Fix: wrap both in "
-        "run_in_threadpool, then drop this marker."
-    ),
-)
 def test_a_slow_pdf_extraction_does_not_block_other_requests(upload_pipeline, state, sid):
     upload_pipeline.extract_delay = SLOW
     files = {"file": ("labs.pdf", b"%PDF-1.4 fake", "application/pdf")}

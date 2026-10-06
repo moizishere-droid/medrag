@@ -10,11 +10,19 @@ import uuid
 
 import psycopg2.pool
 import pytest
+from fastapi.testclient import TestClient
 
 main = importlib.import_module("medrag.api.main")
 uu = importlib.import_module("medrag.ingestion.user_upload")
 
 PDF_FILE = {"file": ("labs.pdf", b"%PDF-1.4 fake", "application/pdf")}
+
+
+def test_local_development_mode_rejects_remote_private_requests(state):
+    remote = TestClient(main.app, client=("203.0.113.1", 12345))
+    response = remote.get("/sessions")
+    assert response.status_code == 403
+    assert state.pg_pool.checked_out == []
 
 
 def assert_no_connection_leaked(state):
@@ -249,16 +257,6 @@ def test_each_request_checks_out_its_own_connection(client, db, state):
     assert_no_connection_leaked(state)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DEFECT: psycopg2's ThreadedConnectionPool raises PoolError immediately when "
-        "all connections are checked out (it does not wait), and /chat holds one for "
-        "its whole pipeline. The 11th concurrent request, even /health, therefore gets "
-        "an unhandled 500. Fix: map PoolError to 503 (or gate checkouts with a "
-        "semaphore), then drop this marker."
-    ),
-)
 def test_pool_exhaustion_is_a_retryable_503_not_a_500(client_no_raise, state):
     state.pg_pool.fail_with = psycopg2.pool.PoolError("connection pool exhausted")
     assert client_no_raise.get("/sessions").status_code == 503

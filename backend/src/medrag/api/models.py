@@ -6,12 +6,27 @@ FastAPI's auto-generated /docs UI.
 
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 
 
 class CreateSessionRequest(BaseModel):
     title: Optional[str] = None
+
+
+class Credentials(BaseModel):
+    username: str = Field(min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
+    password: str = Field(min_length=12, max_length=128)
+
+    @field_validator("username")
+    @classmethod
+    def normalize_username(cls, value):
+        return value.lower()
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 
 class CreateSessionResponse(BaseModel):
@@ -35,11 +50,24 @@ class ChatRequest(BaseModel):
     session_id: str
     message: str
 
+    @field_validator("session_id")
+    @classmethod
+    def valid_session_id(cls, value: str) -> str:
+        return str(UUID(value))
+
+    @field_validator("message")
+    @classmethod
+    def nonempty_message(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Message must not be blank")
+        return value
+
 
 class CitationOut(BaseModel):
     marker: int
     chunk_id: str
     source: str
+    source_id: Optional[str] = None
     title: str
     url: Optional[str] = None
     linked_images: list = []

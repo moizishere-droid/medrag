@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 19: User Document Upload Pipeline
 
 ## Objective
@@ -116,3 +118,14 @@ before re-suspecting the code.
   endpoint; `/chat` and upload both scoped by `session_id`)
 - `backend/scripts/verify_phase19.py` (TestClient-based end-to-end
   verification script)
+
+## Audit corrections — 6 October 2026
+
+Upload embeddings are batched and validated. Replaced obsolete notebook isolation experiments with a session-scoped demonstration in a uniquely named temporary collection. Cleanup deletes only that collection. Existing production data was not reset.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/ingestion/user_upload.py](../backend/src/medrag/ingestion/user_upload.py)
+- [notebooks/19_User_Uploads_pdfs.ipynb](../notebooks/19_User_Uploads_pdfs.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

@@ -83,6 +83,8 @@ def extract_relationships_from_chunk(chunk: Chunk) -> List[dict]:
     qualifying text mentioned only COVID-19/MERS, neither of which
     en_ner_bc5cdr_md recognizes as a DISEASE entity, since its training
     corpus predates COVID-19)."""
+    if chunk.source != "openfda":
+        return []
     field = chunk.metadata.get("field") if chunk.metadata else None
     relationship_type = FIELD_TO_RELATIONSHIP.get(field)
     if relationship_type is None:
@@ -157,6 +159,11 @@ def write_relationships_batched(
     safe here specifically because the value only ever comes from our
     own fixed FIELD_TO_RELATIONSHIP dict, never from extracted text or
     user input."""
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
+    allowed_types = set(FIELD_TO_RELATIONSHIP.values())
+    if any(r["relationship"] not in allowed_types for r in relationships):
+        raise ValueError("Unsupported relationship type")
     with driver.session() as session:
         for i in range(0, len(relationships), batch_size):
             batch = relationships[i:i + batch_size]

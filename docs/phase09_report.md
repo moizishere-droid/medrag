@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 9: BM25 Sparse Retrieval — Report
 
 ## Phase Objective
@@ -42,5 +44,16 @@ Add BM25-based sparse (keyword) retrieval alongside the existing dense (semantic
 - `backend/src/medrag/embeddings/qdrant_ingestion.py` (modified — added `get_sparse_model`, updated `build_text_point` and `upload_source_chunks` for hybrid vectors)
 - `backend/scripts/run_qdrant_ingestion.py` (modified — docstring updated re: `--reset` required to migrate off the old Phase 8 schema)
 - `backend/requirements.txt` (modified — `qdrant-client` version upgraded)
-- `notebooks/phase09_bm25_retrieval.ipynb`
+- `notebooks/09_BM25_Spare_Retrieval.ipynb`
 - Qdrant collection `medrag_text` recreated with hybrid dense+sparse schema (22,696 points); `medrag_images` unchanged (76 points)
+
+## Audit corrections — 6 October 2026
+
+Notebook schema migration now uses a dedicated experiment collection. Sparse response counts and ingestion batch sizes are validated.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/embeddings/qdrant_ingestion.py](../backend/src/medrag/embeddings/qdrant_ingestion.py)
+- [notebooks/09_BM25_Spare_Retrieval.ipynb](../notebooks/09_BM25_Spare_Retrieval.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

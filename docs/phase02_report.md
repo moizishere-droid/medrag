@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 2: PubMed Data Ingestion (Text)
 
 ## Phase Objective
@@ -38,7 +40,7 @@ A complete pipeline that searches PubMed, fetches matching articles, parses them
 
 ## Results
 
-* Successfully ingested **4,680 unique PubMed articles** across **36 medical topics** (130 articles per topic).
+* Successfully ingested **4,680 PubMed topic records (4,159 distinct PMIDs)** across **36 medical topics** (130 articles per topic).
 * Achieved **0 parse failures** and **0 fetch failures** during the final ingestion run.
 * Verified the complete ingestion workflow: **search → fetch → parse → validate → save → reload** using real PubMed data.
 * Confirmed that re-running the production pipeline performs **no redundant downloads**, thanks to PMID-based duplicate detection and idempotent execution.
@@ -57,7 +59,7 @@ A complete pipeline that searches PubMed, fetches matching articles, parses them
 
 ## Files Created in This Phase
 
-- `notebooks/phase02_pubmed_ingestion.ipynb`
+- `notebooks/02_pubmed_ingestion.ipynb`
 - `backend/src/medrag/ingestion/models.py`
 - `backend/src/medrag/ingestion/pubmed_client.py`
 - `backend/src/medrag/ingestion/storage.py`
@@ -66,3 +68,15 @@ A complete pipeline that searches PubMed, fetches matching articles, parses them
 - `backend/config/settings.py`
 - `data/raw/pubmed/*.jsonl` (36 files, 130 articles each)
 - `docs/phase02_report.md`
+
+## Audit corrections — 6 October 2026
+
+Added English search filtering; closed Entrez handles; handled empty fetches and missing language/date fields; cleared stale API keys. Storage now deduplicates appended PMIDs. Notebook ingestion uses the production target-count logic. Saved corpus has 4,680 topic rows representing 4,159 distinct PMIDs.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/ingestion/pubmed_client.py](../backend/src/medrag/ingestion/pubmed_client.py)
+- [backend/src/medrag/ingestion/storage.py](../backend/src/medrag/ingestion/storage.py)
+- [notebooks/02_pubmed_ingestion.ipynb](../notebooks/02_pubmed_ingestion.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

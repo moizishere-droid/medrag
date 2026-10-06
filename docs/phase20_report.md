@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 20: Streamlit Frontend
 
 ## Objective
@@ -9,7 +11,7 @@ end-to-end through a browser rather than only via curl/TestClient.
 
 ## What Was Built
 
-A single-file Streamlit app (`streamlit_app.py`, project root) with four
+A single-file Streamlit app (`frontend/streamlit_app.py`) with four
 pieces, built and verified incrementally:
 
 1. **Health check** — sidebar indicator calling `GET /health`, parsing the
@@ -148,7 +150,7 @@ freeze`, don't trust memory of what should be pinned.
 
 ## Files Created / Modified
 
-- `streamlit_app.py` (new, project root) — the full four-piece Streamlit app
+- `frontend/streamlit_app.py` — the full four-piece Streamlit app
 - `backend/src/medrag/api/main.py` — added `GET /sessions`; wrapped the two
   blocking pipeline calls in `run_in_threadpool`; replaced the single shared
   Postgres connection with a pool-backed `get_conn()` context manager used
@@ -163,3 +165,13 @@ freeze`, don't trust memory of what should be pinned.
   dependency set), updated `fastapi`/`starlette`/`uvicorn` to a confirmed-
   compatible trio, added `streamlit==1.64.0`
 - `frontend/requirements.txt` — deleted (stale, unused)
+
+## Audit corrections — 6 October 2026
+
+Added timeout/error handling for session creation and history loading. Failed history fetches preserve the current visible session. Empty health responses cannot report every dependency healthy.
+
+Changed or reviewed files:
+
+- [frontend/streamlit_app.py](../frontend/streamlit_app.py)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

@@ -1,0 +1,3366 @@
+{
+  "files": [
+    {
+      "path": ".env",
+      "review": "credential file excluded"
+    },
+    {
+      "path": ".env.example",
+      "bytes": 975,
+      "sha256": "1dc24be5fde8e2847193d55e81ec762f2930b7baca6094cdd027b41735ea0529",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": ".github/workflows/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 215,
+      "sha256": "787b2c06e7497265ae04b243e87914c3937684433c1887d0807020e7064f2295",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "backend/config/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/config/settings.py",
+      "bytes": 2991,
+      "sha256": "d33759a1d4ae97cb5e13e37ec8fa2ba18f7c95b4a7894cf7fbba722794a4fa67",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/requirements.txt",
+      "bytes": 4255,
+      "sha256": "93c7fd1265502503e3e7654ba0eef54e9dad1748a0f0923ae004076e0db81f51",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "backend/scripts/audit_project.py",
+      "bytes": 8026,
+      "sha256": "83a0f94960bb1da17078d3a038f5e182a1706f8515bca71dcbf396a07ed8fe83",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_chunking.py",
+      "bytes": 7722,
+      "sha256": "4026149bb986dee9ac22a5c07be43071cd20e23f815332d4262fad7efc5e87ab",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_embeddings.py",
+      "bytes": 2605,
+      "sha256": "34ee257518386af8453a13baed3e06f647cfb38b1dbf6a37750b00390224016d",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_evaluation.py",
+      "bytes": 5466,
+      "sha256": "37eb0e63efe5642480c8fc09fc4981b49b772b98b71cdc4476cdc92848740ce7",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_graph_ingestion.py",
+      "bytes": 4554,
+      "sha256": "71b426b39b5974e370388c127a67d7bb9051a55fc90e870672012c07d943a882",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_image_chunk_linking.py",
+      "bytes": 5295,
+      "sha256": "ce40e5087ef83d1d9c0f3029b61b6a740d81faa6871e75664372ecfd7696b45d",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_image_embeddings.py",
+      "bytes": 1849,
+      "sha256": "963d227727128d3e47d76b2ba3088dd4bf3cd138b759bacc4cd8f1cb604f033c",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_ingestion.py",
+      "bytes": 991,
+      "sha256": "f43c8ca890ce304332c2cf7b0bca6eb9ecaffddb90848b3fca5021bfcadd522b",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_openfda_ingestion.py",
+      "bytes": 3279,
+      "sha256": "518a828d9f838a4cf06b8a9d51ed87b5453c9ac78802320025adaef1cd865ecf",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_qdrant_ingestion.py",
+      "bytes": 8000,
+      "sha256": "54cfbe552d068e9e5f28c67dbf1b9f9ad76e17fca2bf0f1b07f9b0e67add7dfe",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/run_who_ingestion.py",
+      "bytes": 8511,
+      "sha256": "12c471a3791b7f338391ede72c5f88ed8a805890cc7fd0d844fbc949d50b4e49",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/verify_phase19.py",
+      "bytes": 3981,
+      "sha256": "19141ef978e31f7f6817b09b37701b856f07f11b413404f0b261fd2b28ba321d",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/scripts/verify_sessions_list.py",
+      "bytes": 1137,
+      "sha256": "4dfeee471728da8380ce75ea5bc6be2d1586afa475c64d7ee31f3faf3d1fb221",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/api/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/api/auth.py",
+      "bytes": 3278,
+      "sha256": "f0d505b14927fff3eb49645d58099f024dedcf4eb74e909f580cbbc39c2deea9",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/api/main.py",
+      "bytes": 17990,
+      "sha256": "0bcd1ebf4df3c3d8c8f0dffb6533db2e75d8bce9d6833e6deae1825a10120b8f",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/api/models.py",
+      "bytes": 2359,
+      "sha256": "cc5e727c6708e45761496cc8dd5a4f9b4784ecbf2f0497bc371a4fcdd2650915",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/citations/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/citations/citations.py",
+      "bytes": 8054,
+      "sha256": "f1601d5f5bf9a226d4307b1595f50ccc320edb5bca60eb30ca96b2c33a2e1af1",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/embeddings/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/embeddings/embedder.py",
+      "bytes": 5035,
+      "sha256": "be9f1f4c2d350e7444ead85d31778e00e4a3add6b145e6c16c3e310f46a0bdab",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/embeddings/image_embedder.py",
+      "bytes": 4936,
+      "sha256": "c869f38f48f88012a2f786a51a29a4e5c8748f87bb60e7465f3b8c4ee3ab3b14",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/embeddings/qdrant_client.py",
+      "bytes": 4982,
+      "sha256": "191381e8a8c9e2d98ade0e80d2e3ad62a532cbe5c7cb9e8b216b59f1afb52b35",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/embeddings/qdrant_ingestion.py",
+      "bytes": 10563,
+      "sha256": "3d807ea121dcc383422df4fdc604ad833cba151afc3becca0d9a696b70aada8c",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/embeddings/storage.py",
+      "bytes": 4162,
+      "sha256": "29829ee89691a19ff9cf7269f449fc8aae16f374134d9161afdfa92f4d35d40e",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/evaluation/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/evaluation/evaluation.py",
+      "bytes": 8479,
+      "sha256": "1f44f307e964178226a437b614fa327fc4d59ccdf4a8728c371b795f4a3c9ca7",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/generation/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/generation/generation.py",
+      "bytes": 9752,
+      "sha256": "94cc8d9486cc588407d0f7283f9dedb01a9291a67be2138b6a3b81f2f2358d2b",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/generation/language.py",
+      "bytes": 4372,
+      "sha256": "820bd41fc1b29fc55cc6ee1261bcb8067dd40bf16c5e170e1e9871b8bd461770",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/graph/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/models.py",
+      "bytes": 2711,
+      "sha256": "f615a0f6ffc80f3c789c0701d03b108bca6f822d7cc777529b989ae2c551da57",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/openfda_client.py",
+      "bytes": 6146,
+      "sha256": "a709ab8ea40470fa365cd3919cc269d3cc78816f0d7aceed7836d76960ce81c0",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/pipeline.py",
+      "bytes": 3158,
+      "sha256": "6cf060bc2c367df7dda76113aac94a2feb93038eb91ff6c75e7aa571cbd3e98c",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/pubmed_client.py",
+      "bytes": 4345,
+      "sha256": "1756efa1f96559325ccf2fecdecfc22b53a90f50be6860777b74fceff79a6c49",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/storage.py",
+      "bytes": 6718,
+      "sha256": "5c596e3265cf4612ee10d0be776296389ab8c087321ab4470c6639e831ad4537",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/user_upload.py",
+      "bytes": 12178,
+      "sha256": "ccd197cc635ee2de21f9d6a6c6e371566a1ce132b2fe35bf242d958d9d5c24ae",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ingestion/who_client.py",
+      "bytes": 12492,
+      "sha256": "da9b4195631a7695a562c94f035c2deb2e22e72fca589b511e64bf97ebe9ecb1",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/knowledge_graph/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/knowledge_graph/graph_ingestion.py",
+      "bytes": 8431,
+      "sha256": "4735de3cb2616576be7b1efbab057c1d3b14e79e7e650d9d20709bf3a40ab6fa",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/knowledge_graph/neo4j_client.py",
+      "bytes": 1766,
+      "sha256": "647736628609b9a573574762b3983f16beea8711bc2f1f9af8553dd7d86c5156",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/memory/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/memory/chat_memory.py",
+      "bytes": 11679,
+      "sha256": "83c1345e57de947191eb9913d745ecf3bbacbaf7c25d95f2b20cd22442fd0699",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/memory/db.py",
+      "bytes": 6920,
+      "sha256": "d22b513cb51553601a1b01fde4b6d7fb43decec622b8904fe2d5eaaadf89f044",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/memory/session_titles.py",
+      "bytes": 823,
+      "sha256": "6626e174d30037bb01d1dae0690a0e0b0af3be220ad4d964130060ab9ab5cca3",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ner/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/ner/ner.py",
+      "bytes": 4447,
+      "sha256": "5807020441c0cfbb98921b8d7e7f1708cc70a71740e019446a51e1fa3aa5bdcc",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/processing/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/processing/chunker.py",
+      "bytes": 18652,
+      "sha256": "864999ced08bfb82afa46d9db2634fe4f4e445affb5df94b342852bfa55ec5e7",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/processing/image_linking.py",
+      "bytes": 10718,
+      "sha256": "cff62bdd14f8cfd2801f38315b005117ec0141bff27c6a67720bd1333a3fabde",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/processing/models.py",
+      "bytes": 1858,
+      "sha256": "8b9a3bc687174000f9a9b4ed02b2e66b21298148da7405758ade6a13395f7217",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/processing/storage.py",
+      "bytes": 1156,
+      "sha256": "2a971da3029f7d7321296c32fb999915fde54d5e807d15907a80ee6be5e71735",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/retrieval/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/retrieval/hybrid_search.py",
+      "bytes": 6796,
+      "sha256": "7c6c8a01b45839213ee41f42d91425a1840572a780c7f73fd999281eb86d0954",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/retrieval/reranking.py",
+      "bytes": 3399,
+      "sha256": "aab8cb869f8ad9cff590891564e198a56f0dc361ee20acd71a25cb237d7b990f",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "backend/src/medrag/topics.py",
+      "bytes": 859,
+      "sha256": "75625374cf8e1676db23a26b737e4ebcf3dbcbbac10fdfb8af14ffa059a14bdb",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "data/Diabetes_Mellitus_Type_2.pdf",
+      "bytes": 56538,
+      "sha256": "857378126f0b6873daf52c8beec8c392345ed4ab2d040a22e24035b0e785f403",
+      "pages": 8,
+      "text_characters": 10849,
+      "review": "all pages parsed and text extracted"
+    },
+    {
+      "path": "data/eval/ragas_test_set.json",
+      "bytes": 9413,
+      "sha256": "1ae94e9080f11b80218c43d229373f8b892843dcef895d6a487247dcd2b13c37",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/eval/results.json",
+      "bytes": 141682,
+      "sha256": "752321c5da937a43523cbba0e2edf8bfaecebe9be226e746c58eb8048bd681c3",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/anemia_in_pregnancy_metadata.jsonl",
+      "bytes": 328,
+      "sha256": "b3f78f02a159f757fb063d50419e21843941de0f7567e28e9bb23530f6946255",
+      "records": 2,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/anemia_in_pregnancy_page0_img0.png",
+      "bytes": 3784281,
+      "sha256": "530d983571f1a3a9f64379d03e1141f43bb92fa4f3f9f385c9595deadb6973c4",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/anemia_in_pregnancy_page78_img1.png",
+      "bytes": 42709,
+      "sha256": "972fd0238db51fa97077125c698bf2658130dc033fc87eca3b0853d4bb8de02c",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/anxiety_disorder_metadata.jsonl",
+      "bytes": 975,
+      "sha256": "66773db77b41c749238869959ce8be631038b21c3095a6ff77f08cdc123c7bf5",
+      "records": 6,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/anxiety_disorder_page18_img3.png",
+      "bytes": 348233,
+      "sha256": "99fd132af8e120ac22cc1e47248f8ff6ba38b1051631ebe9939b62e7b87070b7",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/anxiety_disorder_page19_img0.png",
+      "bytes": 73695,
+      "sha256": "26ec9e7b5ebc2bfdacd1cbe02962c91423d757c9afca3e8bf9c8ef775f7432c1",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/anxiety_disorder_page21_img4.png",
+      "bytes": 358795,
+      "sha256": "e5e09af8421af6b0c05c9b75cac973be478badc59e7ea2f39fa847b99adce05f",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/anxiety_disorder_page22_img5.png",
+      "bytes": 212947,
+      "sha256": "14362e944388c03f2422e737c447f7ebeebd8f94b6e963433f13f05413c00ed8",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/anxiety_disorder_page55_img1.png",
+      "bytes": 37714,
+      "sha256": "1a7af965801b499deac5c0849231b0af719b86a99f53014777aafce6e48e5515",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/anxiety_disorder_page70_img2.png",
+      "bytes": 14402,
+      "sha256": "f534f26db4410ac9f52478722d06d917c2328e0aa700d6229cae981305484ce7",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/asthma_metadata.jsonl",
+      "bytes": 414,
+      "sha256": "f71e665a1174e5c92d878c0fbe16169f0589fe60b6b88c5d2e12b0cda6e5d2fe",
+      "records": 3,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/asthma_page10_img1.png",
+      "bytes": 329716,
+      "sha256": "56df6db4b9202e25766d35442d30165ccc622abcec917b0102efa7e1f6cc211d",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/asthma_page78_img2.png",
+      "bytes": 15175,
+      "sha256": "ec2e4d26f3264f29e0e3aef709d23bafa28984514621947f0bf806c5a6e7f634",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/asthma_page9_img0.png",
+      "bytes": 200201,
+      "sha256": "6a418e35a580372454fb943c30dc9ad7a5e278cc4ca34693ba1e9c365414e5ca",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/breast_cancer_metadata.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/copd_metadata.jsonl",
+      "bytes": 402,
+      "sha256": "3eeab3b500b47b16cdb629f85223b31a6de530a71c626490edad0c9ed96ee133",
+      "records": 3,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/copd_page10_img1.png",
+      "bytes": 329716,
+      "sha256": "56df6db4b9202e25766d35442d30165ccc622abcec917b0102efa7e1f6cc211d",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/copd_page78_img2.png",
+      "bytes": 15175,
+      "sha256": "ec2e4d26f3264f29e0e3aef709d23bafa28984514621947f0bf806c5a6e7f634",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/copd_page9_img0.png",
+      "bytes": 200201,
+      "sha256": "6a418e35a580372454fb943c30dc9ad7a5e278cc4ca34693ba1e9c365414e5ca",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/coronary_artery_disease_metadata.jsonl",
+      "bytes": 543,
+      "sha256": "465292a7da940c69f7abff0b2003e012d8f38cd0a4f7aa45753cdcf1f868d45b",
+      "records": 3,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/coronary_artery_disease_page12_img0.png",
+      "bytes": 409873,
+      "sha256": "646c02ff7f60ac7d817f3ccadfc0fe529f395ad73d413e0b8c3a21b2e22ccd78",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/coronary_artery_disease_page13_img1.png",
+      "bytes": 264744,
+      "sha256": "3ac2d0ba9b7d462c38b7873114305cd4c53579c56527278c40c839743ef55913",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/coronary_artery_disease_page17_img2.png",
+      "bytes": 357641,
+      "sha256": "972b68a228ecc9d5d541afbd64853c827312d0352f4530c7af1712c6064ce114",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/covid-19_metadata.jsonl",
+      "bytes": 574,
+      "sha256": "887c291c60bde70159ad93cfc6eb07c6f3c23f849bc85d218a708e049471ec09",
+      "records": 4,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/covid-19_page0_img0.png",
+      "bytes": 80252,
+      "sha256": "2fd2239dd316e972b1cc011ec1beed9f27736f1f03a5a3cda4c3609e7423d171",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/covid-19_page136_img3.png",
+      "bytes": 4035442,
+      "sha256": "fff2a851242b65846f02762c072abb029558791b9a34d727a85c0ddf2c7ef03f",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/covid-19_page15_img1.png",
+      "bytes": 57852,
+      "sha256": "70cfdfadc7324d28e3d5a2534f80485136900637a55813d40d15f83eb75aecfd",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/covid-19_page16_img2.png",
+      "bytes": 306737,
+      "sha256": "8cdaba76cd9febd39800af1ef890dcc6c13b8ffa86333222b7038c20527dd513",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_metadata.jsonl",
+      "bytes": 3287,
+      "sha256": "cd0064f11bb6d54030bf4b08fb297b74df058d54ab206fae6aafc677a5dbacc8",
+      "records": 21,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page0_img0.png",
+      "bytes": 128802,
+      "sha256": "25961beff7d7720d2e4109829d1422bbfe5ec3cb18cb6952066e75a8f95a2ad5",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page0_img1.png",
+      "bytes": 122316,
+      "sha256": "04e223ddfe7b8f885cbc917af7e8fea82869fff9ec8b55ca7dce3edeb513f170",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page0_img2.png",
+      "bytes": 191386,
+      "sha256": "87a43fc16215680e288bd36ad5e94e9ac20e7e2bbb9b73212cfadbbe40ed3e22",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page0_img3.png",
+      "bytes": 26740,
+      "sha256": "f5d95262eab300a5845264e1f4879ae8c198583cd5694a6ee42eac854ea4e503",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page101_img7.png",
+      "bytes": 3776959,
+      "sha256": "a61301272e0ab674a2c7a17155870bb87e645b0588104a08347dd917aac8040c",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page10_img4.png",
+      "bytes": 23633,
+      "sha256": "9d44de465ab813f1c4f4f1ead9f26324478ca1669aa3666a7e78c1663a75b4f9",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page110_img20.png",
+      "bytes": 165999,
+      "sha256": "738750e24b686dca409c795ba40a484959ca416e735bea33ce03866993a95c3a",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page13_img8.png",
+      "bytes": 342361,
+      "sha256": "744fb45f7553781d99feaa53d04ce717e7f557e23b21462b587c0535b903381b",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page16_img5.png",
+      "bytes": 20707,
+      "sha256": "5f20177b9c228ed3a49ff6c527d9785fa1d66f041f81c9425d1e373aef8d6277",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page17_img9.png",
+      "bytes": 274879,
+      "sha256": "937d44fa98011d4445495c9f9ebff1161d3eac642fe54d2dd787330d8272fb9c",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page25_img10.png",
+      "bytes": 312472,
+      "sha256": "6614c89dd4fcfca29c959c6ca9b594f4171478899d601eb47a16544f17330faa",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page32_img11.png",
+      "bytes": 352207,
+      "sha256": "b4e8e23d2ebb03c29bc4702ba0fd41f50f0324fb9bb153cc3beb3fa994e5b4bf",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page33_img6.png",
+      "bytes": 19730,
+      "sha256": "b9cfb402d4f051ff1c6e693623bcd04e5f82063be5817c312968d1c8593b012e",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page38_img12.png",
+      "bytes": 258497,
+      "sha256": "da0d4afd8ea85125b4f687e78c7935d81c0c08b687b0c32cde9f84ae17138219",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page39_img13.png",
+      "bytes": 177904,
+      "sha256": "ec7625fa170f01d2eb3488a3dceff1e62b8c3bcc25df7dbd232b5d01913dc1c0",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page40_img14.png",
+      "bytes": 439809,
+      "sha256": "adb8fe32e94cff1098a3e5d2d180eb08873b5561c60c78301050f7bd9f84503e",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page41_img15.png",
+      "bytes": 321337,
+      "sha256": "ff09413379252345ab34f81fe0333f67a2a05994f57016cae1523940b9cff18e",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page52_img16.png",
+      "bytes": 345083,
+      "sha256": "18b8079394162de214e70b9fe737a1d80d2a3327ebbb7c70a9d440fd9ad4074c",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page80_img17.png",
+      "bytes": 326198,
+      "sha256": "21ffc810089a1719fbb3b7bfbb74f4993337f5b859674b77855e4f460d3f6b12",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page88_img18.png",
+      "bytes": 386242,
+      "sha256": "307b9f58c9c515d33c3d0d22a31e67b22182f3c3afefc2fbf306388cb8cbff32",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/dengue_fever_page89_img19.png",
+      "bytes": 412558,
+      "sha256": "23ac69688005f30d35258256ad06e968d2080a9af42b48106da52ac32aa1b69e",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/depression_metadata.jsonl",
+      "bytes": 903,
+      "sha256": "ade5b2ec200a7397d3bb059ca4168a68fff7dd3cc7ea741d88ab9bef0b642060",
+      "records": 6,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/depression_page18_img3.png",
+      "bytes": 348233,
+      "sha256": "99fd132af8e120ac22cc1e47248f8ff6ba38b1051631ebe9939b62e7b87070b7",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/depression_page19_img0.png",
+      "bytes": 73695,
+      "sha256": "26ec9e7b5ebc2bfdacd1cbe02962c91423d757c9afca3e8bf9c8ef775f7432c1",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/depression_page21_img4.png",
+      "bytes": 358795,
+      "sha256": "e5e09af8421af6b0c05c9b75cac973be478badc59e7ea2f39fa847b99adce05f",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/depression_page22_img5.png",
+      "bytes": 212947,
+      "sha256": "14362e944388c03f2422e737c447f7ebeebd8f94b6e963433f13f05413c00ed8",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/depression_page55_img1.png",
+      "bytes": 37714,
+      "sha256": "1a7af965801b499deac5c0849231b0af719b86a99f53014777aafce6e48e5515",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/depression_page70_img2.png",
+      "bytes": 14402,
+      "sha256": "f534f26db4410ac9f52478722d06d917c2328e0aa700d6229cae981305484ce7",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/diabetes_metadata.jsonl",
+      "bytes": 293,
+      "sha256": "073be7e24ce328bbed23fae28bf13b9bab870250227995de8126b88cfac34602",
+      "records": 2,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/diabetes_page18_img1.png",
+      "bytes": 161469,
+      "sha256": "62e0667a49140f681c47905a7945e15b8f7cdcda574855b60d7e22b3d2a59463",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/diabetes_page93_img0.png",
+      "bytes": 10525,
+      "sha256": "1b9b1951ffb46324b1ad1cb24e7dbbcdd0cb0f4ff6bb6840089e6edf6bbb39f5",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/epilepsy_metadata.jsonl",
+      "bytes": 879,
+      "sha256": "f389f7c26c4720fbe9199b1a49fc3cc8857f452d692b6ba4e54ffe2c98291eb0",
+      "records": 6,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/epilepsy_page18_img3.png",
+      "bytes": 348233,
+      "sha256": "99fd132af8e120ac22cc1e47248f8ff6ba38b1051631ebe9939b62e7b87070b7",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/epilepsy_page19_img0.png",
+      "bytes": 73695,
+      "sha256": "26ec9e7b5ebc2bfdacd1cbe02962c91423d757c9afca3e8bf9c8ef775f7432c1",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/epilepsy_page21_img4.png",
+      "bytes": 358795,
+      "sha256": "e5e09af8421af6b0c05c9b75cac973be478badc59e7ea2f39fa847b99adce05f",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/epilepsy_page22_img5.png",
+      "bytes": 212947,
+      "sha256": "14362e944388c03f2422e737c447f7ebeebd8f94b6e963433f13f05413c00ed8",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/epilepsy_page55_img1.png",
+      "bytes": 37714,
+      "sha256": "1a7af965801b499deac5c0849231b0af719b86a99f53014777aafce6e48e5515",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/epilepsy_page70_img2.png",
+      "bytes": 14402,
+      "sha256": "f534f26db4410ac9f52478722d06d917c2328e0aa700d6229cae981305484ce7",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/heart_failure_metadata.jsonl",
+      "bytes": 483,
+      "sha256": "d6476fda87967203948163bd873914f415e495a21940fe8ad68376239c389092",
+      "records": 3,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/heart_failure_page12_img0.png",
+      "bytes": 409873,
+      "sha256": "646c02ff7f60ac7d817f3ccadfc0fe529f395ad73d413e0b8c3a21b2e22ccd78",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/heart_failure_page13_img1.png",
+      "bytes": 264744,
+      "sha256": "3ac2d0ba9b7d462c38b7873114305cd4c53579c56527278c40c839743ef55913",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/heart_failure_page17_img2.png",
+      "bytes": 357641,
+      "sha256": "972b68a228ecc9d5d541afbd64853c827312d0352f4530c7af1712c6064ce114",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_metadata.jsonl",
+      "bytes": 1234,
+      "sha256": "26a8da35ead18807f6a7794446b97f6767674eb16f36dbf8483b675b41fa67cc",
+      "records": 8,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page165_img1.png",
+      "bytes": 6635,
+      "sha256": "8a772098409185193610fea6bb04190636cecae3cd2ed258b34fcef3a93e6d59",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page39_img2.png",
+      "bytes": 306677,
+      "sha256": "916267913ad8bf524715ba13c1e68794b6f2e076539f2a62aeea0ce989974b08",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page40_img3.png",
+      "bytes": 255661,
+      "sha256": "1f3ba406e6dfb1840e1964040f4de622accdf5dc98cbdffb1a0bf7e91e830612",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page41_img4.png",
+      "bytes": 237280,
+      "sha256": "f96367764f53393aab5e71add9c21631f755744b22ae0c6f15c12c0c4b72ce33",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page43_img5.png",
+      "bytes": 164480,
+      "sha256": "4ddc6c2ced48e077da419ae726df2bd5225ecc33f47f870aa1f760b2b3174c8e",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page55_img6.png",
+      "bytes": 289709,
+      "sha256": "083b2222ca74a4ec16fc0760505b3500c68c1b2ea865ce3241f51760168dfdf2",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page56_img7.png",
+      "bytes": 151399,
+      "sha256": "335d5a2b7557dc6d8145a3653ef769b66ae2f938fadd0d8e4279dc3202709820",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_b_page57_img0.png",
+      "bytes": 88242,
+      "sha256": "5442b1726475e0decbe5dcfa1892503da224ded2e29c6863f9ebd127fa720af3",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_c_metadata.jsonl",
+      "bytes": 599,
+      "sha256": "3e4d082bfabe59c8443d58ade12eac393d24a12972349f5ec75024a54c39d960",
+      "records": 4,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/hepatitis_c_page0_img0.png",
+      "bytes": 6697094,
+      "sha256": "6b311fcb04658053ad4667388d19dc7d3a17fb00f845164924b23443ca48859a",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_c_page13_img1.png",
+      "bytes": 44138,
+      "sha256": "e6cfd14c69fe49f4633107fc6f71cc890a2b8f7bcb0f10f3661596cfb6c641fa",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_c_page13_img2.png",
+      "bytes": 43179,
+      "sha256": "897582701247fb5da7b486194ad19c55801516a806c4bb73021030e903478413",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hepatitis_c_page5_img3.png",
+      "bytes": 354400,
+      "sha256": "80e8e0aafb5b1de0d2dbf54c2743a48f0853e118cf8bdc9344616506b6533117",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hiv_aids_metadata.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/hyperlipidemia_metadata.jsonl",
+      "bytes": 489,
+      "sha256": "7ccfdb4002a68da069eac46a9f0c546ebed3b3682367cd5852209f2c2ef80ca7",
+      "records": 3,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/hyperlipidemia_page12_img0.png",
+      "bytes": 409873,
+      "sha256": "646c02ff7f60ac7d817f3ccadfc0fe529f395ad73d413e0b8c3a21b2e22ccd78",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hyperlipidemia_page13_img1.png",
+      "bytes": 264744,
+      "sha256": "3ac2d0ba9b7d462c38b7873114305cd4c53579c56527278c40c839743ef55913",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hyperlipidemia_page17_img2.png",
+      "bytes": 357641,
+      "sha256": "972b68a228ecc9d5d541afbd64853c827312d0352f4530c7af1712c6064ce114",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_metadata.jsonl",
+      "bytes": 1409,
+      "sha256": "ac9a9e48071ab93d7de86b05c97eb1971a4b8059f507308c60dae0c26bc990af",
+      "records": 9,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/hypertension_page14_img3.png",
+      "bytes": 327324,
+      "sha256": "6c98d7b2d6cdb60aec67d70e23b4d4357f1c47a48be2b601f663c91c2e944cde",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page20_img4.png",
+      "bytes": 362044,
+      "sha256": "140b0966dacb67671e227d680f8d5a86b59ccbea5d8faa2e1889d702de502672",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page2_img0.png",
+      "bytes": 203180,
+      "sha256": "f1f012ce0eaae11c9c2e54b8e26454ada8872a469e2581262fcb2dc071de046c",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page37_img5.png",
+      "bytes": 217102,
+      "sha256": "b0b8d6d6743fe7aaeea1a75ef8f0753c002db22f756bc727097b35b9c4562a8d",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page38_img6.png",
+      "bytes": 196443,
+      "sha256": "20ed6d4988693937ff7e23310107c187aae9a8bca8a60e307e4f9a416a42f339",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page39_img7.png",
+      "bytes": 299628,
+      "sha256": "e9e0454b4c1320866285d9a7ff8bcdac160732630c3a3fcf64c228e369df96bd",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page40_img8.png",
+      "bytes": 294264,
+      "sha256": "04d333e5f4bef56824b44ba2e650d880566e44618a891840871e76bc2ab0f3b4",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page5_img2.png",
+      "bytes": 75303,
+      "sha256": "f91eb15df93bf990711aaf2c128d1dab1142d718e9e7722f276dadeb12968480",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/hypertension_page60_img1.png",
+      "bytes": 69186,
+      "sha256": "ff146205a7e049271fafc2b960f2f1598a83f51f3970bded4d59ad8048073d56",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malaria_metadata.jsonl",
+      "bytes": 569,
+      "sha256": "8a1bf551d68d1ecc421c198d185b22ae42b46783a8cd5e8d8079d58bb28f6f31",
+      "records": 4,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/malaria_page0_img0.png",
+      "bytes": 1052101,
+      "sha256": "04e9b9603c2b73775b2a8ed78870640fc7acae7f2d4591352bd0bbc26a760e30",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malaria_page31_img3.png",
+      "bytes": 578485,
+      "sha256": "405d3874d9dadf2a8cf2d01636c441fd44e1abd9d67c166f78d82374f347361b",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malaria_page32_img1.png",
+      "bytes": 160011,
+      "sha256": "aa45ba7e6d5f872533caf8d092658e1a284b82aaeb5fdf8ec0163a3a23200f3c",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malaria_page32_img2.png",
+      "bytes": 168296,
+      "sha256": "290ad41ccc3ecb3a58927ab4cf1bb6cd2e5d017430958cf945b3a02495aa8706",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malnutrition_metadata.jsonl",
+      "bytes": 604,
+      "sha256": "1572fa982deb93053097d816ebabbd709c0ed0dd391d662091f9ee8f4b603fa0",
+      "records": 4,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/malnutrition_page0_img0.png",
+      "bytes": 678363,
+      "sha256": "b10f7b020d06a7c0369292b9e4d159daaa5d73e23144fd59e101182e54727a21",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malnutrition_page122_img2.png",
+      "bytes": 170707,
+      "sha256": "0e2ff3edde4d39ec73cf149f6be51e56f79f1af5b99969e97ceab9c0082ad8ec",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malnutrition_page122_img3.png",
+      "bytes": 16471,
+      "sha256": "7bdf9976c50d985f35a079436be329ed6a7af0c0d1160c8403ed2f6d0d822131",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/malnutrition_page1_img1.png",
+      "bytes": 33735,
+      "sha256": "24cd5d8b873df3bf803db79551931368435f6592ed6f65fbe1b74b259828383a",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/obesity_metadata.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/pneumonia_metadata.jsonl",
+      "bytes": 576,
+      "sha256": "3a80d431f6c99d243c6af7405ca600053fe45d4f37bd2edc21256de73625b50c",
+      "records": 4,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/pneumonia_page0_img0.png",
+      "bytes": 33735,
+      "sha256": "24cd5d8b873df3bf803db79551931368435f6592ed6f65fbe1b74b259828383a",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/pneumonia_page2_img1.png",
+      "bytes": 32942,
+      "sha256": "640e4f09834c9edd2294606e5a0543b1cff3fd9b37f03fe551c13b854e9ef250",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/pneumonia_page33_img2.png",
+      "bytes": 4872,
+      "sha256": "85c52a94923cf63884669189366aadaeb639d0f49d9a12aa6399094046a230ed",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/pneumonia_page33_img3.png",
+      "bytes": 31638,
+      "sha256": "7fc3193951957896c6b8fd84dbacfafafd21ecd4413add3ebb0efdac1f27a1ac",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/stroke_metadata.jsonl",
+      "bytes": 441,
+      "sha256": "3ff2f7c826849800e332e1d21a478c0c5777ea79de90d519df4af280384a2c3e",
+      "records": 3,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/stroke_page12_img0.png",
+      "bytes": 409873,
+      "sha256": "646c02ff7f60ac7d817f3ccadfc0fe529f395ad73d413e0b8c3a21b2e22ccd78",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/stroke_page13_img1.png",
+      "bytes": 264744,
+      "sha256": "3ac2d0ba9b7d462c38b7873114305cd4c53579c56527278c40c839743ef55913",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/stroke_page17_img2.png",
+      "bytes": 357641,
+      "sha256": "972b68a228ecc9d5d541afbd64853c827312d0352f4530c7af1712c6064ce114",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/tuberculosis_metadata.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/typhoid_metadata.jsonl",
+      "bytes": 278,
+      "sha256": "e43e3d2dabf3cb585ac0e066fd1b4485129d562e9e33653dc76195610db46bbd",
+      "records": 2,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/images/who/typhoid_page0_img0.png",
+      "bytes": 2647,
+      "sha256": "b93f7d2e09fd5b78752368b55eda935f895d6143a7fd6687e85892d48d4bf7ff",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/images/who/typhoid_page47_img1.png",
+      "bytes": 644,
+      "sha256": "fe1efb713ee6723044d17236c33c906fc0a6ec7f244658d8dda3489005dc1240",
+      "review": "image integrity checked"
+    },
+    {
+      "path": "data/processed/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "data/processed/chunks/openfda/anemia_in_pregnancy.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/anxiety_disorder.jsonl",
+      "bytes": 1543943,
+      "sha256": "515eb7a3f99884089e5d714e769111d72239cec6c78850a48914e5c34cbb73d5",
+      "records": 615,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/arrhythmia.jsonl",
+      "bytes": 814491,
+      "sha256": "0d0b5b0bbcd44aa7b559f431b74da662f8e2366265efe2774e5c6277c59218cb",
+      "records": 324,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/asthma.jsonl",
+      "bytes": 1717996,
+      "sha256": "d03e0988b924427d27d2f92e77e7c731227c94753d14c47b6372511eb15099c5",
+      "records": 673,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/breast_cancer.jsonl",
+      "bytes": 2703439,
+      "sha256": "ce6875e19a8c3a3283c9515179d8f3cea5e0f848cce4d43c917252489e6ce44c",
+      "records": 1142,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/chronic_kidney_disease.jsonl",
+      "bytes": 1458607,
+      "sha256": "538b1cd937ca9bf7f37f0993f9878c2e13718ed1fff1136ea632a38eedde7875",
+      "records": 656,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/copd.jsonl",
+      "bytes": 1816393,
+      "sha256": "997f90d070350286317e7302a19d57c49f0c4041f002c7d442f3dadff6720310",
+      "records": 765,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/coronary_artery_disease.jsonl",
+      "bytes": 1123611,
+      "sha256": "023b2817f535e4ff3ef630ec5828ba2e45df016c4c028b503ac765088233f637",
+      "records": 498,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/covid-19.jsonl",
+      "bytes": 1110407,
+      "sha256": "71d3570d2daac2989ba4d63ed7bac149cecca723bfa2274ed195dabebd79ca0a",
+      "records": 461,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/dengue_fever.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/depression.jsonl",
+      "bytes": 1497052,
+      "sha256": "c7bbfd01c71cea577c514b900615e3ba431d0ddbc3493b6ce794a8d48fd91778",
+      "records": 612,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/diabetes.jsonl",
+      "bytes": 1171056,
+      "sha256": "6da0d4d557d156313eb059fbf3384c0e6f663125165254274b9baf5f3f24c6fa",
+      "records": 507,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/epilepsy.jsonl",
+      "bytes": 1405703,
+      "sha256": "748b53f64cf15f7b6d0c7d6fe06ad6a35a3bbe295a300d3e158eb4d450eab232",
+      "records": 569,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/heart_failure.jsonl",
+      "bytes": 1241634,
+      "sha256": "040fc249e43661439668ca567e3fcead49b8aca49005264c13eb0c20b20e6f70",
+      "records": 530,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/hepatitis_b.jsonl",
+      "bytes": 1779508,
+      "sha256": "4dd8b46c67a4536dc62e3375c4441d001946c210dc622ef89bfa603227f03103",
+      "records": 754,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/hepatitis_c.jsonl",
+      "bytes": 1364204,
+      "sha256": "898d2afc1d5c6e016e1d8f58da4e9d61e787bf971771c37f34d9fcfdb83d661c",
+      "records": 608,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/hiv_aids.jsonl",
+      "bytes": 2189932,
+      "sha256": "3f8928a71a1b000bfbab901edac4d594c4cf609eb5fd56773ce35588c600c741",
+      "records": 971,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/hyperlipidemia.jsonl",
+      "bytes": 1409256,
+      "sha256": "c1613ac1d579f82ca600d1fda6289c44cadcedd028d3a05a2dd539843473320e",
+      "records": 597,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/hypertension.jsonl",
+      "bytes": 1068392,
+      "sha256": "8889b9de49ec33cae984db5045b81343dfe76347afcafd2f25b3f2f1306e1ecb",
+      "records": 462,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/hyperthyroidism.jsonl",
+      "bytes": 711394,
+      "sha256": "cadbd7f17fc812dc266f0a5b05de0b23e259ed00316df7f56f3476cada9f616b",
+      "records": 291,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/hypothyroidism.jsonl",
+      "bytes": 703217,
+      "sha256": "d570d49eda02cf1e32f9fe145d18c38a2a1ccd332dac8cf5d504a13d8494597b",
+      "records": 301,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/irritable_bowel_syndrome.jsonl",
+      "bytes": 463688,
+      "sha256": "ecf6f7b62076aaeb4809c4c5b5d9ab6e4d73426b70dd3c42fc2c0a75bcad8c72",
+      "records": 212,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/lung_cancer.jsonl",
+      "bytes": 2987890,
+      "sha256": "df0a6f0f0fe223b0b6cc9e7a7a8206f8817c33448290866d68e00cbb22776e81",
+      "records": 1298,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/malaria.jsonl",
+      "bytes": 348483,
+      "sha256": "0d632849e7d9889b105a9dc29befaefe30e040e8c6a74eeaacd9c480071c06e7",
+      "records": 158,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/malnutrition.jsonl",
+      "bytes": 99248,
+      "sha256": "1601489cb4ccf278a33717010c22b5b5aefca18df94e0bc430b7a08490db3fd2",
+      "records": 46,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/migraine.jsonl",
+      "bytes": 1227400,
+      "sha256": "9a3f32c23c826c50a746c4222e4be4c7927e4b7975d5741184032395bc8b6739",
+      "records": 514,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/obesity.jsonl",
+      "bytes": 474287,
+      "sha256": "ed64101b01db3063b3747a0abdfc949245d05977995e12428056046e1f266a5a",
+      "records": 208,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/osteoarthritis.jsonl",
+      "bytes": 1901697,
+      "sha256": "3397313a3cc11dcdc01573593ec76c8bdc67719c4cb3136c49a02dc2e9781278",
+      "records": 737,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/osteoporosis.jsonl",
+      "bytes": 1632508,
+      "sha256": "c015b9060fd48e558d1ad0628db182dbf1d9725bce43f05cd5d45396720c6b64",
+      "records": 681,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/parkinson's_disease.jsonl",
+      "bytes": 891373,
+      "sha256": "524fb15f59b65e8e453cfc7552bf6baac7e7ae09ed52d06e011c70c9bc1e39a9",
+      "records": 386,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/peptic_ulcer_disease.jsonl",
+      "bytes": 238942,
+      "sha256": "2b31f9bf1776f05aeb854ecaa92c812492ee31d29ed42f3e267daf946686a598",
+      "records": 114,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/pneumonia.jsonl",
+      "bytes": 1061428,
+      "sha256": "d05177490806bca2dbd0f95f67fb3abfc14a9a8fdc8c475ef66fd88547444fad",
+      "records": 443,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/rheumatoid_arthritis.jsonl",
+      "bytes": 1983362,
+      "sha256": "8d2aea63c717ec94d36015caa608cdf352b2107e2211c12797374f0b66aeaa88",
+      "records": 771,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/stroke.jsonl",
+      "bytes": 1355674,
+      "sha256": "b14d34cc14ffd89b6eabad5bc6729a37a8cedf60be7e79884bda6fe8b9e7d165",
+      "records": 577,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/tuberculosis.jsonl",
+      "bytes": 1716751,
+      "sha256": "24609fc2aa54b0a853e56df6a218f3aa2fdc8d1de3ebc35a48b0af721512cc22",
+      "records": 670,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/openfda/typhoid.jsonl",
+      "bytes": 290351,
+      "sha256": "63d58d6218305b0013814554059185a1269cb3b17665aaac0a64bb2041be452a",
+      "records": 123,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/anemia_in_pregnancy.jsonl",
+      "bytes": 575672,
+      "sha256": "3e3d31fa532f324b6da6fcaa5bd5e1a20774ffeb56df6bc438c8d1a972aaba29",
+      "records": 161,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/anxiety_disorder.jsonl",
+      "bytes": 579404,
+      "sha256": "6777e1a62b1c828c7f465f7d30d984b3c542d5fbdad38818725c392a5f66716c",
+      "records": 158,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/arrhythmia.jsonl",
+      "bytes": 492323,
+      "sha256": "f6f38fe48c3567e3d1b572a7e09cb8b2ff61bd30b980abd214fc0c4aeabee108",
+      "records": 140,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/asthma.jsonl",
+      "bytes": 525597,
+      "sha256": "caf8268d67817565c395a9849eeb69a2907c6f69fba831a1a0f25b9207d57d38",
+      "records": 146,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/breast_cancer.jsonl",
+      "bytes": 448625,
+      "sha256": "339a1bf36d80904cf54941a1188e85cd5d8dbef2d0529adbf6e5487b8bfb60a3",
+      "records": 127,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/chronic_kidney_disease.jsonl",
+      "bytes": 532782,
+      "sha256": "509029a359337bad3bb3790ad66c3ea8b193e892a2e81bc4619df1b7847efccd",
+      "records": 145,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/copd.jsonl",
+      "bytes": 543152,
+      "sha256": "b486baf43f91a4ee7aa6416f9b943ccd586af63f07421ae21f57c6a95176c8d0",
+      "records": 146,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/coronary_artery_disease.jsonl",
+      "bytes": 545602,
+      "sha256": "5cc3835b19e943611d1004b5478dd5513cc01c114097f4e92eef23119237b147",
+      "records": 155,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/covid-19.jsonl",
+      "bytes": 540908,
+      "sha256": "7992b3b248d769fee4c451f1068ac4ffdd24bf492ff6ebb444f81244d956f938",
+      "records": 145,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/dengue_fever.jsonl",
+      "bytes": 506382,
+      "sha256": "8c2c94593c886bd107196934fe3e53a2b8c4d9abc154f4079fadc1930a804ad5",
+      "records": 135,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/depression.jsonl",
+      "bytes": 545504,
+      "sha256": "03c600a45f3312356e44de8c445e9a7b9cb43a9afcc6e2e7b235d2fc9481d558",
+      "records": 149,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/diabetes.jsonl",
+      "bytes": 514822,
+      "sha256": "aa1a54e7db2b79c1cc8c5446b2e074e3100ae5c353c5cb4c533e7e686e5476fd",
+      "records": 147,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/epilepsy.jsonl",
+      "bytes": 485487,
+      "sha256": "4c06898777a97bddeb069d60de441b6c620885f202d34e7b74066715ee0a44b0",
+      "records": 132,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/heart_failure.jsonl",
+      "bytes": 548047,
+      "sha256": "240e6803f72f0c3de87b57439ec3c8350c55b114e28df68f74a92239dfd181dc",
+      "records": 156,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/hepatitis_b.jsonl",
+      "bytes": 508325,
+      "sha256": "1150a026aadf6c423a2f4d66c275b1181402872318c786253f53b799db11bf82",
+      "records": 144,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/hepatitis_c.jsonl",
+      "bytes": 523504,
+      "sha256": "a4914faf9dc75455dd6207300e17783d06ebbc05e4f61aa95d567bce26119c6d",
+      "records": 146,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/hiv_aids.jsonl",
+      "bytes": 548890,
+      "sha256": "ae2229941c972191808360482f82ee0d91b8af97c0b6aafe7b0245df947ca294",
+      "records": 154,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/hyperlipidemia.jsonl",
+      "bytes": 590767,
+      "sha256": "53f2c0e0c46e0d2976380f5480b7acab98f3ad00cd562c11c5588d4f13966194",
+      "records": 168,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/hypertension.jsonl",
+      "bytes": 542090,
+      "sha256": "e090ab66b2489089fb5fbd06a031d7a417055536b65189b44db96e333970c664",
+      "records": 153,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/hyperthyroidism.jsonl",
+      "bytes": 557060,
+      "sha256": "9363ce21d6245b084310051e463740045ddfab8f4c566b539ebadfd8b5eddfb8",
+      "records": 159,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/hypothyroidism.jsonl",
+      "bytes": 546211,
+      "sha256": "fdd66deb42dc045485f065ab390555319bc816a81d661b0fb315b467c3d8e7fe",
+      "records": 153,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/irritable_bowel_syndrome.jsonl",
+      "bytes": 501269,
+      "sha256": "7c8423c8a8372f7e3ae905e448289e45e4ed75826128f0c829fc45bc25f14a8a",
+      "records": 136,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/lung_cancer.jsonl",
+      "bytes": 501762,
+      "sha256": "1588e96ff033f320f48633bfb42c534c3164cd46b8130c3793cb1f44f03a636c",
+      "records": 142,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/malaria.jsonl",
+      "bytes": 549929,
+      "sha256": "6173440a5882ca96f8cf995482815a4945909fe65d51fa3b34573d413f8cd7a3",
+      "records": 152,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/malnutrition.jsonl",
+      "bytes": 580338,
+      "sha256": "99e8fd2d6dbb3a5de4af1738a59c50dba0196b59a4ee5cba9ab5cb70e0f780b7",
+      "records": 155,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/migraine.jsonl",
+      "bytes": 554481,
+      "sha256": "c2c1136f321072b33ebc34556f76e609a2aa80be669060551299f8e866c82343",
+      "records": 156,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/obesity.jsonl",
+      "bytes": 529090,
+      "sha256": "6fd2a0b5ef6127bc8111514929ea405b3bd8b5f06bdd237308a931b73f4c90b9",
+      "records": 144,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/osteoarthritis.jsonl",
+      "bytes": 594503,
+      "sha256": "ba04234de0f1cb6c67cdc642a92a780cb92a6a9a2765c35eef7205c33f5b4827",
+      "records": 165,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/osteoporosis.jsonl",
+      "bytes": 574846,
+      "sha256": "ed6f8bff912a076b34e569cda753593c9919cfb44b6e76bce1a4ce4ea45f7e63",
+      "records": 158,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/parkinson's_disease.jsonl",
+      "bytes": 513053,
+      "sha256": "ebd7de6227fe7395af865ade0661043592d3460866b2bf3bb0966048d1533963",
+      "records": 145,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/peptic_ulcer_disease.jsonl",
+      "bytes": 534996,
+      "sha256": "dd7ea74b10fd834b8658078018636bd4a9540d61258019c8447ed4d5ec0f4b15",
+      "records": 147,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/pneumonia.jsonl",
+      "bytes": 569375,
+      "sha256": "d72fd214b67c9e3c22a7efe63bf498dac659a7990016ecd3d98864ce90b4ffaa",
+      "records": 154,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/rheumatoid_arthritis.jsonl",
+      "bytes": 562433,
+      "sha256": "7dd54c550818645fb88afbf4ec415d33d06352f4a239c4c3869c121fe7079f01",
+      "records": 155,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/stroke.jsonl",
+      "bytes": 540703,
+      "sha256": "4c441b4175be5715d365aa21d5fae64219305765e4db19bcd8b286278733dd5a",
+      "records": 151,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/tuberculosis.jsonl",
+      "bytes": 538641,
+      "sha256": "bf9ac2dddca01758faead27311e87e5ddf261a17baf9d3ea79bfaffb8063357a",
+      "records": 151,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/pubmed/typhoid.jsonl",
+      "bytes": 564875,
+      "sha256": "baeccba121df54e74bed910b8700d28595baba8c58fb0b25aefe0bd1554a4b83",
+      "records": 161,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/anemia_in_pregnancy.jsonl",
+      "bytes": 536109,
+      "sha256": "e90769d3cd1d37311a6435a017c7afa9b68833d3a681b239dffb2b93f5084fc1",
+      "records": 199,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/anxiety_disorder.jsonl",
+      "bytes": 405368,
+      "sha256": "f4bcf57305de4ce0935f56f288aee017aa42be33975bc11b1ab14f4dd5c90572",
+      "records": 133,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/asthma.jsonl",
+      "bytes": 623839,
+      "sha256": "806a79a663991e3aa20ca9fa7bf90de8c370b1d5b21feaddc127ca51079b7759",
+      "records": 157,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/breast_cancer.jsonl",
+      "bytes": 343473,
+      "sha256": "e37ee6115671b9329791ddd799ff3986f0ed781235503b3c5e72821373c05e91",
+      "records": 161,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/copd.jsonl",
+      "bytes": 623839,
+      "sha256": "806a79a663991e3aa20ca9fa7bf90de8c370b1d5b21feaddc127ca51079b7759",
+      "records": 157,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/coronary_artery_disease.jsonl",
+      "bytes": 815215,
+      "sha256": "abd849497d705730fd931cbb87d8d19b1c2dbf2c471722c038b88a6876d75993",
+      "records": 375,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/covid-19.jsonl",
+      "bytes": 1379374,
+      "sha256": "8eb18e03110d7e0547576733e36adae4f8099d0da5181fa798e5f55eddbba176",
+      "records": 470,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/dengue_fever.jsonl",
+      "bytes": 708842,
+      "sha256": "1953053ba58dfcd50d1dce6a36ab6ddd266c55d01cfdf47b61c989398b047f0a",
+      "records": 275,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/depression.jsonl",
+      "bytes": 405368,
+      "sha256": "f4bcf57305de4ce0935f56f288aee017aa42be33975bc11b1ab14f4dd5c90572",
+      "records": 133,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/diabetes.jsonl",
+      "bytes": 514790,
+      "sha256": "178a7b06fc99d0f1be07d8b2419a8efe23ead1efae9d0d27bf675e1f845d99ba",
+      "records": 165,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/epilepsy.jsonl",
+      "bytes": 405368,
+      "sha256": "f4bcf57305de4ce0935f56f288aee017aa42be33975bc11b1ab14f4dd5c90572",
+      "records": 133,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/heart_failure.jsonl",
+      "bytes": 815215,
+      "sha256": "abd849497d705730fd931cbb87d8d19b1c2dbf2c471722c038b88a6876d75993",
+      "records": 375,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/hepatitis_b.jsonl",
+      "bytes": 1137851,
+      "sha256": "bb5bcca530c98129b54553b5c988901b7723f2ea79de467dceccc6ad80944693",
+      "records": 455,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/hepatitis_c.jsonl",
+      "bytes": 63908,
+      "sha256": "97778669fd9a36a45a3c066fc50495dfe4fee17044c680bbe8cf5487091fe7e8",
+      "records": 24,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/hiv_aids.jsonl",
+      "bytes": 850856,
+      "sha256": "0c909d5e78875bcdfffbdd3fc3b751b968b5b78cf3827f874425252bb511f91d",
+      "records": 354,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/hyperlipidemia.jsonl",
+      "bytes": 815215,
+      "sha256": "abd849497d705730fd931cbb87d8d19b1c2dbf2c471722c038b88a6876d75993",
+      "records": 375,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/hypertension.jsonl",
+      "bytes": 376860,
+      "sha256": "0c5b44962945e041a744c7700d56445a6b0c57800095eb1605c36e6b2c059502",
+      "records": 146,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/malaria.jsonl",
+      "bytes": 3732859,
+      "sha256": "ce122c50a39c0f95a2cb187e194651826230689ef9e1279e21992c738193508c",
+      "records": 1179,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/malnutrition.jsonl",
+      "bytes": 838532,
+      "sha256": "60d1cb285ecc2260de7e37b26d6cd2ec085f469e86d3f22801c3a5400c37e46d",
+      "records": 385,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/obesity.jsonl",
+      "bytes": 94594,
+      "sha256": "937fe64d9c642bf87f225fca942ff055caa1ce677103a74af33fbc1c15fa6371",
+      "records": 34,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/pneumonia.jsonl",
+      "bytes": 190725,
+      "sha256": "aa4bd3858cb21e42adeb061af65db5f29be1f49ab998bb9a6d8c23859b24de9d",
+      "records": 67,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/stroke.jsonl",
+      "bytes": 815215,
+      "sha256": "abd849497d705730fd931cbb87d8d19b1c2dbf2c471722c038b88a6876d75993",
+      "records": 375,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/tuberculosis.jsonl",
+      "bytes": 336204,
+      "sha256": "afa08ede50c42f7126c6ecb9fc2e0d4a176847c1214c596b0d4eeb60ff1ecde0",
+      "records": 127,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/chunks/who/typhoid.jsonl",
+      "bytes": 272320,
+      "sha256": "37a5d3ceae3e9314286b6621a783509bebd4e9f9edcd784cfb499207dcec8cfd",
+      "records": 98,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/embeddings/image_chunk_links.jsonl",
+      "bytes": 13098,
+      "sha256": "5ac591224d4170a3c989eecb9fd22b5218d047dcd3b5e058f9192ccc3df40f7a",
+      "records": 55,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/embeddings/openfda_embeddings.npy",
+      "bytes": 80898176,
+      "sha256": "7b3d784c116a73ccab497483978c75f308fefdfff4b93d0c0cf79ca0167958d1",
+      "shape": [
+        13167,
+        1536
+      ],
+      "review": "shape, finiteness and index alignment checked"
+    },
+    {
+      "path": "data/processed/embeddings/openfda_index.jsonl",
+      "bytes": 2689147,
+      "sha256": "9681767c20460bd05d1e7ce019d54e4ab7b2a80e044ab7b00f3114ff04f8eef6",
+      "records": 13167,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/embeddings/pubmed_embeddings.npy",
+      "bytes": 29030528,
+      "sha256": "cc40ede63e8bb61b7f6c6f0a240e48af8d009b606882bea8a464b534741fc179",
+      "shape": [
+        4725,
+        1536
+      ],
+      "review": "shape, finiteness and index alignment checked"
+    },
+    {
+      "path": "data/processed/embeddings/pubmed_index.jsonl",
+      "bytes": 872672,
+      "sha256": "75388280127eb7310399ff186400e1b6eb95fa7eb780ed6ece29a85f983f88b5",
+      "records": 4725,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/embeddings/who_embeddings.npy",
+      "bytes": 29515904,
+      "sha256": "589211e1c0338e00a908243e78ad7914445a47ef5c8b07952cf03dd5c1a97d1a",
+      "shape": [
+        4804,
+        1536
+      ],
+      "review": "shape, finiteness and index alignment checked"
+    },
+    {
+      "path": "data/processed/embeddings/who_images_embeddings.npy",
+      "bytes": 155776,
+      "sha256": "2ce73a0a335c95b236a26f87a2774660777595ce81ee3c6b041aa2d636942d40",
+      "shape": [
+        76,
+        512
+      ],
+      "review": "shape, finiteness and index alignment checked"
+    },
+    {
+      "path": "data/processed/embeddings/who_images_index.jsonl",
+      "bytes": 9507,
+      "sha256": "8b626004ef4535e9939c2573daa43126478a96e05cb1faa402b355d9d7a7479a",
+      "records": 76,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/processed/embeddings/who_index.jsonl",
+      "bytes": 956077,
+      "sha256": "732b68165cbe5e1dddbee8af62cb23f03ab56dd9a4481929d3ea94841c29e127",
+      "records": 4804,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/anemia in pregnancy.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/anxiety disorder.jsonl",
+      "bytes": 676198,
+      "sha256": "f44809672453d28b8c8a23012e66e7bd9080c425ec1bf3d9dc99011bc23876d2",
+      "records": 16,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/arrhythmia.jsonl",
+      "bytes": 364744,
+      "sha256": "5caa05abd0260771c104cd18f8365625bbb963f80aa7a7814ba7efaa5a40f0e7",
+      "records": 9,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/asthma.jsonl",
+      "bytes": 749776,
+      "sha256": "dfd23d6331523634917a518207a6cfb44cbc8bbc961dae27858a3d615074c16e",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/breast cancer.jsonl",
+      "bytes": 1174481,
+      "sha256": "3cb5070f436e7d76b89b59969ca3f5ccb7ff728e0ca4468ddede8939e1086ace",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/chronic kidney disease.jsonl",
+      "bytes": 635795,
+      "sha256": "8763cc7dbe2cb9fbd2fcb8c6fee7729e1dd0d8f0d825e7d1e578b323b9fae02e",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/copd.jsonl",
+      "bytes": 773395,
+      "sha256": "3fb5cb6a3d65829a9399c9f78bb04f7292194009400dbe9cb17e246facd5c56f",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/coronary artery disease.jsonl",
+      "bytes": 493649,
+      "sha256": "2815b7ac27754b67b5be46e18619f639bf46f8c28d07a2e17ce23c0093cfade0",
+      "records": 23,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/covid-19.jsonl",
+      "bytes": 491889,
+      "sha256": "353ead2732fe1813d2ab7c7ce71e12b898c4a7b9a815600d277cc403b79b8794",
+      "records": 10,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/dengue fever.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "records": 0,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/depression.jsonl",
+      "bytes": 658660,
+      "sha256": "a3684ed922ebfd70787a588eb660fdc6196b06290e1296d1a51daa87e31e6acf",
+      "records": 19,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/diabetes.jsonl",
+      "bytes": 504502,
+      "sha256": "c4a1c56ea7f5f66d3c716b28791b7e3369324f5ffc859c49aa06aaf12604feaa",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/epilepsy.jsonl",
+      "bytes": 619746,
+      "sha256": "e7a6399b9e5646a0eb70d477edd3c352480a12256afbc05310e1e9fa26172060",
+      "records": 12,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/heart failure.jsonl",
+      "bytes": 534453,
+      "sha256": "61938dbbfe8de7775b3dc8790613fe3f3b50776ce96441ba1512e24800543163",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/hepatitis b.jsonl",
+      "bytes": 771598,
+      "sha256": "7966ee3149e7028f7eaa52a4ef54eec4fbe9279eb2662c664fb40b6a269d4ffe",
+      "records": 11,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/hepatitis c.jsonl",
+      "bytes": 590618,
+      "sha256": "7ed9cedac8ca858496e6eed69d2b6f2e42ae62baa24d46bb1e3ad7c09d3a857a",
+      "records": 15,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/hiv aids.jsonl",
+      "bytes": 952599,
+      "sha256": "7792c09b5cc68eca9370b0609e48d7231aa2d57cf3c20c99b526dc37610b63ce",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/hyperlipidemia.jsonl",
+      "bytes": 606168,
+      "sha256": "4b6999d3871d8d2d1f5a6a96e3d6f26ce1651330f803e466c3cbcaf5a3f39a2a",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/hypertension.jsonl",
+      "bytes": 467040,
+      "sha256": "5d0c84b7130c9daccac6c5ec2c6ddd52593516c8d3e49838064184448e2a0115",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/hyperthyroidism.jsonl",
+      "bytes": 312751,
+      "sha256": "253cad6aeff894a7ffc080448e6be606ee60e75e5468c81ed41d07ec5951bd9f",
+      "records": 10,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/hypothyroidism.jsonl",
+      "bytes": 291809,
+      "sha256": "05f291436110115377a70c2fba28a8e83beddee791bc9d85d54278f6f11bc38c",
+      "records": 17,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/irritable bowel syndrome.jsonl",
+      "bytes": 203571,
+      "sha256": "ff1b7c1fc69b9de0091e4985b858589d118cc215e92d8ae2aa44052ff1c3c738",
+      "records": 17,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/lung cancer.jsonl",
+      "bytes": 1296926,
+      "sha256": "6e0733a96d0441eaca5de65efbb68e3ecf28f5fb4abec13454ebe894bac82279",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/malaria.jsonl",
+      "bytes": 151604,
+      "sha256": "8909b13aa2e7be186ed2ba1d28438d6101db6aeeb40259ff03748098a4c10482",
+      "records": 10,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/malnutrition.jsonl",
+      "bytes": 43236,
+      "sha256": "79f192c080262d2d4bed8501544a298ea4c2575d2c86495e1a906dadecc5c660",
+      "records": 2,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/migraine.jsonl",
+      "bytes": 543227,
+      "sha256": "318469c18342f9fbf08e224e8c554ac9da9ee37258048388c61b889a1c696ff7",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/obesity.jsonl",
+      "bytes": 206722,
+      "sha256": "6b99580a7a99cc75f08faa3453029511837ea81a8b5944602b8e39df4590e551",
+      "records": 14,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/osteoarthritis.jsonl",
+      "bytes": 827393,
+      "sha256": "ac09c13700a1b04e8447c1e39843a13a90cf340039ad80905b4ed9708aa79fe5",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/osteoporosis.jsonl",
+      "bytes": 718109,
+      "sha256": "f92d7af287d22fad47653591d19e9221374365a3c7a7f32bdb802f985ab2705d",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/parkinson's disease.jsonl",
+      "bytes": 389550,
+      "sha256": "61d4cb6019a82cd4f0ad6b66fa15a725014b52c11ab90dcd4dabc10b90e1a007",
+      "records": 20,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/peptic ulcer disease.jsonl",
+      "bytes": 104520,
+      "sha256": "44a01c0600fae0bea78338fe17b7845622aee6acd98a08f776d956961cdbb0a8",
+      "records": 12,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/pneumonia.jsonl",
+      "bytes": 466364,
+      "sha256": "f2101fe093d614b043ec8f3365d582465ae3e2df88ce55d879e31835c12474c7",
+      "records": 19,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/rheumatoid arthritis.jsonl",
+      "bytes": 831304,
+      "sha256": "32d6efaac3b5abe162122936b992a0884b6982795643cdeecca4c2256a8c3149",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/stroke.jsonl",
+      "bytes": 581514,
+      "sha256": "dc923137d777e0385257ebf825743226d1d1636a22674e4fe442adc7efa6ded9",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/tuberculosis.jsonl",
+      "bytes": 751338,
+      "sha256": "fd501288273b753bec071ab68d3eb8767b3d1931489e81e2a078f412b633d266",
+      "records": 25,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/openfda/typhoid.jsonl",
+      "bytes": 126686,
+      "sha256": "a8daa4d3e7de67a80ecf861c22f7891dd4e9d164e37df09535247d8b50d3b68e",
+      "records": 4,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/anemia in pregnancy.jsonl",
+      "bytes": 310899,
+      "sha256": "d573e85b6b497edacd41c4c0678a36fa1fd17218eed32307b5974e4f1da8061e",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/anxiety disorder.jsonl",
+      "bytes": 314429,
+      "sha256": "2c477070276b290915b57677d3f20bff02f0eab50273ded00ffe397adb91529e",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/arrhythmia.jsonl",
+      "bytes": 274526,
+      "sha256": "f58e69c21ed68bf8c5cf86ce9cd13f973de744f941215667ef27b5d6b723e9fc",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/asthma.jsonl",
+      "bytes": 293697,
+      "sha256": "7db5cf7c9859e7ac3c9b9cba04fe77b128ec07d57287d71cdca3dc188618e166",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/breast cancer.jsonl",
+      "bytes": 256552,
+      "sha256": "47436d705e7f71cacca3634d17df2e1514c87d4c50057ae3229f45961b8a9e0a",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/chronic kidney disease.jsonl",
+      "bytes": 297299,
+      "sha256": "607fe28a3c6cde702821f7478ae750963ad5bb1e735a75c7cace2f1582b135c4",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/copd.jsonl",
+      "bytes": 297891,
+      "sha256": "4ca1f1689f54731b13e65fa06428b073d683fb4528ab033ee0b551645bb028b9",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/coronary artery disease.jsonl",
+      "bytes": 300791,
+      "sha256": "d3d2b226793b2d10355475583b5338ea6633d8860586122c057df22842f2972f",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/covid-19.jsonl",
+      "bytes": 299763,
+      "sha256": "cd4e5b2148517460000efae8784e3a03f5f09410767f2c81062c33b2a1ef394a",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/dengue fever.jsonl",
+      "bytes": 289205,
+      "sha256": "a17c2de92fab7e9b3aabafac0e85dc598a72f5513ee4289c242581b4cc287a93",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/depression.jsonl",
+      "bytes": 298325,
+      "sha256": "d1f554704896ece40ec69684f3b96b0f968536ee183f26192960ed2f134ee8d5",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/diabetes.jsonl",
+      "bytes": 287211,
+      "sha256": "413c5cf433a9cb15274d93f36c194228ee4ddfc8f0bb2e47d671f4f5a87eb78c",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/epilepsy.jsonl",
+      "bytes": 273088,
+      "sha256": "e419f48e2cb01102dac29bc82151b09fc659ef9aaaba2604400796877a1daa11",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/heart failure.jsonl",
+      "bytes": 300751,
+      "sha256": "6fccb8ba2919c927dea3be9e00ed9e0800decbede61fe65ef3543863780696da",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/hepatitis b.jsonl",
+      "bytes": 283116,
+      "sha256": "8e52cdda04fcd48f6f463e6162cbde4530b065de8167c4f1189ea6a18ddfb879",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/hepatitis c.jsonl",
+      "bytes": 291287,
+      "sha256": "68017a295cc3f3db195d7cf9461cda314c381e9f864f0b617e8b14d2295b74ef",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/hiv aids.jsonl",
+      "bytes": 305668,
+      "sha256": "89b3b0f41a2b157279bc1b80f978a0da9bb467bed2840737b48c4a3a5a99e6f0",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/hyperlipidemia.jsonl",
+      "bytes": 315188,
+      "sha256": "6472f961858c8a2ba6009253b41e20691bfa3da3200899685ead84504d8ed602",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/hypertension.jsonl",
+      "bytes": 297855,
+      "sha256": "a19c587593ee2ba419b1648eb480399d7035afa13a8299f7a6991dffdc221a77",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/hyperthyroidism.jsonl",
+      "bytes": 299364,
+      "sha256": "34c0a33a965418c600c20c8f59775c2c7b85c3f61b7bbf03492bf400a0b343db",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/hypothyroidism.jsonl",
+      "bytes": 295699,
+      "sha256": "b23cdb256c46507e3a0a9e06b5df40c5ce60409d91d8d5475a1a27c13ff51d87",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/irritable bowel syndrome.jsonl",
+      "bytes": 280495,
+      "sha256": "1e838648032a553cc11b9dd6f770d0f230cd98840e17fcd44c63ffd8345ea301",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/lung cancer.jsonl",
+      "bytes": 279113,
+      "sha256": "fcc1f852d9e6d87c8dac3129008d7e93fffc0779ec32d494ca89e8ce3b647b02",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/malaria.jsonl",
+      "bytes": 306119,
+      "sha256": "15ed37e0530304a57c5ab8d9b09d0e56d80309c5df372125da3dabe89643802a",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/malnutrition.jsonl",
+      "bytes": 315841,
+      "sha256": "f52bc7f5d364a18bfccbaf671b1c2a9d54278ff24cb458cc678dd9a619898935",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/migraine.jsonl",
+      "bytes": 300557,
+      "sha256": "67325aeb4b5354466bf83fe2c3d4a0bd650c1256bf0152a1df4740eed3a6aa01",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/obesity.jsonl",
+      "bytes": 291378,
+      "sha256": "2940b122d9d01d2469c361c66a883a8693d99a03beb80f9006f5696897f1f09d",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/osteoarthritis.jsonl",
+      "bytes": 317760,
+      "sha256": "ab7603e752c3c83139c7637a0b697656f6111326a9b491940cbf9d9731bdfe62",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/osteoporosis.jsonl",
+      "bytes": 311635,
+      "sha256": "b61fe2fa028ed807838e70d45cbda715691feb2a2c05b9e17e1cc4da53f16177",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/parkinson's disease.jsonl",
+      "bytes": 287021,
+      "sha256": "7d8d1776f803c32d4edacac2446ba771420ccb6af89ac7ce2d00cf8fa55be77a",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/peptic ulcer disease.jsonl",
+      "bytes": 294837,
+      "sha256": "e6c43dca14d49c46ed38eac38bddbca102d898ef916a39b1d4583ae9481f64d3",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/pneumonia.jsonl",
+      "bytes": 312043,
+      "sha256": "79a5e5bf5f2ab23a259257263a809ec6a5499ee18f1811139fc60bfe84ff7067",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/rheumatoid arthritis.jsonl",
+      "bytes": 308439,
+      "sha256": "5c56613d007a9782b8cfdffd6a975b59818e0614d64d467c62871ba471c3feb2",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/stroke.jsonl",
+      "bytes": 300412,
+      "sha256": "74d3eaaa4f1af5050644ec7aa15fb0e91e9b04b4f314c085510870df548bd985",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/tuberculosis.jsonl",
+      "bytes": 297999,
+      "sha256": "6e0574ccab9f2006ca7b905bda29e9f07eee4e46572a062816d2807a0a9d50c3",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/pubmed/typhoid.jsonl",
+      "bytes": 310130,
+      "sha256": "20e6c51802c7e427130a3fb07ee7b534adcb090ab3d487c2fefb32622ff5a96a",
+      "records": 130,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/anemia_in_pregnancy.json",
+      "bytes": 472025,
+      "sha256": "5f7f37bf304006ef93525713337c785dca2ad01e9748e28c2757b98097e96be5",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/anxiety_disorder.json",
+      "bytes": 253972,
+      "sha256": "a1fe31eff9913cce147f7f765d26e4c530ddfe2dce28d2bfe2f3dfff0ffd62a2",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/asthma.json",
+      "bytes": 415640,
+      "sha256": "a72eb5cee2b1026c189c563c41f2793bbd2a6936f7d1ce4c62ec080841b807a4",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/breast_cancer.json",
+      "bytes": 272298,
+      "sha256": "768856a1e0e3c978cb2024735b66998e1849602cec1640c558d8d5a086281d4d",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/copd.json",
+      "bytes": 415638,
+      "sha256": "cebb970b1799dd4e9815da3cf67b3de17c9aa6ae30c1af6d837a742bead4ce39",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/coronary_artery_disease.json",
+      "bytes": 526378,
+      "sha256": "30d5d5e3aa33c4bf73689c1dcaf119cb8e4181d915ba081264584a765e3393ae",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/covid-19.json",
+      "bytes": 1091760,
+      "sha256": "52c9c7715b41bebe92e27b1b5f45d6fb59c951f83ceb532b9b848574049257c3",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/dengue_fever.json",
+      "bytes": 574379,
+      "sha256": "7c016064559d9f50ee64517c387893aa52e9c2e435d4e430cf59064663dbd33c",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/depression.json",
+      "bytes": 253966,
+      "sha256": "9addb7f0b46d2f89626888d6a7c4654800cb884a662c1355c7551efa0daf65d9",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/diabetes.json",
+      "bytes": 300686,
+      "sha256": "cf401bfb16c790550cf71a7515a9de7ed60d3b0ac04ed22cd1b31d20e1a14090",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/epilepsy.json",
+      "bytes": 253964,
+      "sha256": "7e199f4193e780f26c5efb75b58cca0f75650a3888652d34da4ba539a7b2355e",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/heart_failure.json",
+      "bytes": 526368,
+      "sha256": "adefbde534b2fa6ad09299fc7a8a0063959ce3f199c677ded654bc628f704332",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/hepatitis_b.json",
+      "bytes": 925538,
+      "sha256": "e7545368fee3e87f7642282fbc1db1cc361185da600c4a2d42f8a5f38042ea5f",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/hepatitis_c.json",
+      "bytes": 52374,
+      "sha256": "02fc79c2d33df79c0c8f657a41de36acf0df261eca5a1fd6de7d431cbac311c6",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/hiv_aids.json",
+      "bytes": 686471,
+      "sha256": "e7c441f8e4483be09083fdb02913124f89ea216942d035f9d338a65d017bc23b",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/hyperlipidemia.json",
+      "bytes": 526369,
+      "sha256": "307e2a3fa829b4062b9fc54ddd7ff164910a59bc411b68a3f76431a03f4e1f4e",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/hypertension.json",
+      "bytes": 299544,
+      "sha256": "cf84e23103824e968101eae0311333274b57ef45c1a7e03bb08e08746610d2cc",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/malaria.json",
+      "bytes": 2873993,
+      "sha256": "b1b792e3c7fc713b37b1365674b721a06af862cb303b98604ab64143bda2a59f",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/malnutrition.json",
+      "bytes": 664307,
+      "sha256": "6d37f91fc07cbbf9d05f0630a32594f329a322cf889657f9ecaa2fdc7f9fe9fc",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/obesity.json",
+      "bytes": 84509,
+      "sha256": "eb7cc4ebdbac027ed3b302c33d91511301dd575c4da044f63072bd5fb019b145",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/pneumonia.json",
+      "bytes": 164094,
+      "sha256": "12d1e1adb119831be82b3c0157b511d5ece452892db8bbb92fad9215c5ba1c35",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/stroke.json",
+      "bytes": 526361,
+      "sha256": "edb0e3c9682a1d40ee2b61285c79511fabd98b7bb11b4bb364b4655ab3729a56",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/tuberculosis.json",
+      "bytes": 282409,
+      "sha256": "c854a32dff88f007381982782e44ab4d202830ef3a78e7989d767a986a725956",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/raw/who/typhoid.json",
+      "bytes": 225140,
+      "sha256": "382aaa45f6b22aebebb69fe9c2f3e7a388f20c4011e24408661467ca25fdfb49",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "data/tables/who/anemia_in_pregnancy.jsonl",
+      "bytes": 3743,
+      "sha256": "21e5ad26ece9d6ed528bfd54cc796980bcce1c31291ae53704698b46dd301663",
+      "records": 17,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/anxiety_disorder.jsonl",
+      "bytes": 91573,
+      "sha256": "b4baa3fb37769e199cd818e4debc58b14bc7cf8e16c801ce5aaaf6305ab9c076",
+      "records": 69,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/asthma.jsonl",
+      "bytes": 186818,
+      "sha256": "de41e2eea824c553c240e39765e66a7e7c12bd26225a7ae3a24913631e912e86",
+      "records": 74,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/breast_cancer.jsonl",
+      "bytes": 19383,
+      "sha256": "7eb64da2ce13ff4716f196d426ca801e5aaf757bcf3c9a4d5f268cd4197157ad",
+      "records": 56,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/copd.jsonl",
+      "bytes": 186670,
+      "sha256": "cdffc7ece3390fd630d5bb9dacd4565c18e09fcfedbfe79a8677abd484eae475",
+      "records": 74,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/coronary_artery_disease.jsonl",
+      "bytes": 61551,
+      "sha256": "c690b56804dc7b6fa55e1bac198493980cfa83e7fc682f4a0a18f52146a7b773",
+      "records": 171,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/covid-19.jsonl",
+      "bytes": 131682,
+      "sha256": "be63c0905365f0a29861066fdba6b122a2029b1e85905c53a85d1e9b578caa3b",
+      "records": 89,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/dengue_fever.jsonl",
+      "bytes": 42686,
+      "sha256": "aa1c39ef065f7808d788f24796258d0acb0ff9e75d376ff9a524a7bede768a40",
+      "records": 50,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/depression.jsonl",
+      "bytes": 91159,
+      "sha256": "21b1bc30946bb2d27d7b3ba81a35b685a53e6bf82ebfdabc40c9b581467a0fc0",
+      "records": 69,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/diabetes.jsonl",
+      "bytes": 158053,
+      "sha256": "ad41c4ae1d2f94a4f42477798db611a93f80f71157c089a1e43f035b5ec42a7e",
+      "records": 117,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/epilepsy.jsonl",
+      "bytes": 91021,
+      "sha256": "1d9b0c3152a27080e464679c0ec86c14a499bde8aea8fa21c4092d982c1756c0",
+      "records": 69,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/heart_failure.jsonl",
+      "bytes": 59841,
+      "sha256": "be49ec3e92a818828ce874451068f29eb2b51d5eac64526db9048161629b2c3a",
+      "records": 171,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/hepatitis_b.jsonl",
+      "bytes": 19766,
+      "sha256": "350581e4d01e6be23824e5cc4f03b62723450da7f4854293d8fd29937459e652",
+      "records": 46,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/hepatitis_c.jsonl",
+      "bytes": 1566,
+      "sha256": "33ebd06f2bc59f1ffd8488d5538b4d38307fb4a2e743504687cc712bf1309d73",
+      "records": 2,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/hiv_aids.jsonl",
+      "bytes": 43656,
+      "sha256": "be378677fe91a6dd3febea200f043ddddd2957bde17cb3635917b2713a77a268",
+      "records": 54,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/hyperlipidemia.jsonl",
+      "bytes": 60012,
+      "sha256": "98c9ed407f5713cdfab3e093b5fbb295b1c89c1cb86abbb16f53e1d194eb0170",
+      "records": 171,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/hypertension.jsonl",
+      "bytes": 23428,
+      "sha256": "258daf2009be452e462a807e43008d4a7a90502b53a1a26a220d7f81bf472a61",
+      "records": 33,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/malaria.jsonl",
+      "bytes": 524854,
+      "sha256": "e4557964325099c02bf050cd568fac3f394b6a68eeefe07712f83fb4ceb83005",
+      "records": 275,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/malnutrition.jsonl",
+      "bytes": 15902,
+      "sha256": "d7569260364ab09e5c5703bf40441147fd1ea4134b54f5a9f614c5694401b119",
+      "records": 127,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/obesity.jsonl",
+      "bytes": 696,
+      "sha256": "2a1caa6782c9b547218caaaaee532a4ec29aac191c20ed1fddcdda5a760aa025",
+      "records": 2,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/pneumonia.jsonl",
+      "bytes": 408,
+      "sha256": "56eefc27510cd654db52e9836d4daab8ec4e6cb68bdeb9a75d81f5584138f59a",
+      "records": 1,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/stroke.jsonl",
+      "bytes": 58644,
+      "sha256": "d0b9065a8e120a9236328395725f00bd239cc89f62e68082c89ffdab1b94ad55",
+      "records": 171,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/tuberculosis.jsonl",
+      "bytes": 9616,
+      "sha256": "4e01287e105a94785d9c35e194c1e12e129986321bc15b0616f47986530bdac8",
+      "records": 14,
+      "review": "all records parsed"
+    },
+    {
+      "path": "data/tables/who/typhoid.jsonl",
+      "bytes": 10448,
+      "sha256": "c2c703203e39e850a236067f6744b925721f6d5f38d58ae743181859e840a1cf",
+      "records": 7,
+      "review": "all records parsed"
+    },
+    {
+      "path": "docker-compose.yml",
+      "bytes": 913,
+      "sha256": "34e9efaffccf044aa508b7049483895d618cb8b58569de6c53c7954d39f7bac7",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase00_report.md",
+      "bytes": 14738,
+      "sha256": "0d4d603f242168f20eaac9a60350c87104856ee4a9f0e8c089e370234d6b3192",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase01_report.md",
+      "bytes": 3787,
+      "sha256": "221df91bf1dc1a1769c5a454cd138f6163a22cf6fd73e1679ae97c3f7befceb7",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase02_report.md",
+      "bytes": 6973,
+      "sha256": "c14381aaeca62d41d93a4045c17caa1a8f3237cbcbf5bca8fc9263233611b797",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase03_report.md",
+      "bytes": 8939,
+      "sha256": "48dcf6a690ccd8418c8072e604ec9d5339ac551789b199b94e203b151bb96ac0",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase04_report.md",
+      "bytes": 12395,
+      "sha256": "4e6bea7c8277dd7ae7740a8d60e526951ed7e219a2a2525aeb61d45600e0bb55",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase05_report.md",
+      "bytes": 15372,
+      "sha256": "69f6f8c9b43d2f1b45d0504c753d4644c73ed87984c2e6b2e31dab2d9ed8bf3d",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase06_report.md",
+      "bytes": 5152,
+      "sha256": "4c5c5cd45c4d53876527b19eede08bf0252dc231fa6bc2e391f469bb8f801151",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase07_report.md",
+      "bytes": 13788,
+      "sha256": "f6595dd9c586814822d8846abcadfb27daabf4e4278131cbb2cd3e19434f4113",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase08_report.md",
+      "bytes": 8634,
+      "sha256": "c30714f4e303e98904e0e799beb5e7f00ef84d3b06beb278f520ad478e38e8e9",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase09_report.md",
+      "bytes": 8786,
+      "sha256": "fbcbd954334b635f02f25c77cbf4fc139f07f43096a2f813b1950674dbcc3413",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase10_report.md",
+      "bytes": 7814,
+      "sha256": "793c4d1dd779f4f504401b784a4ae6b037622bd836c04aa02427b9876d30ff90",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase11_report.md",
+      "bytes": 6539,
+      "sha256": "ebb94f7dd797682d12d97e3657f50d2d09457df0aee5f74c3177ac9fd8684886",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase12_report.md",
+      "bytes": 8115,
+      "sha256": "b731a2b178248c2c65aa5312aa7613540e67999bb039bd7c5b649af80c921a62",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase13_report.md",
+      "bytes": 9777,
+      "sha256": "d1ad537fd2a1df58d6d6463f51a773ac1914380bca1ec6d37c14624abb551640",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase14_report.md",
+      "bytes": 9256,
+      "sha256": "d6b657a28be1732e5c5563a0d9dd17ece315fd823064acf22b90c526b9e13ed0",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase15_report.md",
+      "bytes": 7593,
+      "sha256": "b27d71b317aeff96b6524a465572369c49f1da6c9a0eb68cb529006f44bd53f3",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase16_report.md",
+      "bytes": 7347,
+      "sha256": "cdcd40f9ac22c08a8aeaae4b58455fd05973d528b2eb290fdd1e92b230339c49",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase17_report.md",
+      "bytes": 9091,
+      "sha256": "93d3b4fe4458d7b680813292771b89da39c0e677d76ee43fa59905dc3ffe4fad",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase18_report.md",
+      "bytes": 8448,
+      "sha256": "0be0730b7511f1f4f86efab2aebdb25d6c36379b18ec989592ffc587ba909bb3",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase19_report.md",
+      "bytes": 7189,
+      "sha256": "872d1a153f39983b2b8d75d4049c7b427e247de5b36e2f4b7332c638003f2408",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase20_report.md",
+      "bytes": 10024,
+      "sha256": "4ccd612803b58ecda02113c4256d5935cc2c11513b0d62f1a1e271a405b827bb",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase21_report.md",
+      "bytes": 10548,
+      "sha256": "d60a91c0e82334ab2efcdef334a5fa91ae728bfc1e91c85d4ed3959dd8b3bf26",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/phase21_ui_followup.md",
+      "bytes": 7884,
+      "sha256": "96af84f312f86b6c59e577858bf39ff7879e83bce647d409bf5556e455eac0f2",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/project_audit_report.md",
+      "bytes": 10454,
+      "sha256": "159d2658622f6abc56146da0464a13ad4db2dde0d8ea9bae62501f141a4b7c09",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "docs/retrieval_isolation.md",
+      "bytes": 2585,
+      "sha256": "89f2918c53e4b1daee7f7f2b751a3f3cebdd111794cd58a5fb651764ff7ade93",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "frontend/auth_bridge/index.html",
+      "bytes": 1531,
+      "sha256": "0acfd0599db7d341d9dfb5a2441e5efdde1488eda6fab361dd55f9758aefc005",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "frontend/streamlit_app.py",
+      "bytes": 15518,
+      "sha256": "daef218f8faefd43a7eb5cb5045f833946f8b2d4c4b67c0e98b8a8beb9bc2251",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "install.bat",
+      "bytes": 441,
+      "sha256": "b2cce93cbcf21abdb06e608fee6060231b9918219147095f2fd93ef657cdc1c9",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "notebooks/02_pubmed_ingestion.ipynb",
+      "bytes": 34785,
+      "sha256": "d0608b0812c6cc68129e29001626cc7047247f6993201c79c150dda79fef91ce",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/03_openfda_ingestion.ipynb",
+      "bytes": 37817,
+      "sha256": "8171dc363a1847198c568daec7d2a791409b6250ba33730e800e1e5c8f2b1d6b",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/04_who_guidelines.ipynb",
+      "bytes": 60261,
+      "sha256": "fcedecb1db03bb25ec7b071341b532a9250b2714a135629352e60dc269f6d463",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/05_chunking.ipynb",
+      "bytes": 51864,
+      "sha256": "df2592cbe01cfbba3ff1ed6c2e7bc49623a1abe5815622d31cef1f19bdc0118d",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/06_embeddings.ipynb",
+      "bytes": 18030,
+      "sha256": "17b6a6c5a7fc84595ad161444661f111a0bba113611549a0bc9e683bf8dba592",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/07_image_embeddings.ipynb",
+      "bytes": 21403,
+      "sha256": "385d427e1e8c07ab9da92cd5afec35a9bf78ff3e1eedccc8bf82e3aff1269c6f",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/08_qdrant_setup.ipynb",
+      "bytes": 53097,
+      "sha256": "dad0b8d09b56abb72e990ef02ff6867a09a94c19492ef47193e882ddf9571fe8",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/09_BM25_Spare_Retrieval.ipynb",
+      "bytes": 25983,
+      "sha256": "e3282fd038c26551209394b3a0c8f2d295f5e7a756952b6ec29a4840627cab67",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/10_Hybrid_Retrieval.ipynb",
+      "bytes": 44262,
+      "sha256": "af01f8589973bac85421f5a12367ab779a0285254edb06ba607b8f7ce43f291d",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/11_Cross_Encoder_Retrieval.ipynb",
+      "bytes": 11254,
+      "sha256": "4260ea47e9559db72d5c556d64eaa9f6518aa0e434301619ff204867d9a133e1",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/12_Medical_NER.ipynb",
+      "bytes": 19910,
+      "sha256": "e2b18ea1ec8158f43bf74d726bb7d7db679a6bf9733e8f5214945fd11c3c6a81",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/13_Neo4j_Knowledge_Graph.ipynb",
+      "bytes": 55956,
+      "sha256": "88eb8d33dba3c577b5389252a3e49542d072dfa7bd4d30874dffc6d770ab9030",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/14_LLM_Answer_Generation.ipynb",
+      "bytes": 19973,
+      "sha256": "a34d73474c7fb01425c249f0907e17c098944be8b038cc9b12d3a10a4e424040",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/15_Citation.ipynb",
+      "bytes": 17244,
+      "sha256": "9d83b8e2f773c02483554bdb38a6fb6b0fd8ed6c5c7a1d8c1a259398f2707fde",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/16_PostgresSQL_DB.ipynb",
+      "bytes": 23510,
+      "sha256": "305eef84f4bdbde2f74f7d8b72be8587ce2940e9d587a1bbbccb5900f6330710",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/17_RAGAS.ipynb",
+      "bytes": 44814,
+      "sha256": "85eda7c455260c0064c4d35c74f7d5bfff826c404563fc9798b8f8e1c362d0d1",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "notebooks/19_User_Uploads_pdfs.ipynb",
+      "bytes": 3918,
+      "sha256": "c35c1bfa39a296ceb7672ace5ddd4617d5a4e426892a21d51f0af9c1d611545e",
+      "review": "all Python cells parsed; saved error outputs checked"
+    },
+    {
+      "path": "pyproject.toml",
+      "bytes": 1151,
+      "sha256": "4c8a0c6076971023eceb4ebb6a05f8f79594d1bbbe58f4969f415defa48e1667",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "python-version",
+      "bytes": 13,
+      "sha256": "554c8abf9c17833577baa276bd8d8fc6f4644514f73999e7138a76882de9cba2",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "README.md",
+      "bytes": 10375,
+      "sha256": "302ed03e8ee0962760c49ae8b797d7dfbd2c9cb82139b24861332475c027caa2",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "tests/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "review": "read and inventoried; semantic review is separate"
+    },
+    {
+      "path": "tests/api/conftest.py",
+      "bytes": 6475,
+      "sha256": "0801019cd65c4f901c86a3898134a1433ca5e2fe6deff0c90a29aa680c95df61",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/api/test_concurrency.py",
+      "bytes": 2790,
+      "sha256": "f36395f5109ce1434a69e66e341d9b0829cf98a857e37860884b036357b21733",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/api/test_endpoints.py",
+      "bytes": 10508,
+      "sha256": "a5cf9d688da6f60992db6cecec7570b2defd507c8a98a55c33fbca1d6bbc71c2",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/api/test_lifespan.py",
+      "bytes": 5759,
+      "sha256": "19dfad4c3406448b04df7f9dda0ea0883f0fded768262b81746285a0b533e334",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/conftest.py",
+      "bytes": 1444,
+      "sha256": "7e6c9a59b1df0de50e9394893e608f9813f1f8527f70365d424ee2c066857c22",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/conftest.py",
+      "bytes": 5169,
+      "sha256": "12b179fcc1e9c494fa9e2469583b695a14d9592d6d8a14dca330ff4d15ed4ad2",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/test_auth.py",
+      "bytes": 6343,
+      "sha256": "7484e7935f1b1ed3ec78759ef63679de5f09b07b5801d20d8b241e8173015aaf",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/test_chat_graph_enrichment.py",
+      "bytes": 6826,
+      "sha256": "8efbd706b13140ed7072943ce6b74c23d2938e1a2f9eecc1eaa2d1800032d1e4",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/test_neo4j_readonly.py",
+      "bytes": 3077,
+      "sha256": "7f4c0d25d77cc364f56248d9eaa3305091c7603e19be868bec40b8717e8add38",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/test_postgres_memory.py",
+      "bytes": 13446,
+      "sha256": "6ea7f36eb387b0f2566afe7c2e0eb68646089fda8fc7ee85afb58eb51712158c",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/test_qdrant_isolation.py",
+      "bytes": 6423,
+      "sha256": "ad5ca03d998f20e9a7d07e258a68fa62193795fdc0f6395f70b3a65462d3e717",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/test_recovery.py",
+      "bytes": 8037,
+      "sha256": "a80f0435e99ef6f335c3c99c05ac5329a543c9902806901cd9f31eeb27ec1e55",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/integration/test_startup_smoke.py",
+      "bytes": 1510,
+      "sha256": "4f0826882cf4480d67f79a2630280bb117dfc52f901424374a357d41f6e0f720",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_audit_regressions.py",
+      "bytes": 4570,
+      "sha256": "5132f054c400c4b1a5e3250ecf332c5bf37cc34311c02dd23c0535f7ce40ffad",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_chunker.py",
+      "bytes": 15148,
+      "sha256": "031fd5a7f6bb860440ff8358f5540136cde7b42ac7c86f374ffc676f531ecfd6",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_citations.py",
+      "bytes": 11117,
+      "sha256": "7aecd9a6b7b4bf2c1723b398269eb1bf1f723221cb0d1001e58019c08c7f0e25",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_filters.py",
+      "bytes": 2470,
+      "sha256": "7061eac6f3323010f3a2fdc1613f3bf352eedfde9b0cf9970a5349d0abdee050",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_frontend.py",
+      "bytes": 7320,
+      "sha256": "2e4d28b6f195d2d8f3e1684e796567d99b4aa70231c4f487265bde6344defe76",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_generation.py",
+      "bytes": 12503,
+      "sha256": "a8d36e3202a8f6491645b91dab95ac092346864c86d98610a266bed404287673",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_graph_contracts.py",
+      "bytes": 2059,
+      "sha256": "9d5caa47c3f069bd031ee81076b7a89512db47b448dad334fd17ef2dda58b090",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_hybrid_search.py",
+      "bytes": 4949,
+      "sha256": "f7d03f87291b1aba42660a04e781741b30fed44ac0d23a2183b06324b33d1975",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_ingestion_contracts.py",
+      "bytes": 5377,
+      "sha256": "528592214b3370f28d6bf1e4c43a69cf67ee10840bc069b73ed78ff0a04eada6",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_language.py",
+      "bytes": 2423,
+      "sha256": "060f2a305bde6bea6450d84f6c401a5d7897c30192f60efd65d02cefe797d9ec",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_ner.py",
+      "bytes": 7099,
+      "sha256": "fc6da27cb219b80caa564e7314254d007d962e0bf2b07b1834761982ec9e55f9",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_query_embedding.py",
+      "bytes": 4143,
+      "sha256": "cf19e0532d0641dd664bf23417cb0e5d8f7b28f0e02a52f0edd11e82858133a3",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_retrieval_scope.py",
+      "bytes": 666,
+      "sha256": "70b3bc1ea16faf9e0c97792c6730633ca4b464d951312c81c4189d29637d2b07",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_rrf.py",
+      "bytes": 3698,
+      "sha256": "33f9fe8a13457bec863f1175649004a137b2af912a769c009d775a461c94b2b1",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_runner_contracts.py",
+      "bytes": 2489,
+      "sha256": "ab83249afa3f09bf1d6efc87251f4e9f724d82b30b1fe6349410608c0494861f",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_session_titles.py",
+      "bytes": 603,
+      "sha256": "9725349790ec4ce59bed613de12687a7df0cf08fafb174a4dd90848140c85eea",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_storage_contracts.py",
+      "bytes": 2704,
+      "sha256": "bb97055ea82ac2f393b66459d3093f7c7ffcc5a33d30920747fcbe7d035e690e",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_user_upload.py",
+      "bytes": 11011,
+      "sha256": "afa8890018332f778181d317a7c8cbeebe65cca46ad81929c76d4b5807c40e57",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    },
+    {
+      "path": "tests/unit/test_vector_ingestion.py",
+      "bytes": 4333,
+      "sha256": "83e718ad6626474b3dd020f633f31996e61aaf6a026b29c2cd6462a75bd5c3ee",
+      "review": "syntax parsed; semantic review recorded in Phase 21 report"
+    }
+  ],
+  "notebooks": [
+    {
+      "path": "notebooks/02_pubmed_ingestion.ipynb",
+      "cells": 41,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/03_openfda_ingestion.ipynb",
+      "cells": 22,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/04_who_guidelines.ipynb",
+      "cells": 45,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/05_chunking.ipynb",
+      "cells": 45,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/06_embeddings.ipynb",
+      "cells": 21,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/07_image_embeddings.ipynb",
+      "cells": 21,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/08_qdrant_setup.ipynb",
+      "cells": 31,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/09_BM25_Spare_Retrieval.ipynb",
+      "cells": 35,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/10_Hybrid_Retrieval.ipynb",
+      "cells": 14,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/11_Cross_Encoder_Retrieval.ipynb",
+      "cells": 9,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/12_Medical_NER.ipynb",
+      "cells": 22,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/13_Neo4j_Knowledge_Graph.ipynb",
+      "cells": 35,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/14_LLM_Answer_Generation.ipynb",
+      "cells": 17,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/15_Citation.ipynb",
+      "cells": 19,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/16_PostgresSQL_DB.ipynb",
+      "cells": 17,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/17_RAGAS.ipynb",
+      "cells": 27,
+      "saved_errors": []
+    },
+    {
+      "path": "notebooks/19_User_Uploads_pdfs.ipynb",
+      "cells": 5,
+      "saved_errors": []
+    }
+  ],
+  "unique_chunks": {
+    "pubmed": 4725,
+    "openfda": 13167,
+    "who": 4804
+  },
+  "issues": []
+}

@@ -11,13 +11,17 @@ from medrag.ingestion.models import Article, DrugRecord, Guideline, WhoTable, Wh
 
 
 def save_articles(articles: List[Article], topic: str, output_dir: str) -> Path:
-    """Append articles to data/raw/pubmed/{topic}.jsonl (one JSON object per line)."""
+    """Append new PMIDs once per topic, including duplicate input batches."""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     filepath = Path(output_dir) / f"{topic}.jsonl"
 
+    seen = get_existing_pmids(topic, output_dir)
     with open(filepath, "a", encoding="utf-8") as f:
         for article in articles:
+            if article.pmid in seen:
+                continue
             f.write(article.model_dump_json() + "\n")
+            seen.add(article.pmid)
 
     return filepath
 
@@ -147,10 +151,10 @@ def save_who_images(images: List[dict], topic: str, output_dir: str) -> List[Who
     saved_records = []
 
     for i, img in enumerate(images):
-        pil_image = Image.open(_io.BytesIO(img["image_bytes"]))
         filename = f"{topic.replace(' ', '_')}_page{img['page_number']}_img{i}.png"
         filepath = Path(output_dir) / filename
-        pil_image.save(filepath, "PNG")
+        with Image.open(_io.BytesIO(img["image_bytes"])) as pil_image:
+            pil_image.save(filepath, "PNG")
 
         record = WhoImage(
             topic=topic,

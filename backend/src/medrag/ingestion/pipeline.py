@@ -17,20 +17,7 @@ from medrag.ingestion.storage import save_articles, get_existing_pmids
 logger = logging.getLogger("medrag.ingestion")
 
 # Locked Phase 2 topic list (36 conditions across major categories)
-TOPICS = [
-    "diabetes", "hypertension", "obesity", "hyperlipidemia",
-    "asthma", "copd", "pneumonia", "tuberculosis",
-    "coronary artery disease", "heart failure", "stroke", "arrhythmia",
-    "malaria", "dengue fever", "hiv aids", "hepatitis b", "covid-19", "typhoid",
-    "depression", "anxiety disorder",
-    "peptic ulcer disease", "irritable bowel syndrome", "hepatitis c",
-    "osteoarthritis", "rheumatoid arthritis", "osteoporosis",
-    "hypothyroidism", "hyperthyroidism",
-    "epilepsy", "migraine", "parkinson's disease",
-    "chronic kidney disease",
-    "breast cancer", "lung cancer",
-    "anemia in pregnancy", "malnutrition",
-]
+from medrag.topics import TOPICS
 
 
 def ingest_topic(topic: str, output_dir: str, target_count: int = 130, has_api_key: bool = True) -> Dict:

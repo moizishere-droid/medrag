@@ -21,8 +21,7 @@ logger = logging.getLogger("medrag.ingestion")
 def configure_entrez(email: str, api_key: Optional[str] = None) -> None:
     """Configure Biopython's Entrez module. Call once before any other function here."""
     Entrez.email = email
-    if api_key:
-        Entrez.api_key = api_key
+    Entrez.api_key = api_key
 
 
 def rate_limit_delay(has_api_key: bool = True) -> None:
@@ -36,18 +35,18 @@ def rate_limit_delay(has_api_key: bool = True) -> None:
 
 def search_pubmed(topic: str, max_results: int = 130) -> List[str]:
     """Search PubMed for a topic, return a list of matching PMIDs."""
-    handle = Entrez.esearch(db="pubmed", term=topic, retmax=max_results)
-    record = Entrez.read(handle)
-    handle.close()
+    with Entrez.esearch(db="pubmed", term=f"({topic}) AND english[Language]", retmax=max_results) as handle:
+        record = Entrez.read(handle)
     return record["IdList"]
 
 
 def fetch_articles_raw(pmids: List[str]) -> dict:
     """Fetch full article records for a list of PMIDs. Returns Biopython's parsed XML structure."""
+    if not pmids:
+        return {"PubmedArticle": []}
     ids = ",".join(pmids)
-    handle = Entrez.efetch(db="pubmed", id=ids, rettype="abstract", retmode="xml")
-    records = Entrez.read(handle)
-    handle.close()
+    with Entrez.efetch(db="pubmed", id=ids, rettype="abstract", retmode="xml") as handle:
+        records = Entrez.read(handle)
     return records
 
 
@@ -70,7 +69,7 @@ def _extract_journal_and_date(article_data: dict) -> tuple[str, str]:
     day = pub_date_data.get("Day", "")
 
     date_parts = [p for p in [year, month, day] if p]
-    pub_date = "-".join(date_parts) if date_parts else "unknown"
+    pub_date = "-".join(str(p) for p in date_parts) if date_parts else str(pub_date_data.get("MedlineDate", "unknown"))
 
     return journal, pub_date
 
@@ -82,7 +81,8 @@ def parse_article(pubmed_article: dict, topic: str) -> Article:
     pmid = str(medline["PMID"])
 
     title = str(article_data["ArticleTitle"])
-    language = article_data["Language"][0]
+    languages = article_data.get("Language") or []
+    language = str(languages[0]) if languages else "unknown"
 
     abstract_parts = article_data.get("Abstract", {}).get("AbstractText", [])
     abstract = " ".join(str(part) for part in abstract_parts) if abstract_parts else ""

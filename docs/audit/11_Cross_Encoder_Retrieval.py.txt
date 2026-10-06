@@ -1,0 +1,106 @@
+# CELL 0
+# Run from either the repository root or the notebooks directory.
+from pathlib import Path
+import os
+import sys
+PROJECT_ROOT = next((p for p in [Path.cwd(), *Path.cwd().parents]
+                     if (p / "backend" / "src" / "medrag").is_dir()), None)
+if PROJECT_ROOT is None:
+    raise RuntimeError("Start this notebook inside the MedRAG repository")
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+os.chdir(PROJECT_ROOT / "notebooks")
+from config.settings import settings
+
+
+# CELL 2
+import sys, os
+from pathlib import Path
+import logging
+
+def find_project_root(marker="backend", start=None):
+    current = Path(start or os.getcwd()).resolve()
+    for candidate in [current, *current.parents]:
+        if (candidate / marker).is_dir():
+            return candidate
+    raise RuntimeError(f"Could not find a '{marker}' folder above {current}")
+
+PROJECT_ROOT = find_project_root()
+print(f"Project root: {PROJECT_ROOT}")
+
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "scripts"))
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+from config.settings import settings
+from medrag.embeddings.qdrant_client import get_qdrant_client
+from medrag.retrieval.hybrid_search import hybrid_search
+
+client = get_qdrant_client(settings.qdrant_url or "http://localhost:6333")
+client.get_collections()
+
+from sentence_transformers import CrossEncoder
+
+cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+print("Cross-encoder loaded")
+
+# CELL 4
+query_text = "how does the body regulate blood sugar"
+
+# Step 1: retrieve a wider candidate pool via hybrid search
+candidates = hybrid_search(client, query_text, limit=20, per_signal_limit=20)
+print(f"Retrieved {len(candidates)} candidates via hybrid search")
+
+# Step 2: rerank with the cross-encoder
+pairs = [(query_text, c["payload"]["raw_text"]) for c in candidates]
+cross_scores = cross_encoder.predict(pairs)
+
+for c, score in zip(candidates, cross_scores):
+    c["cross_score"] = float(score)
+
+reranked = sorted(candidates, key=lambda c: c["cross_score"], reverse=True)
+
+print("\n=== BEFORE reranking (hybrid RRF order) ===")
+for c in candidates[:5]:
+    print(f"  fused={c['fused_score']:.5f}  source={c['payload']['source']}  chunk_id={c['chunk_id']}")
+
+print("\n=== AFTER reranking (cross-encoder order) ===")
+for c in reranked[:5]:
+    print(f"  cross_score={c['cross_score']:.4f}  source={c['payload']['source']}  chunk_id={c['chunk_id']}")
+    print(f"    text: {c['payload']['raw_text'][:150]}")
+
+# CELL 6
+query_text = "metformin dosage for diabetes"
+
+candidates = hybrid_search(client, query_text, limit=20, per_signal_limit=20)
+pairs = [(query_text, c["payload"]["raw_text"]) for c in candidates]
+cross_scores = cross_encoder.predict(pairs)
+for c, score in zip(candidates, cross_scores):
+    c["cross_score"] = float(score)
+reranked = sorted(candidates, key=lambda c: c["cross_score"], reverse=True)
+
+print("=== BEFORE reranking ===")
+for c in candidates[:5]:
+    print(f"  fused={c['fused_score']:.5f}  chunk_id={c['chunk_id']}")
+
+print("\n=== AFTER reranking ===")
+for c in reranked[:5]:
+    print(f"  cross_score={c['cross_score']:.4f}  chunk_id={c['chunk_id']}")
+
+# CELL 8
+from medrag.retrieval.reranking import rerank
+
+
+def search_with_reranking(query_text: str, candidate_pool_size: int = 20, top_n: int = 5) -> list:
+    candidates = hybrid_search(client, query_text, limit=candidate_pool_size, per_signal_limit=candidate_pool_size)
+    return rerank(query_text, candidates, top_n=top_n)
+
+
+# quick end-to-end sanity check on a third, fresh query
+results = search_with_reranking("side effects of ACE inhibitors")
+for r in results:
+    print(f"cross_score={r['cross_score']:.4f}  source={r['payload']['source']}  chunk_id={r['chunk_id']}")
+    print(f"  text: {r['payload']['raw_text'][:150]}")

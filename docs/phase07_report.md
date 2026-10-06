@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 7: Image Embeddings — Report
 
 ## Phase Objective
@@ -58,7 +60,7 @@ Generate CLIP embeddings for all real, deduplicated WHO images (extracted in Pha
 
 ## Files Created
 
-- `notebooks/phase07_image_embeddings.ipynb`
+- `notebooks/07_image_embeddings.ipynb`
 - `backend/src/medrag/embeddings/image_embedder.py` (`get_clip_model`, `deduplicate_images`, `embed_image`, `embed_who_images`)
 - `backend/src/medrag/embeddings/storage.py` (updated — `save_image_embeddings`/`load_image_embeddings` added)
 - `backend/scripts/run_image_embeddings.py`
@@ -68,3 +70,14 @@ Generate CLIP embeddings for all real, deduplicated WHO images (extracted in Pha
 - `data/processed/embeddings/who_images_index.jsonl` (filename, topics, page number, image type per row)
 - `data/processed/embeddings/image_chunk_links.jsonl` (55 link records: chunk_id, point_id, image_filename, figure_number, canonical_id, match_type)
 - `docs/phase07_report.md`
+
+## Audit corrections — 6 October 2026
+
+Replaced notebook save-function stub that could write an empty index. Image storage validates vector/record/topic alignment. Saved PNG files and 512-dimensional image vectors pass integrity checks.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/embeddings/storage.py](../backend/src/medrag/embeddings/storage.py)
+- [notebooks/07_image_embeddings.ipynb](../notebooks/07_image_embeddings.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

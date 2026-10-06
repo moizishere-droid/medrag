@@ -96,8 +96,8 @@ def deduplicate_images(topics: List[str], load_images_fn, image_dir: str) -> Tup
 def embed_image(filepath: Path) -> np.ndarray:
     """Embed a single image file with CLIP."""
     model, preprocess = get_clip_model()
-    img = Image.open(filepath)
-    img_tensor = preprocess(img).unsqueeze(0)
+    with Image.open(filepath) as img:
+        img_tensor = preprocess(img).unsqueeze(0)
     with torch.no_grad():
         features = model.encode_image(img_tensor)
     return features[0].numpy()
@@ -127,4 +127,5 @@ def embed_who_images(topics: List[str], load_images_fn, image_dir: str) -> Tuple
         except Exception as e:
             logger.warning(f"  Failed to embed {record.filename}: {e}")
 
-    return records, np.array(embeddings, dtype=np.float32), topics_per_record
+    vectors = np.array(embeddings, dtype=np.float32) if embeddings else np.empty((0, 512), dtype=np.float32)
+    return records, vectors, topics_per_record

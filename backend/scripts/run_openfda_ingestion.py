@@ -25,6 +25,7 @@ following the same investigation pattern used for the entries below.
 import sys
 import os
 import logging
+import requests
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -52,9 +53,15 @@ def main():
     api_key = getattr(settings, "openfda_api_key", None)
 
     all_results = []
+    fetch_failures = []
     for topic in TOPICS:
         search_term = SEARCH_TERM_OVERRIDES.get(topic)
-        drugs, failed = fetch_drugs_for_topic(topic, api_key=api_key, search_term=search_term)
+        try:
+            drugs, failed = fetch_drugs_for_topic(topic, api_key=api_key, search_term=search_term)
+        except requests.RequestException:
+            logger.exception("%s: fetch failed; preserving the saved topic file", topic)
+            fetch_failures.append(topic)
+            continue
         save_drugs(drugs, topic=topic, output_dir=OUTPUT_DIR)
         logger.info(f"{topic}: saved {len(drugs)}, failed {len(failed)}")
         all_results.append({"topic": topic, "saved": len(drugs), "failed": len(failed)})
@@ -62,6 +69,8 @@ def main():
     total_saved = sum(r["saved"] for r in all_results)
     total_failed = sum(r["failed"] for r in all_results)
     logger.info(f"=== DONE === Total saved: {total_saved}, Total failed (no identity): {total_failed}")
+    if fetch_failures:
+        raise RuntimeError(f"OpenFDA refresh incomplete: {len(fetch_failures)} topic fetches failed")
 
 
 if __name__ == "__main__":

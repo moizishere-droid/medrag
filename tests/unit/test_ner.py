@@ -100,14 +100,6 @@ def test_dosage_pattern(text, expected):
     assert dosages(text) == expected
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "False positives: lab/renal units are extracted as dosages ('126 mg', "
-        "'60 mL', '13 g'), with the /dL or /min suffix dropped. Decide whether "
-        "to exclude these units or document it as accepted, then flip the test."
-    ),
-)
 @pytest.mark.parametrize(
     "text", ["Fasting glucose 126 mg/dL", "eGFR 60 mL/min", "Hemoglobin 13 g/dL"]
 )

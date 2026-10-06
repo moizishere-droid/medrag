@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 12: Medical NER (spaCy + scispaCy) — Report
 
 ## Phase Objective
@@ -38,6 +40,17 @@ Extract structured medical entities — drugs/chemicals, diseases, and dosages �
 
 - `backend/src/medrag/ner/__init__.py`
 - `backend/src/medrag/ner/ner.py` (`get_ner_model`, `is_likely_noise`, `extract_medical_entities`)
-- `notebooks/phase12_medical_ner.ipynb`
+- `notebooks/12_Medical_NER.ipynb`
 
 No new runner script — entity extraction is a function library, invoked per-chunk when needed (e.g. during Phase 14's knowledge graph construction), not a standalone batch job in this phase.
+
+## Audit corrections — 6 October 2026
+
+Dosage detection no longer treats laboratory units such as mg/dL as medication doses. Notebook shares the corrected pattern.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/ner/ner.py](../backend/src/medrag/ner/ner.py)
+- [notebooks/12_Medical_NER.ipynb](../notebooks/12_Medical_NER.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

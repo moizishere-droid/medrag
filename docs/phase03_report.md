@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 3: OpenFDA Drug Data Ingestion — Report
 
 ## Phase Objective
@@ -78,3 +80,15 @@ A topic with zero or very few OpenFDA drugs is treated the same way the 12 WHO-g
 - `backend/scripts/run_openfda_ingestion.py` (updated — permanent `SEARCH_TERM_OVERRIDES`)
 - `data/raw/openfda/*.jsonl` (36 files, corrected data)
 - `docs/phase03_report.md`
+
+## Audit corrections — 6 October 2026
+
+Request failures no longer masquerade as empty successful results and overwrite saved topics. Runner preserves files on failed requests. Parser handles empty identity arrays. Notebook uses quoted production search and parser.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/ingestion/openfda_client.py](../backend/src/medrag/ingestion/openfda_client.py)
+- [backend/scripts/run_openfda_ingestion.py](../backend/scripts/run_openfda_ingestion.py)
+- [notebooks/03_openfda_ingestion.ipynb](../notebooks/03_openfda_ingestion.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 5: Text Chunking — Report
 
 ## Phase Objective
@@ -79,7 +81,7 @@ A deliberate end-to-end review of the whole phase, done before moving to Phase 7
 
 ## Files Created
 
-- `notebooks/phase06_chunking.ipynb`
+- `notebooks/05_chunking.ipynb`
 - `backend/src/medrag/processing/models.py` (`Chunk` — including `topics: List[str]` and `point_id`)
 - `backend/src/medrag/processing/chunker.py` (spaCy pipeline, `sentence_based_chunk`, per-source chunking functions, `_build_chunk`/`Chunk.make_point_id` for deterministic IDs)
 - `backend/src/medrag/processing/storage.py` (`save_chunks`/`load_chunks`)
@@ -88,3 +90,14 @@ A deliberate end-to-end review of the whole phase, done before moving to Phase 7
 - `data/processed/chunks/openfda/*.jsonl` (36 files, 13,167 unique chunks across 467 unique drugs)
 - `data/processed/chunks/who/*.jsonl` (24 files, 4,796 unique chunks, shared correctly across topic groups)
 - `docs/phase06_report.md`
+
+## Audit corrections — 6 October 2026
+
+Fixed abbreviation boundaries, Unicode token slicing, and token-window prefix budgeting. Pathological long sentences split before embedding limits; invalid token targets fail clearly. Pipeline initialization is serialized. Final notebook helpers use corrected production logic.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/processing/chunker.py](../backend/src/medrag/processing/chunker.py)
+- [notebooks/05_chunking.ipynb](../notebooks/05_chunking.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

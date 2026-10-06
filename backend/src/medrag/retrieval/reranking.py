@@ -22,6 +22,7 @@ pool hybrid_search() already correctly filtered.
 
 import logging
 from typing import List, Optional
+from threading import Lock
 
 from sentence_transformers import CrossEncoder
 
@@ -34,17 +35,28 @@ DEFAULT_CANDIDATE_POOL_SIZE = 20
 DEFAULT_TOP_N = 5
 
 _cross_encoder_cache = None
+_cross_encoder_lock = Lock()
 
 
 def get_cross_encoder() -> CrossEncoder:
     global _cross_encoder_cache
-    if _cross_encoder_cache is None:
-        logger.info(f"Loading cross-encoder '{CROSS_ENCODER_MODEL}'...")
-        _cross_encoder_cache = CrossEncoder(CROSS_ENCODER_MODEL)
+    with _cross_encoder_lock:
+        if _cross_encoder_cache is None:
+            logger.info(f"Loading cross-encoder '{CROSS_ENCODER_MODEL}'...")
+            _cross_encoder_cache = CrossEncoder(CROSS_ENCODER_MODEL)
     return _cross_encoder_cache
 
 
+def warmup_retrieval():
+    """Load local encoders and run one pass before accepting user requests."""
+    from medrag.retrieval.hybrid_search import embed_query_sparse
+    embed_query_sparse("medical information")
+    rerank("medical information", [{"payload": {"raw_text": "Medical information."}}], top_n=1)
+
+
 def rerank(query_text: str, candidates: List[dict], top_n: int = DEFAULT_TOP_N) -> List[dict]:
+    if not candidates or top_n <= 0:
+        return []
     model = get_cross_encoder()
     pairs = [(query_text, c["payload"]["raw_text"]) for c in candidates]
     scores = model.predict(pairs)
@@ -61,14 +73,19 @@ def search_with_reranking(
     candidate_pool_size: int = DEFAULT_CANDIDATE_POOL_SIZE,
     top_n: int = DEFAULT_TOP_N,
     user_id: Optional[str] = None,
+    *,
+    full_corpus_evaluation: bool = False,
 ) -> List[dict]:
-    """user_id, when provided, restricts retrieval to the curated corpus
-    plus this user's own uploaded documents (Phase 19) - passed straight
-    through to hybrid_search()."""
+    """Curated-only by default; user_id adds that key's uploads.
+
+    full_corpus_evaluation is a trusted internal opt-in passed to hybrid_search;
+    it cannot be combined with user_id. Reranking never widens retrieval scope.
+    """
     candidates = hybrid_search(
         client, query_text,
         limit=candidate_pool_size,
         per_signal_limit=candidate_pool_size,
         user_id=user_id,
+        full_corpus_evaluation=full_corpus_evaluation,
     )
     return rerank(query_text, candidates, top_n=top_n)

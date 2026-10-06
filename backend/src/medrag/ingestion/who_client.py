@@ -135,27 +135,27 @@ def extract_full_document(pdf_bytes: bytes, header_footer_pattern: Optional[str]
     Returns (clean_text, raw_text, all_tables, num_pages, figure_pages).
     """
     pdf_file = BytesIO(pdf_bytes)
-    plumber_pdf = pdfplumber.open(pdf_file)
+    with pdfplumber.open(pdf_file) as plumber_pdf:
 
-    clean_parts = []
-    raw_parts = []
-    all_tables = []
-    figure_pages = []
+        clean_parts = []
+        raw_parts = []
+        all_tables = []
+        figure_pages = []
 
-    for page_num, page in enumerate(plumber_pdf.pages):
-        clean, raw, tables = extract_page_content(page, header_footer_pattern=header_footer_pattern)
-        if clean:
-            clean_parts.append(clean)
-        if raw:
-            raw_parts.append(raw)
-        for table_data in tables:
-            all_tables.append({"page_number": page_num, "table_data": table_data})
+        for page_num, page in enumerate(plumber_pdf.pages):
+            clean, raw, tables = extract_page_content(page, header_footer_pattern=header_footer_pattern)
+            if clean:
+                clean_parts.append(clean)
+            if raw:
+                raw_parts.append(raw)
+            for table_data in tables:
+                all_tables.append({"page_number": page_num, "table_data": table_data})
 
-        if FIGURE_CAPTION_PATTERN.search(raw):
-            figure_pages.append(page_num)
+            if FIGURE_CAPTION_PATTERN.search(raw):
+                figure_pages.append(page_num)
 
-    num_pages = len(plumber_pdf.pages)
-    return "\n".join(clean_parts), "\n".join(raw_parts), all_tables, num_pages, figure_pages
+        num_pages = len(plumber_pdf.pages)
+        return "\n".join(clean_parts), "\n".join(raw_parts), all_tables, num_pages, figure_pages
 
 
 # --- Image extraction (PyMuPDF) ------------------------------------------
@@ -165,33 +165,32 @@ def extract_images(pdf_bytes: bytes, min_width: int = 100, min_height: int = 100
     Extract embedded images from a PDF, skipping tiny images (likely icons/logos).
     Returns a list of {page_number, image_index, image_bytes, ext, width, height}.
     """
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    images = []
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+        images = []
 
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        image_list = page.get_images(full=True)
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            image_list = page.get_images(full=True)
 
-        for img_index, img in enumerate(image_list):
-            xref = img[0]
-            base_image = doc.extract_image(xref)
-            width = base_image["width"]
-            height = base_image["height"]
+            for img_index, img in enumerate(image_list):
+                xref = img[0]
+                base_image = doc.extract_image(xref)
+                width = base_image["width"]
+                height = base_image["height"]
 
-            if width < min_width or height < min_height:
-                continue
+                if width < min_width or height < min_height:
+                    continue
 
-            images.append({
-                "page_number": page_num,
-                "image_index": img_index,
-                "image_bytes": base_image["image"],
-                "ext": base_image["ext"],
-                "width": width,
-                "height": height,
-            })
+                images.append({
+                    "page_number": page_num,
+                    "image_index": img_index,
+                    "image_bytes": base_image["image"],
+                    "ext": base_image["ext"],
+                    "width": width,
+                    "height": height,
+                })
 
-    doc.close()
-    return images
+        return images
 
 
 def rasterize_figure_pages(pdf_bytes: bytes, page_numbers: List[int], dpi: int = 150) -> List[Dict[str, Any]]:
@@ -201,24 +200,23 @@ def rasterize_figure_pages(pdf_bytes: bytes, page_numbers: List[int], dpi: int =
     (get_images() only sees embedded bitmaps, not vector drawing instructions).
     Returns a list of {page_number, image_bytes, ext, width, height}.
     """
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    rendered = []
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+        rendered = []
 
-    for page_num in page_numbers:
-        if page_num >= len(doc):
-            continue
-        page = doc[page_num]
-        pixmap = page.get_pixmap(dpi=dpi)
-        rendered.append({
-            "page_number": page_num,
-            "image_bytes": pixmap.tobytes("png"),
-            "ext": "png",
-            "width": pixmap.width,
-            "height": pixmap.height,
-        })
+        for page_num in page_numbers:
+            if page_num >= len(doc):
+                continue
+            page = doc[page_num]
+            pixmap = page.get_pixmap(dpi=dpi)
+            rendered.append({
+                "page_number": page_num,
+                "image_bytes": pixmap.tobytes("png"),
+                "ext": "png",
+                "width": pixmap.width,
+                "height": pixmap.height,
+            })
 
-    doc.close()
-    return rendered
+        return rendered
 
 
 
@@ -237,12 +235,10 @@ def is_blank_or_near_solid(image_bytes: bytes, std_threshold: float = 5.0) -> bo
         from PIL import Image
         import io as _io
 
-        img = Image.open(_io.BytesIO(image_bytes)).convert("L")  # grayscale
-        pixels = list(img.getdata())
-        mean = sum(pixels) / len(pixels)
-        variance = sum((p - mean) ** 2 for p in pixels) / len(pixels)
-        std_dev = variance ** 0.5
-        return std_dev < std_threshold
+        from PIL import ImageStat
+        with Image.open(_io.BytesIO(image_bytes)) as img:
+            with img.convert("L") as grayscale:
+                return ImageStat.Stat(grayscale).stddev[0] < std_threshold
     except Exception:
         return False  # if inspection fails, don't drop the image on that basis
 

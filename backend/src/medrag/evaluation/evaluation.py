@@ -108,13 +108,17 @@ def run_pipeline_on_test_set(
     generation_model: str = "gpt-4.1-nano",
     candidate_pool_size: int = DEFAULT_CANDIDATE_POOL_SIZE,
     top_n: int = DEFAULT_TOP_N,
+    *,
+    full_corpus_evaluation: bool = False,
 ) -> List[dict]:
     """Run every test question through the real, production retrieval +
     generation pipeline (Phases 10/11/14), collecting what RAGAS needs:
     the question, the generated answer, the retrieved context texts, and
     the reference ground truth. generation_model defaults to the actual
     production model (gpt-4.1-nano) - this function evaluates the real
-    system, not a hypothetical stronger one."""
+    system, not a hypothetical stronger one. Retrieval is curated-only unless
+    full_corpus_evaluation=True explicitly includes all users' published uploads
+    for trusted internal evaluation."""
     from medrag.retrieval.reranking import search_with_reranking
     from medrag.generation.generation import generate_answer
 
@@ -126,6 +130,7 @@ def run_pipeline_on_test_set(
         results = search_with_reranking(
             qdrant_client, question,
             candidate_pool_size=candidate_pool_size, top_n=top_n,
+            full_corpus_evaluation=full_corpus_evaluation,
         )
         contexts = [r["payload"]["raw_text"] for r in results]
 
@@ -135,6 +140,9 @@ def run_pipeline_on_test_set(
             openai_client=openai_client,
             neo4j_driver=neo4j_driver,
             model=generation_model,
+            candidate_pool_size=candidate_pool_size,
+            top_n=top_n,
+            results=results,
         )
 
         records.append({

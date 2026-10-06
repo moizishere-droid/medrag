@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 14: LLM Answer Generation — Report
 
 ## Phase Objective
@@ -42,6 +44,17 @@ Turn the reranked chunks produced by Phases 10-11 into an actual answer — a gr
 
 - `backend/src/medrag/generation/__init__.py`
 - `backend/src/medrag/generation/generation.py` (`format_context`, `get_all_known_drug_names`, `find_mentioned_drug`, `get_graph_facts_for_drug`, `get_graph_facts_for_drug_curated`, `format_graph_facts`, `generate_answer`)
-- `notebooks/phase14_llm_generation.ipynb`
+- `notebooks/14_LLM_Answer_Generation.ipynb`
 
 No new runner script — generation is a function library invoked per-query (eventually by the Phase 18 FastAPI layer), not a batch job.
+
+## Audit corrections — 6 October 2026
+
+Drug matching uses word boundaries and the longest matching name. Graph candidates cannot override cited source text. Generation can consume a supplied retrieval result list, preserving evidence identity. Notebook prompt and matching share these fixes.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/generation/generation.py](../backend/src/medrag/generation/generation.py)
+- [notebooks/14_LLM_Answer_Generation.ipynb](../notebooks/14_LLM_Answer_Generation.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

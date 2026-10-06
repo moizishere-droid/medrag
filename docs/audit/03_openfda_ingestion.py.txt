@@ -1,0 +1,203 @@
+# CELL 0
+# Run from either the repository root or the notebooks directory.
+from pathlib import Path
+import os
+import sys
+PROJECT_ROOT = next((p for p in [Path.cwd(), *Path.cwd().parents]
+                     if (p / "backend" / "src" / "medrag").is_dir()), None)
+if PROJECT_ROOT is None:
+    raise RuntimeError("Start this notebook inside the MedRAG repository")
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+os.chdir(PROJECT_ROOT / "notebooks")
+from config.settings import settings
+
+
+# CELL 2
+import requests
+
+response = requests.get(
+    "https://api.fda.gov/drug/label.json",
+    params={"search": "indications_and_usage:diabetes", "limit": 1}
+)
+data = response.json()
+
+print(data.keys())
+print("---")
+print(data["results"][0].keys()) # first result, which is a dict of drug label info
+
+# CELL 4
+first_result = data["results"][0]
+print(first_result["openfda"].keys())
+print("---")
+print("Brand name:", first_result["openfda"].get("brand_name"))
+print("Generic name:", first_result["openfda"].get("generic_name"))
+print("Drug class:", first_result["openfda"].get("pharm_class_epc"))
+print("manufacturer_name form:", first_result["openfda"].get("manufacturer_name"))
+
+# CELL 6
+from pydantic import BaseModel
+from typing import List, Optional
+
+
+class DrugRecord(BaseModel):
+    brand_name: str
+    generic_name: str
+    drug_class: Optional[str] = None
+    indications_and_usage: str
+    dosage_and_administration: Optional[str] = None
+    contraindications: Optional[str] = None
+    warnings_and_cautions: Optional[str] = None
+    adverse_reactions: Optional[str] = None
+    drug_interactions: Optional[str] = None
+    mechanism_of_action: Optional[str] = None
+    topic: str
+    source: str = "openfda"
+
+# CELL 7
+test_drug = DrugRecord(
+    brand_name=first_result["openfda"].get("brand_name", ["Unknown"])[0],
+    generic_name=first_result["openfda"].get("generic_name", ["Unknown"])[0],
+    drug_class=first_result["openfda"].get("pharm_class_epc", [None])[0],
+    indications_and_usage=" ".join(first_result.get("indications_and_usage", [])),
+    dosage_and_administration=" ".join(first_result.get("dosage_and_administration", [])) or None,
+    contraindications=" ".join(first_result.get("contraindications", [])) or None,
+    warnings_and_cautions=" ".join(first_result.get("warnings_and_cautions", [])) or None,
+    adverse_reactions=" ".join(first_result.get("adverse_reactions", [])) or None,
+    drug_interactions=" ".join(first_result.get("drug_interactions", [])) or None,
+    mechanism_of_action=" ".join(first_result.get("mechanism_of_action", [])) or None,
+    topic="diabetes",
+)
+
+print(test_drug)
+
+# CELL 9
+import time
+
+from medrag.ingestion.openfda_client import fetch_drugs_raw
+
+
+# Test with a small limit first
+test_results = fetch_drugs_raw("diabetes", limit=5)
+print(f"Found {len(test_results)} drug records")
+print("Brand names:", [r["openfda"].get("brand_name", ["Unknown"])[0] for r in test_results]) # [0] to get the first brand name if multiple are present
+
+# CELL 11
+unknown_record = test_results[1]  # second result, one of the "Unknown" ones
+print(unknown_record["openfda"]) # no results for brand_name, generic_name
+
+# CELL 13
+from medrag.ingestion.openfda_client import parse_drug_record
+
+
+def parse_drugs_safe(raw_results: list, topic: str):
+    """Parse a batch, skipping and logging any that fail (e.g., missing drug identity)."""
+    parsed = []
+    failed = []
+    
+    for raw in raw_results:
+        try:
+            drug = parse_drug_record(raw, topic=topic)
+            parsed.append(drug)
+        except Exception as e:
+            failed.append({"error": str(e)})
+    
+    return parsed, failed
+
+
+# Test on our 5 results from Cell 4
+parsed_drugs, failed_drugs = parse_drugs_safe(test_results, topic="diabetes")
+print(f"Parsed: {len(parsed_drugs)}")
+print(f"Failed: {len(failed_drugs)}")
+print("Parsed brand names:", [d.brand_name for d in parsed_drugs])
+
+# CELL 15
+def dedupe_drugs(drugs: list) -> list:
+    """Keep only the first occurrence of each brand_name."""
+    seen = set()
+    deduped = []
+    for drug in drugs:
+        key = drug.brand_name.lower().strip()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(drug)
+    return deduped
+
+
+# Test with a larger fetch to see real numbers
+test_results_larger = fetch_drugs_raw("diabetes", limit=125)
+parsed_larger, failed_larger = parse_drugs_safe(test_results_larger, topic="diabetes")
+deduped_larger = dedupe_drugs(parsed_larger)
+
+print(f"Raw fetched: {len(test_results_larger)}")
+print(f"Parsed (usable): {len(parsed_larger)}")
+print(f"Failed (no identity): {len(failed_larger)}")
+print(f"After dedup: {len(deduped_larger)}")
+print("Brand names:", [d.brand_name for d in deduped_larger])
+
+# CELL 17
+def fetch_drugs_for_topic(topic: str, raw_limit: int = 150, target_count: int = 25):
+    """
+    Full OpenFDA pipeline for one topic: fetch -> parse safely -> dedupe -> cap.
+    """
+    raw_results = fetch_drugs_raw(topic, limit=raw_limit)
+    parsed, failed = parse_drugs_safe(raw_results, topic=topic)
+    deduped = dedupe_drugs(parsed)
+    capped = deduped[:target_count] # top 25 usable drugs for the topic
+    
+    return capped, failed
+
+
+# Test again with the finalized function
+final_drugs, failed = fetch_drugs_for_topic("diabetes")
+print(f"Final usable drugs: {len(final_drugs)}")
+print(f"Failed (no identity): {len(failed)}")
+print("Brand names:", [d.brand_name for d in final_drugs])
+
+# CELL 19
+from pathlib import Path
+
+def save_drugs(drugs: list, topic: str, output_dir: str = "../data/raw/openfda"):
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    filepath = Path(output_dir) / f"{topic}.jsonl"
+    
+    with open(filepath, "w", encoding="utf-8") as f:  # "w" not "a" — full overwrite is fine here since we always fetch fresh + cap at 25
+        for drug in drugs:
+            f.write(drug.model_dump_json() + "\n")
+    
+    return filepath
+
+
+saved_path = save_drugs(final_drugs, topic="diabetes")
+print("Saved to:", saved_path.resolve())
+
+# CELL 21
+import time
+
+topics = [
+    "diabetes", "hypertension", "obesity", "hyperlipidemia",
+    "asthma", "copd", "pneumonia", "tuberculosis",
+    "coronary artery disease", "heart failure", "stroke", "arrhythmia",
+    "malaria", "dengue fever", "hiv aids", "hepatitis b", "covid-19", "typhoid",
+    "depression", "anxiety disorder",
+    "peptic ulcer disease", "irritable bowel syndrome", "hepatitis c",
+    "osteoarthritis", "rheumatoid arthritis", "osteoporosis",
+    "hypothyroidism", "hyperthyroidism",
+    "epilepsy", "migraine", "parkinson's disease",
+    "chronic kidney disease",
+    "breast cancer", "lung cancer",
+    "anemia in pregnancy", "malnutrition"
+]
+
+all_drug_results = []
+
+for topic in topics:  # reuse the same 36-topic list from Phase 2
+    drugs, failed = fetch_drugs_for_topic(topic)
+    save_drugs(drugs, topic=topic)
+    all_drug_results.append({"topic": topic, "saved": len(drugs), "failed": len(failed)})
+    print(f"{topic}: saved {len(drugs)}, failed {len(failed)}")
+    time.sleep(0.3)  # basic rate limiting between topics
+
+total_saved = sum(r["saved"] for r in all_drug_results)
+total_failed = sum(r["failed"] for r in all_drug_results)
+print(f"\n=== DONE === Total saved: {total_saved}, Total failed (no identity): {total_failed}")

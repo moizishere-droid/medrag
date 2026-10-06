@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 6: Text Embeddings — Report
 
 ## Phase Objective
@@ -6,7 +8,7 @@ Generate dense vector embeddings for every unique chunk produced in the chunking
 
 ## What Was Built
 
-- A full embedding pipeline, first validated cell-by-cell in `notebooks/phase07_embeddings.ipynb` on real data (819 chunks from the diabetes topic) before being lifted into production code.
+- A full embedding pipeline, first validated cell-by-cell in `notebooks/06_embeddings.ipynb` on real data (819 chunks from the diabetes topic) before being lifted into production code.
 - Deduplication by `point_id` prior to embedding, so each unique chunk (even if it appears in multiple topic files on disk) is only embedded once.
 - Token/count-aware batching: batches capped at 500 chunks or 250k tokens, whichever limit is hit first.
 - Retry-wrapped batch embedding calls to `text-embedding-3-small`.
@@ -50,8 +52,20 @@ A bug was caught and fixed during this work: the fallback splitter initially onl
 
 ## Files Created
 
-- `notebooks/phase07_embeddings.ipynb` (exploration/validation notebook)
+- `notebooks/06_embeddings.ipynb` (exploration/validation notebook)
 - `backend/src/medrag/embeddings/embedder.py`
 - `backend/src/medrag/embeddings/storage.py`
 - `backend/scripts/run_embeddings.py`
 - Data outputs: embedding vectors as `.npy` files + JSONL index, per source, saved locally
+
+## Audit corrections — 6 October 2026
+
+Enforced nonempty inputs and per-input limits; validated response counts/index order; handled empty datasets. Save/load and ingestion reject mismatched or nonfinite vectors. Notebook batching/retries use the production helpers and configured key.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/embeddings/embedder.py](../backend/src/medrag/embeddings/embedder.py)
+- [backend/src/medrag/embeddings/storage.py](../backend/src/medrag/embeddings/storage.py)
+- [notebooks/06_embeddings.ipynb](../notebooks/06_embeddings.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

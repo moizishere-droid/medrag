@@ -1,0 +1,302 @@
+# CELL 0
+# Run from either the repository root or the notebooks directory.
+from pathlib import Path
+import os
+import sys
+PROJECT_ROOT = next((p for p in [Path.cwd(), *Path.cwd().parents]
+                     if (p / "backend" / "src" / "medrag").is_dir()), None)
+if PROJECT_ROOT is None:
+    raise RuntimeError("Start this notebook inside the MedRAG repository")
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+os.chdir(PROJECT_ROOT / "notebooks")
+from config.settings import settings
+
+
+# CELL 2
+import sys, os
+from pathlib import Path
+import logging
+
+def find_project_root(marker="backend", start=None):
+    current = Path(start or os.getcwd()).resolve()
+    for candidate in [current, *current.parents]:
+        if (candidate / marker).is_dir():
+            return candidate
+    raise RuntimeError(f"Could not find a '{marker}' folder above {current}")
+
+PROJECT_ROOT = find_project_root()
+sys.path.insert(0, str(PROJECT_ROOT / "backend"))
+sys.path.insert(0, str(PROJECT_ROOT / "backend" / "src"))
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+from config.settings import settings
+
+# run once if not already installed:
+# pip install psycopg2-binary --break-system-packages
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+conn = psycopg2.connect(
+    host=settings.postgres_host,
+    port=settings.postgres_port,
+    dbname=settings.postgres_db,
+    user=settings.postgres_user,
+    password=settings.postgres_password,
+)
+conn.autocommit = True
+print("Connected to Postgres successfully")
+
+# CELL 4
+CREATE_SCHEMA_SQL = """
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    citations JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id, created_at);
+"""
+
+with conn.cursor() as cur:
+    cur.execute(CREATE_SCHEMA_SQL)
+
+print("Schema created")
+
+# CELL 6
+import json
+from datetime import datetime, timezone
+
+def create_session(conn, title: str = None) -> str:
+    """Create a new chat session, return its session_id."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            "INSERT INTO sessions (title) VALUES (%s) RETURNING session_id",
+            (title,),
+        )
+        return str(cur.fetchone()["session_id"])
+
+
+def add_message(conn, session_id: str, role: str, content: str, citations: list = None) -> str:
+    """Append a message to a session, and bump the session's updated_at
+    timestamp so session lists can be ordered by recency."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            """
+            INSERT INTO messages (session_id, role, content, citations)
+            VALUES (%s, %s, %s, %s)
+            RETURNING message_id
+            """,
+            (session_id, role, content, json.dumps(citations) if citations else None),
+        )
+        message_id = cur.fetchone()["message_id"]
+
+        cur.execute(
+            "UPDATE sessions SET updated_at = now() WHERE session_id = %s",
+            (session_id,),
+        )
+    return str(message_id)
+
+
+def get_session_history(conn, session_id: str, limit: int = None) -> list:
+    """Load a session's messages in chronological order. limit=None
+    returns the full history (e.g. for displaying a resumed session in
+    the UI); an integer limit returns only the most recent N messages
+    (e.g. for feeding a bounded window into generation)."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        if limit is None:
+            cur.execute(
+                "SELECT * FROM messages WHERE session_id = %s ORDER BY created_at ASC",
+                (session_id,),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT * FROM (
+                    SELECT * FROM messages WHERE session_id = %s
+                    ORDER BY created_at DESC LIMIT %s
+                ) sub ORDER BY created_at ASC
+                """,
+                (session_id, limit),
+            )
+        return [dict(row) for row in cur.fetchall()]
+
+
+# test: create a session, add a couple of messages
+session_id = create_session(conn, title="Test session")
+print(f"Created session: {session_id}")
+
+add_message(conn, session_id, "user", "What does metformin treat?")
+add_message(conn, session_id, "assistant", "Metformin treats type 2 diabetes mellitus [1].",
+            citations=[{"marker": 1, "source": "openfda", "title": "Metformin Hydrochloride — FDA Label"}])
+
+history = get_session_history(conn, session_id)
+for msg in history:
+    print(msg)
+
+# CELL 8
+def build_message_history(conn, session_id: str, bounded_turns: int = 8) -> list:
+    """Load recent messages for inclusion in a generation call, bounded
+    to the last N turns (a turn = one user+assistant pair). Citations
+    are stripped here - the model only needs to see what was said, not
+    the structured citation metadata, which would bloat the prompt
+    with no benefit to the model's understanding of the conversation."""
+    messages = get_session_history(conn, session_id, limit=bounded_turns * 2)
+    return [{"role": m["role"], "content": m["content"]} for m in messages]
+
+
+# test: ask a follow-up question that depends on session context
+history_messages = build_message_history(conn, session_id)
+print(history_messages)
+
+# CELL 10
+from medrag.embeddings.qdrant_client import get_qdrant_client
+from medrag.generation.generation import (
+    format_context, get_all_known_drug_names, find_mentioned_drug,
+    get_graph_facts_for_drug_curated, format_graph_facts,
+    SYSTEM_PROMPT_TEMPLATE, DEFAULT_GENERATION_MODEL,
+)
+from medrag.retrieval.reranking import search_with_reranking
+from neo4j import GraphDatabase
+import openai
+
+qdrant = get_qdrant_client(settings.qdrant_url or "http://localhost:6333")
+neo4j_driver = GraphDatabase.driver(settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password))
+openai_client = openai.OpenAI(api_key=settings.openai_api_key)
+
+
+def generate_answer_with_memory(query: str, session_id: str, model: str = DEFAULT_GENERATION_MODEL) -> tuple:
+    """Same pipeline as Phase 14's generate_answer(), extended with
+    conversation history: prior turns are inserted into the messages
+    list sent to the LLM, between the system prompt and the new user
+    query, so the model can resolve references back to earlier turns
+    (e.g. 'it', 'that drug', an implicit subject from a prior answer)."""
+    results = search_with_reranking(qdrant, query, candidate_pool_size=20, top_n=5)
+    context = format_context(results)
+
+    known_drug_names = get_all_known_drug_names(neo4j_driver)
+    mentioned_drug = find_mentioned_drug(query, known_drug_names)
+    graph_section = ""
+    if mentioned_drug:
+        facts = get_graph_facts_for_drug_curated(neo4j_driver, mentioned_drug)
+        graph_section = format_graph_facts(facts)
+
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, graph_section=graph_section)
+    history_messages = build_message_history(conn, session_id)
+
+    messages = [{"role": "system", "content": system_prompt}] + history_messages + [{"role": "user", "content": query}]
+
+    response = openai_client.chat.completions.create(model=model, messages=messages)
+    answer = response.choices[0].message.content
+
+    add_message(conn, session_id, "user", query)
+    add_message(conn, session_id, "assistant", answer)
+
+    return answer, results
+
+
+# test: a follow-up question referring back to "it" (metformin, from the stored session)
+answer, results = generate_answer_with_memory("What are its contraindications?", session_id)
+print(answer)
+
+# CELL 12
+known_drug_names = get_all_known_drug_names(neo4j_driver)
+detected = find_mentioned_drug("What are its contraindications?", known_drug_names)
+print(f"Drug detected in follow-up query alone: {detected}")
+
+check_results = search_with_reranking(qdrant, "What are its contraindications?", candidate_pool_size=20, top_n=5)
+for r in check_results:
+    print(f"  {r['payload']['source']}  {r['chunk_id']}")
+
+# CELL 14
+REFORMULATION_PROMPT = """Given the conversation history and a follow-up question, rewrite the follow-up question as a standalone question that includes all necessary context from the history. Do not answer the question - only rewrite it.
+
+If the follow-up question is already standalone (doesn't depend on prior context), return it unchanged.
+
+Conversation history:
+{history}
+
+Follow-up question: {query}
+
+Standalone question:"""
+
+
+def reformulate_query(conn, session_id: str, query: str, model: str = DEFAULT_GENERATION_MODEL) -> str:
+    """Rewrite a follow-up question into a standalone query using
+    conversation history, so retrieval (vector search + drug-name
+    detection) has something semantically meaningful to work with.
+    Without this, a query like 'What are its contraindications?' has
+    almost no retrievable content on its own - confirmed directly: it
+    returned unrelated, essentially random drug chunks."""
+    history_messages = build_message_history(conn, session_id, bounded_turns=4)
+    if not history_messages:
+        return query  # no history yet, nothing to reformulate against
+
+    history_text = "\n".join(f"{m['role']}: {m['content']}" for m in history_messages)
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": REFORMULATION_PROMPT.format(history=history_text, query=query)}],
+    )
+    return response.choices[0].message.content.strip()
+
+
+# test on the same follow-up
+rewritten = reformulate_query(conn, session_id, "What are its contraindications?")
+print(f"Rewritten query: {rewritten}")
+
+# CELL 16
+def generate_answer_with_memory_v2(query: str, session_id: str, model: str = DEFAULT_GENERATION_MODEL) -> tuple:
+    """Same as generate_answer_with_memory, but retrieval and drug
+    detection now run against a reformulated, standalone version of the
+    query - not the raw follow-up - while the LLM's final answer is
+    still generated using the ORIGINAL query plus history, so the
+    model responds naturally to what the user actually asked."""
+    retrieval_query = reformulate_query(conn, session_id, query)
+
+    results = search_with_reranking(qdrant, retrieval_query, candidate_pool_size=20, top_n=5)
+    context = format_context(results)
+
+    known_drug_names = get_all_known_drug_names(neo4j_driver)
+    mentioned_drug = find_mentioned_drug(retrieval_query, known_drug_names)
+    graph_section = ""
+    if mentioned_drug:
+        facts = get_graph_facts_for_drug_curated(neo4j_driver, mentioned_drug)
+        graph_section = format_graph_facts(facts)
+
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, graph_section=graph_section)
+    history_messages = build_message_history(conn, session_id)
+
+    messages = [{"role": "system", "content": system_prompt}] + history_messages + [{"role": "user", "content": query}]
+
+    response = openai_client.chat.completions.create(model=model, messages=messages)
+    answer = response.choices[0].message.content
+
+    add_message(conn, session_id, "user", query)
+    add_message(conn, session_id, "assistant", answer)
+
+    return answer, results
+
+
+# re-test the same follow-up from a FRESH copy of the original session state
+# (session_id already has the failed attempt appended - let's use a fresh session for a clean test)
+session_id_2 = create_session(conn, title="Test session 2")
+add_message(conn, session_id_2, "user", "What does metformin treat?")
+add_message(conn, session_id_2, "assistant", "Metformin treats type 2 diabetes mellitus [1].")
+
+answer, results = generate_answer_with_memory_v2("What are its contraindications?", session_id_2)
+print(answer)

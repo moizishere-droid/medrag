@@ -81,15 +81,6 @@ def test_sentence_ending_in_a_listed_abbreviation_is_not_split_known_tradeoff():
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DEFECT: the 'et al' entry in ABBREVIATIONS can never match, because "
-        "the fix compares single TOKENS against it and 'et al' contains a space. "
-        "'Smith et al. reported...' is therefore split after 'al.'. Fix: protect "
-        "the token 'al' (or match the two-token sequence), then drop this marker."
-    ),
-)
 def test_et_al_does_not_end_a_sentence():
     text = "Smith et al. reported better outcomes. The trial was large."
     assert spacy_sentence_split(text) == [
@@ -98,14 +89,6 @@ def test_et_al_does_not_end_a_sentence():
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DEFECT: ABBREVIATIONS membership is case-sensitive and 'approx' is "
-        "stored lowercase, so a sentence-initial 'Approx.' is split off as its "
-        "own one-word sentence. Fix: compare case-insensitively, then drop this marker."
-    ),
-)
 def test_capitalised_approx_does_not_end_a_sentence():
     text = "Approx. 40 patients responded. The rest did not."
     assert spacy_sentence_split(text) == ["Approx. 40 patients responded.", "The rest did not."]

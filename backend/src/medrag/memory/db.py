@@ -24,6 +24,8 @@ connection object across threads.
 """
 
 import logging
+import hashlib
+from contextlib import contextmanager
 
 import psycopg2
 import psycopg2.pool
@@ -62,7 +64,71 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id, created_at);
+
+-- A stable tie-breaker for messages written in a single transaction.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_sequence BIGSERIAL;
+ALTER TABLE messages ALTER COLUMN created_at SET DEFAULT clock_timestamp();
+
+CREATE TABLE IF NOT EXISTS uploaded_documents (
+    document_id UUID PRIMARY KEY,
+    session_id UUID NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    content_hash TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    chunk_count INTEGER NOT NULL CHECK (chunk_count > 0),
+    UNIQUE (session_id, content_hash)
+);
+
+CREATE TABLE IF NOT EXISTS accounts (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS auth_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES accounts(user_id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS request_limits (
+    bucket_key TEXT NOT NULL,
+    window_start BIGINT NOT NULL,
+    attempts INTEGER NOT NULL,
+    PRIMARY KEY (bucket_key, window_start)
+);
 """
+
+
+@contextmanager
+def transaction(conn):
+    """Commit a complete operation or roll it back; respect an outer transaction."""
+    if not conn.autocommit:
+        yield conn
+        return
+    conn.autocommit = False
+    try:
+        yield conn
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.autocommit = True
+
+
+@contextmanager
+def session_operation(conn, session_id):
+    """Serialize one session across processes using a connection-scoped lock.
+
+    The session lock also covers slow external calls, without keeping a SQL
+    transaction open. Different sessions use different keys and run concurrently.
+    """
+    key = int.from_bytes(hashlib.sha256(str(session_id).encode()).digest()[:8], "big", signed=True)
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_advisory_lock(%s)", (key,))
+    try:
+        yield conn
+    finally:
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_unlock(%s)", (key,))
 
 
 def get_postgres_connection(host: str, port: int, dbname: str, user: str, password: str) -> PGConnection:

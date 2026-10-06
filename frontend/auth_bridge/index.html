@@ -1,0 +1,36 @@
+<!doctype html>
+<html><body>
+<script>
+// The API sets an HttpOnly cookie. No token is stored in URLs or localStorage.
+let lastNonce;
+function send(type, extra = {}) {
+  window.parent.postMessage({isStreamlitMessage: true, type, ...extra}, "*");
+}
+window.addEventListener("message", async event => {
+  if (event.data.type !== "streamlit:render") return;
+  const args = event.data.args;
+  if (!args.nonce || args.nonce === lastNonce) return;
+  lastNonce = args.nonce;
+  try {
+    const result = await fetch(args.api_url + "/auth/" + args.action, {
+      method: "POST", credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: args.action === "logout" ? undefined : JSON.stringify(args.credentials)
+    });
+    const data = await result.json();
+    if (!result.ok) {
+      const error = typeof data.detail === "string" ? data.detail : "Use a valid username and a password of 12–128 characters.";
+      send("streamlit:setComponentValue", {value: {error}, dataType: "json"});
+      return;
+    }
+    send("streamlit:setComponentValue", {value: {ok: true}, dataType: "json"});
+    // Reconnect Streamlit with the cookie sent on the browser's new request.
+    setTimeout(() => window.parent.location.reload(), 150);
+  } catch (error) {
+    send("streamlit:setComponentValue", {value: {error: "Could not reach the sign-in service. Please try again."}, dataType: "json"});
+  }
+});
+send("streamlit:componentReady", {apiVersion: 1});
+send("streamlit:setFrameHeight", {height: 0});
+</script>
+</body></html>

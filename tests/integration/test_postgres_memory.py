@@ -80,16 +80,6 @@ def test_unknown_but_well_formed_session_does_not_exist(pg_conn):
     assert cm.session_exists(pg_conn, str(uuid.uuid4())) is False
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DEFECT: session_exists() passes the id straight to a uuid column, so a malformed "
-        "id such as 'abc' raises InvalidTextRepresentation instead of returning False. "
-        "Every route that checks session_exists (GET /sessions/{id}, /chat, upload) then "
-        "answers 500 instead of 404. Fix: validate with uuid.UUID() first (return False / "
-        "404), then drop this marker."
-    ),
-)
 def test_malformed_session_id_is_reported_as_not_existing(pg_conn):
     assert cm.session_exists(pg_conn, "not-a-uuid") is False
 

@@ -56,6 +56,7 @@ def startup(monkeypatch):
         schema_pools=[],
         openai_keys=[],
         who_dirs=[],
+        warmups=[],
     )
 
     def fake_qdrant(url):
@@ -84,6 +85,7 @@ def startup(monkeypatch):
     monkeypatch.setattr(main, "ensure_schema_via_pool", lambda pool: rec.schema_pools.append(pool))
     monkeypatch.setattr(main.openai, "OpenAI", fake_openai)
     monkeypatch.setattr(main, "build_who_source_url_lookup", fake_who_lookup)
+    monkeypatch.setattr(main, "warmup_retrieval", lambda: rec.warmups.append(True))
     return rec
 
 
@@ -114,6 +116,13 @@ def test_startup_connects_every_service_and_exposes_it_on_app_state(startup):
         assert state.openai_client.api_key == main.settings.openai_api_key
         assert state.who_source_urls == {"diabetes": "https://who.int/d"}
         assert startup.who_dirs == [str(main.PROJECT_ROOT / "data" / "raw" / "who")]
+        assert startup.warmups == [True]
+
+
+def test_local_warmup_can_be_disabled(startup, monkeypatch):
+    monkeypatch.setattr(main.settings, "retrieval_warmup", False)
+    with TestClient(main.app):
+        assert startup.warmups == []
 
 
 def test_shutdown_closes_the_neo4j_driver_and_every_pooled_connection(startup):
@@ -121,6 +130,17 @@ def test_shutdown_closes_the_neo4j_driver_and_every_pooled_connection(startup):
         assert not startup.neo4j.closed and not startup.pool.closed
     assert startup.neo4j.closed is True
     assert startup.pool.closed is True
+
+
+def test_failed_schema_startup_releases_previously_opened_resources(startup, monkeypatch):
+    def broken_schema(pool):
+        raise RuntimeError("schema failed")
+    monkeypatch.setattr(main, "ensure_schema_via_pool", broken_schema)
+    with pytest.raises(RuntimeError, match="schema failed"):
+        with TestClient(main.app):
+            pass
+    assert startup.neo4j.closed
+    assert startup.pool.closed
 
 
 def test_startup_fails_fast_when_qdrant_is_unreachable(startup):

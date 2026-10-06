@@ -1,6 +1,6 @@
 ﻿services:
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
     container_name: medrag-qdrant
     ports:
       - "6333:6333"
@@ -9,7 +9,7 @@
       - qdrant_data:/qdrant/storage
 
   neo4j:
-    image: neo4j:latest
+    image: neo4j@sha256:956faa5d14b6beaa629b80c718bfd389ec12064f97e276ed9a58b0c53b25a323
     container_name: medrag-neo4j
     ports:
       - "7474:7474"
@@ -20,7 +20,7 @@
       - ./neo4j_data:/data
 
   postgres:
-    image: postgres:15
+    image: postgres@sha256:0f989d656f95dda60a631c8e1c67287df49b31a73f147e4290d5924fdc7f46e3
     container_name: medrag-postgres
     ports:
       - "5433:5432"

@@ -31,6 +31,7 @@ reference.
 """
 
 import logging
+import re
 from typing import List, Optional
 
 import openai
@@ -38,6 +39,7 @@ from neo4j import Driver
 from qdrant_client import QdrantClient
 
 from medrag.retrieval.reranking import search_with_reranking
+from medrag.generation.language import language_instruction, complete_in_query_language
 
 logger = logging.getLogger("medrag.generation")
 
@@ -61,6 +63,7 @@ Context:
 """
 
 _known_drug_names_cache: Optional[List[str]] = None
+_known_drug_names_cache_driver = None
 
 
 def format_context(results: List[dict]) -> str:
@@ -78,8 +81,8 @@ def get_all_known_drug_names(neo4j_driver: Driver, use_cache: bool = True) -> Li
     when Phase 13's ingestion is re-run - not on every query. Pass
     use_cache=False to force a fresh read (e.g. after re-running graph
     ingestion in the same process)."""
-    global _known_drug_names_cache
-    if use_cache and _known_drug_names_cache is not None:
+    global _known_drug_names_cache, _known_drug_names_cache_driver
+    if use_cache and _known_drug_names_cache is not None and _known_drug_names_cache_driver is neo4j_driver:
         return _known_drug_names_cache
 
     with neo4j_driver.session() as session:
@@ -87,6 +90,7 @@ def get_all_known_drug_names(neo4j_driver: Driver, use_cache: bool = True) -> Li
         names = [record["name"] for record in result]
 
     _known_drug_names_cache = names
+    _known_drug_names_cache_driver = neo4j_driver
     return names
 
 
@@ -96,8 +100,9 @@ def find_mentioned_drug(query: str, known_drug_names: List[str]) -> Optional[str
     graph itself, which is more reliable than re-extracting a drug name
     from the query text."""
     query_lower = query.lower()
-    for drug_name in known_drug_names:
-        if drug_name.lower() in query_lower:
+    for drug_name in sorted(known_drug_names, key=lambda name: len(name.strip()), reverse=True):
+        name = drug_name.strip().lower()
+        if name and re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", query_lower):
             return drug_name
     return None
 
@@ -159,10 +164,11 @@ def format_graph_facts(facts: List[dict]) -> str:
         return ""
     lines = [f"- {f['drug']} {f['relationship']} {f['disease']}" for f in facts]
     return (
-        "Verified structured facts from the medical knowledge graph:\n"
+        "Candidate relationships extracted from drug-label sections:\n"
         + "\n".join(lines)
-        + "\n\nTreat the above as verified, high-confidence facts - if the "
-        "retrieved context below conflicts with them, prioritize these facts."
+        + "\n\nThese automated extractions may contain noise or miss negation. "
+        "Use them only when supported by the numbered source context; "
+        "cite that source and do not override it with a graph relationship."
     )
 
 
@@ -174,6 +180,7 @@ def generate_answer(
     model: str = DEFAULT_GENERATION_MODEL,
     candidate_pool_size: int = DEFAULT_CANDIDATE_POOL_SIZE,
     top_n: int = DEFAULT_TOP_N,
+    results: Optional[List[dict]] = None,
 ) -> str:
     """Full pipeline: hybrid retrieval + reranking (Phase 10/11) ->
     optional knowledge graph enrichment (Phase 13, only when the query
@@ -183,11 +190,12 @@ def generate_answer(
     neo4j_driver is optional: pass None to skip knowledge graph
     integration entirely (e.g. if Neo4j isn't running, or for a query
     type where graph facts aren't relevant)."""
-    results = search_with_reranking(
-        qdrant_client, query,
-        candidate_pool_size=candidate_pool_size,
-        top_n=top_n,
-    )
+    if results is None:
+        results = search_with_reranking(
+            qdrant_client, query,
+            candidate_pool_size=candidate_pool_size,
+            top_n=top_n,
+        )
     context = format_context(results)
 
     graph_section = ""
@@ -198,13 +206,11 @@ def generate_answer(
             facts = get_graph_facts_for_drug_curated(neo4j_driver, mentioned_drug)
             graph_section = format_graph_facts(facts)
 
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, graph_section=graph_section)
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context, graph_section=graph_section) + language_instruction(query)
 
-    response = openai_client.chat.completions.create(
-        model=model,
-        messages=[
+    return complete_in_query_language(
+        openai_client, model, [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": query},
-        ],
+        ], query,
     )
-    return response.choices[0].message.content

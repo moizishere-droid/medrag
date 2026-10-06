@@ -34,6 +34,7 @@ import re
 import logging
 from typing import List, Optional
 from uuid import uuid5, NAMESPACE_URL
+from threading import Lock
 
 import tiktoken
 import spacy
@@ -50,11 +51,18 @@ ABBREVIATIONS = {
     "Fig", "Eq", "Ref", "Vol", "e.g.", "i.e.", "vs.", "Dr", "Mr", "Mrs",
     "et al", "approx", "cf", "mg", "mL", "no", "cm", "kg",
 }
+_NORMALIZED_ABBREVIATIONS = {a.lower() for a in ABBREVIATIONS}
 
 _nlp: Optional[Language] = None
+_pipeline_lock = Lock()
 
 
 def get_spacy_pipeline() -> Language:
+    with _pipeline_lock:
+        return _build_spacy_pipeline()
+
+
+def _build_spacy_pipeline() -> Language:
     """
     Build (once) and return the spaCy pipeline used for sentence splitting.
     Uses the rule-based sentencizer, not the statistical parser - the parser
@@ -72,11 +80,11 @@ def get_spacy_pipeline() -> Language:
     nlp.max_length = 2_000_000
     nlp.add_pipe("sentencizer")
 
-    @Language.component("fix_abbreviation_boundaries")
     def fix_abbreviation_boundaries(doc):
         for i, token in enumerate(doc[:-1]):
-            text = token.text.rstrip(".")
-            is_abbrev = text in ABBREVIATIONS or token.text in ABBREVIATIONS
+            text = token.text.rstrip(".").lower()
+            is_abbrev = text in _NORMALIZED_ABBREVIATIONS or token.text.lower() in _NORMALIZED_ABBREVIATIONS
+            is_abbrev = is_abbrev or (text == "al" and i > 0 and doc[i - 1].text.lower() == "et")
             if is_abbrev:
                 if token.text != "." and i + 1 < len(doc) and doc[i + 1].text == "." and i + 2 < len(doc):
                     doc[i + 2].is_sent_start = False
@@ -84,7 +92,9 @@ def get_spacy_pipeline() -> Language:
                     doc[i + 1].is_sent_start = False
         return doc
 
-    nlp.add_pipe("fix_abbreviation_boundaries", after="sentencizer")
+    if not Language.has_factory("medrag_fix_abbreviation_boundaries"):
+        Language.component("medrag_fix_abbreviation_boundaries")(fix_abbreviation_boundaries)
+    nlp.add_pipe("medrag_fix_abbreviation_boundaries", after="sentencizer")
     _nlp = nlp
     return _nlp
 
@@ -100,7 +110,12 @@ def spacy_sentence_split(text: str) -> List[str]:
 def sentence_based_chunk(text: str, target_tokens: int = 300) -> List[str]:
     """Group spaCy-detected sentences into target-sized chunks, never
     cutting a sentence mid-way."""
+    if target_tokens <= 0:
+        raise ValueError("target_tokens must be positive")
     sentences = spacy_sentence_split(text)
+    # Keep normal sentences intact; split pathological PDF/OCR sentences
+    # before they exceed the embedding input limit.
+    sentences = [piece for sentence in sentences for piece in token_windows(sentence, 7500)]
 
     chunks = []
     current_chunk = []
@@ -239,6 +254,28 @@ def chunk_openfda_drug(drug: DrugRecord, topics: List[str], target_tokens: int =
 
 # --- WHO ---------------------------------------------------------------------
 
+def token_windows(text: str, budget: int) -> List[str]:
+    """Split losslessly at token boundaries that are also UTF-8 boundaries."""
+    if budget <= 0:
+        raise ValueError("Token budget must be positive")
+    tokens = ENCODING.encode(text)
+    pieces = []
+    start = 0
+    while start < len(tokens):
+        end = min(start + budget, len(tokens))
+        while end > start:
+            try:
+                piece = ENCODING.decode_bytes(tokens[start:end]).decode("utf-8")
+                break
+            except UnicodeDecodeError:
+                end -= 1
+        if end == start:
+            raise ValueError("Token budget is too small for a complete Unicode character")
+        pieces.append(piece)
+        start = end
+    return pieces
+
+
 def _token_window_fallback_split(content_text: str, prefix: str, max_tokens: int = 7500) -> List[str]:
     """
     Last-resort fallback: split raw content into token windows sized to
@@ -256,15 +293,16 @@ def _token_window_fallback_split(content_text: str, prefix: str, max_tokens: int
     each piece keeps every piece self-contained for embedding.
     """
     prefix_tokens = len(ENCODING.encode(prefix))
-    content_budget = max(max_tokens - prefix_tokens, 500)  # keep a sane floor
+    content_budget = max_tokens - prefix_tokens
+    if content_budget <= 0:
+        raise ValueError("Context prefix exceeds the token budget")
 
     content_tokens = ENCODING.encode(content_text)
     if len(content_tokens) + prefix_tokens <= max_tokens:
         return [f"{prefix}{content_text}"]
 
     pieces = []
-    for i in range(0, len(content_tokens), content_budget):
-        piece_content = ENCODING.decode(content_tokens[i:i + content_budget])
+    for piece_content in token_windows(content_text, content_budget):
         pieces.append(f"{prefix}{piece_content}")
     return pieces
 

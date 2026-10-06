@@ -11,6 +11,7 @@ from backend/scripts/:
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Optional
+from typing import List
 from pathlib import Path
 
 # Resolve .env relative to this file's location (backend/config/settings.py),
@@ -21,6 +22,11 @@ _ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
+    auth_cookie_secure: bool = Field(default=False, alias="AUTH_COOKIE_SECURE")
+    cors_origins: List[str] = Field(default=["http://localhost:8501", "http://127.0.0.1:8501", "http://localhost:8502", "http://127.0.0.1:8502"], alias="CORS_ORIGINS")
+    retrieval_warmup: bool = Field(default=True, alias="RETRIEVAL_WARMUP")
+    auth_required: bool = Field(default=True, alias="AUTH_REQUIRED")
+    auth_token_hours: int = Field(default=24, ge=1, le=168, alias="AUTH_TOKEN_HOURS")
     # --- OpenAI ---
     openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
 

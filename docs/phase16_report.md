@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 16: Chat Memory (PostgreSQL) — Report
 
 ## Phase Objective
@@ -39,6 +41,17 @@ Add persistent, session-scoped conversation memory: store chat sessions and mess
 - `backend/src/medrag/memory/__init__.py`
 - `backend/src/medrag/memory/db.py` (`get_postgres_connection`, `ensure_schema`)
 - `backend/src/medrag/memory/chat_memory.py` (`create_session`, `add_message`, `get_session_history`, `build_message_history`, `reformulate_query`, `generate_answer_with_memory`)
-- `notebooks/phase16_chat_memory.ipynb`
+- `notebooks/16_PostgresSQL_DB.ipynb`
 
 No new runner script — chat memory operations are invoked per-request (eventually by the Phase 18 FastAPI layer), not a batch job.
+
+## Audit corrections — 6 October 2026
+
+Malformed UUIDs return false before reaching PostgreSQL; valid sessions retain existing behavior. Reviewed query reformulation, bounded history, persistence and citation updates. Isolated database tests cover these behaviors.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/memory/chat_memory.py](../backend/src/medrag/memory/chat_memory.py)
+- [notebooks/16_PostgresSQL_DB.ipynb](../notebooks/16_PostgresSQL_DB.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

@@ -117,7 +117,8 @@ def qdrant_client():
         client.get_collections()
     except Exception as exc:
         pytest.fail(f"Cannot reach Qdrant at {url}. Is `docker compose up` running? ({exc})")
-    return client
+    yield client
+    client.close()
 
 
 @pytest.fixture

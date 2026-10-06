@@ -42,7 +42,8 @@ logger = logging.getLogger("medrag.ner")
 NER_MODEL_NAME = "en_ner_bc5cdr_md"
 
 DOSAGE_PATTERN = re.compile(
-    r"\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|mL|IU|units?)\b(?:/(?:day|dose|kg|mL))?",
+    r"\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|IU|units?)\b"
+    r"(?:/(?:day|dose|kg|mL)\b)?(?!\s*/)",
     re.IGNORECASE,
 )
 TRIAL_ID_PATTERN = re.compile(r"^NCT\d+$", re.IGNORECASE)

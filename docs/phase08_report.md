@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 8: Qdrant Vector Database Ingestion — Report
 
 ## Phase Objective
@@ -40,5 +42,15 @@ Load all embedded data — PubMed, OpenFDA, and WHO text chunks (Phase 6) plus W
 - `backend/src/medrag/embeddings/qdrant_client.py` (`get_qdrant_client`, `ensure_collections`, `reset_collections`, `generate_image_point_id`)
 - `backend/src/medrag/embeddings/qdrant_ingestion.py` (`dedupe_links`, `build_link_maps`, `build_text_point`, `build_image_point`, `upload_points`, `upload_source_chunks`, `upload_images`)
 - `backend/scripts/run_qdrant_ingestion.py` (supports `--reset` for explicit destructive rebuild)
-- `notebooks/phase08_qdrant_setup.ipynb`
+- `notebooks/08_qdrant_setup.ipynb`
 - Qdrant collections `medrag_text` (22,696 points) and `medrag_images` (76 points), persisted in the running Qdrant Docker container
+
+## Audit corrections — 6 October 2026
+
+Notebook reset operations now target dedicated experiment collections, protecting production collections. Replaced obsolete search calls with the current query API. Production collection management remains non-destructive on normal ingestion.
+
+Changed or reviewed files:
+
+- [notebooks/08_qdrant_setup.ipynb](../notebooks/08_qdrant_setup.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

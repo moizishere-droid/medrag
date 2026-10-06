@@ -1,3 +1,5 @@
+> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+
 # Phase 17: RAGAS Evaluation — Report
 
 ## Phase Objective
@@ -41,4 +43,15 @@ Move from manual, spot-check validation (Phases 10-16) to quantitative evaluatio
 - `backend/scripts/run_evaluation.py` (`--generation-model`, `--judge-model`, `--include-unreliable-metrics` flags)
 - `data/eval/ragas_test_set.json`
 - `data/eval/results.json` (generated output — per-question and aggregate scores)
-- `notebooks/phase17_ragas_evaluation.ipynb`
+- `notebooks/17_RAGAS.ipynb`
+
+## Audit corrections — 6 October 2026
+
+Removed duplicate retrieval: generation uses the exact contexts scored by evaluation. Notebook pipeline uses the same evidence. Existing saved scores are historical and have not been regenerated. Context-recall uncertainty documented in the original phase remains.
+
+Changed or reviewed files:
+
+- [backend/src/medrag/evaluation/evaluation.py](../backend/src/medrag/evaluation/evaluation.py)
+- [notebooks/17_RAGAS.ipynb](../notebooks/17_RAGAS.ipynb)
+
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

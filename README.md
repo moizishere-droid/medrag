@@ -6,7 +6,7 @@ MedRAG is a medical Retrieval-Augmented Generation system designed to retrieve k
 
 The project is being built as a production-oriented AI/ML system with multilingual and multimodal retrieval.
 
-> **Current status:** The ingestion, document processing, chunking, text embedding, and image embedding pipeline is implemented. The next phase is Qdrant-based retrieval.
+> **Current status:** Phases 00–21 are complete for local engineering verification. Authentication, upload isolation, failure recovery and testing are implemented. See [Phase 21](docs/phase21_report.md) and [the phase-by-phase audit](docs/project_audit_report.md) for results and limits. Phase 22 is GitHub Actions CI/CD; deployment follows after choosing a platform.
 
 ---
 
@@ -29,7 +29,7 @@ WHO ─────────┘                              │
                                   Embedding Storage
                                             │
                                             ↓
-                                      Qdrant (Next)
+                                      Qdrant
                                             │
                                             ↓
                                    Hybrid Retrieval
@@ -162,7 +162,7 @@ WHO processing also produced approximately **1,204 tables** across the processed
 * NumPy
 * JSONL
 
-**Planned**
+**Also implemented**
 
 * Qdrant
 * BM25
@@ -215,11 +215,27 @@ cd medrag
 
 Create `.env` from `.env.example` and configure the required API keys.
 
+Authentication is required by default. Create an account in the UI, or through
+`POST /auth/register`, and use its bearer token for private API routes.
+`AUTH_REQUIRED=false` is a local-only development mode; keep authentication
+enabled for deployment. Existing unowned sessions remain separate from new
+accounts. Uploads are private to the session in which they were indexed.
+
 Install dependencies using the provided setup script:
 
 ```bash
 install.bat
 ```
+
+Run the backend with `python -m uvicorn medrag.api.main:app --app-dir backend/src`
+and the frontend with `python -m streamlit run frontend/streamlit_app.py`.
+Set `MEDRAG_API_URL` for a backend other than `http://localhost:8000`.
+
+Run default tests with `python -m pytest -q`. With the three database services
+running, use `python -m pytest -m "not live" -q` for unit and integration tests.
+See [Phase 21](docs/phase21_report.md) for isolated-test safeguards and validation
+commands. Compose pins the locally verified database builds; development
+credentials and open ports require deployment configuration.
 
 ---
 
@@ -239,6 +255,33 @@ python backend/scripts/run_image_embeddings.py
 ---
 
 ## Documentation
+
+The Streamlit frontend keeps sign-in across refresh using an HttpOnly API cookie
+(24 hours by default, controlled by `AUTH_TOKEN_HOURS`). Sign out revokes the
+token and clears the cookie. Use the same hostname for the browser frontend and browser API
+(`localhost` on both, or `127.0.0.1` on both). `MEDRAG_API_URL` is the address
+reachable by Streamlit; `MEDRAG_BROWSER_API_URL` is the address reachable by the
+browser. Local server requests default to `127.0.0.1:8000` to avoid intermittent
+Windows localhost disconnects; browser requests default to `localhost:8000`.
+Allow the frontend origin in the JSON `CORS_ORIGINS` setting. For HTTPS
+hosting set `AUTH_COOKIE_SECURE=true` and serve UI/API through the same hostname.
+
+New chats display **New Chat**, then receive a short topic title from the first
+successful question. Later questions and custom titles do not overwrite it.
+Questions appear immediately above **Thinking...**. Source entries group chunks
+from one document while retaining all cited marker numbers. Retrieval models
+warm up before the API accepts requests (`RETRIEVAL_WARMUP=true`); startup is
+longer, and cloud-model/CPU latency still depends on the runtime.
+
+The **Supported topics and sources** sidebar panel lists the shared 36-topic
+ingestion scope and PubMed, OpenFDA drug labels, and WHO guidelines. Availability
+varies across topics and sources. A session can also use its own uploaded PDFs.
+Answers match the current question's detected language, with English as the
+fallback for ambiguous medical terms. A clearly wrong-language answer is retried
+once, then rejected if the mismatch persists. Install the pinned requirements
+when updating (`langdetect==1.0.9` was added for local language identification).
+
+See [the Phase 21 UI follow-up](docs/phase21_ui_followup.md) for verification.
 
 Detailed implementation reports are available in [`docs/`](docs/):
 

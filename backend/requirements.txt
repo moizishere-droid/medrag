@@ -67,8 +67,7 @@ transformers==4.41.2
 fastapi==0.142.1
 starlette==1.7.0
 uvicorn[standard]==0.54.0
-# Not yet used, but required by FastAPI for file upload endpoints -
-# added proactively since Phase 19 (user document upload) is next.
+# Required by the PDF upload endpoint.
 python-multipart==0.0.32
 
 # --- Frontend (Phase 20) ---
@@ -103,10 +102,10 @@ langchain-community==0.4.2
 langchain-core==1.6.3
 langchain-openai==1.6.2
 
-# --- Experiment tracking ---
-wandb==0.17.0
+# Experiment tracking is not used by this project. The old wandb==0.17.0
+# pin required protobuf<5, conflicting with Streamlit's protobuf>=5.26.1.
 
 # --- Testing ---
-pytest 
-pytest-cov
-httpx
+langdetect==1.0.9
+pytest==8.2.2
+pytest-cov==7.1.0

@@ -17,11 +17,19 @@ import numpy as np
 from medrag.processing.models import Chunk
 
 
+def validate_alignment(embeddings: np.ndarray, rows, label: str) -> None:
+    if embeddings.ndim != 2 or len(embeddings) != len(rows):
+        raise ValueError(f"{label}: embeddings and index must have matching rows in a 2D array")
+    if not np.isfinite(embeddings).all():
+        raise ValueError(f"{label}: embeddings contain non-finite values")
+
+
 def save_embeddings(chunks: List[Chunk], embeddings: np.ndarray, source: str, output_dir: str) -> Tuple[Path, Path]:
     """
     Save embeddings as a .npy array and a parallel .jsonl index (same row
     order) to output_dir/{source}_embeddings.npy and {source}_index.jsonl.
     """
+    validate_alignment(embeddings, chunks, source)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     npy_path = Path(output_dir) / f"{source}_embeddings.npy"
@@ -55,6 +63,7 @@ def load_embeddings(source: str, output_dir: str) -> Tuple[np.ndarray, List[dict
         for line in f:
             index.append(json.loads(line))
 
+    validate_alignment(embeddings, index, source)
     return embeddings, index
 
 
@@ -64,6 +73,9 @@ def save_image_embeddings(records, embeddings: np.ndarray, topics_per_record, ou
     (same row order) to output_dir/who_images_embeddings.npy and
     who_images_index.jsonl.
     """
+    validate_alignment(embeddings, records, "images")
+    if len(records) != len(topics_per_record):
+        raise ValueError("images: records and topics must have matching lengths")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     npy_path = Path(output_dir) / "who_images_embeddings.npy"
@@ -95,4 +107,5 @@ def load_image_embeddings(output_dir: str) -> Tuple[np.ndarray, List[dict]]:
         for line in f:
             index.append(json.loads(line))
 
+    validate_alignment(embeddings, index, "images")
     return embeddings, index

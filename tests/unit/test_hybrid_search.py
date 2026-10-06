@@ -68,10 +68,11 @@ def test_queries_both_signals_with_correct_parameters(fake_embeddings, make_poin
     assert sparse_query.values == [0.5, 0.25]
 
 
-def test_no_user_id_applies_no_filter_to_either_signal(fake_embeddings, make_points):
+def test_no_user_id_applies_curated_filter_to_both_signals(fake_embeddings, make_points):
     client = FakeQdrant(make_points("a"), make_points("b"))
     hs.hybrid_search(client, "q")
-    assert [call["query_filter"] for call in client.calls] == [None, None]
+    expected = hs.build_user_filter(None)
+    assert [call["query_filter"] for call in client.calls] == [expected, expected]
 
 
 def test_same_user_filter_reaches_both_signals(fake_embeddings, make_points):
@@ -85,6 +86,23 @@ def test_same_user_filter_reaches_both_signals(fake_embeddings, make_points):
     assert len(client.calls) == 2
     for call in client.calls:
         assert call["query_filter"] == expected
+
+
+def test_evaluation_filter_reaches_both_signals(fake_embeddings, make_points):
+    client = FakeQdrant(make_points("a"), make_points("b"))
+    hs.hybrid_search(client, "q", full_corpus_evaluation=True)
+    expected = hs.build_user_filter(None, full_corpus_evaluation=True)
+    assert [call["query_filter"] for call in client.calls] == [expected, expected]
+
+
+def test_conflicting_scope_fails_before_embedding_or_query(monkeypatch):
+    def unexpected(text):
+        pytest.fail("Invalid scope must fail before embedding")
+    monkeypatch.setattr(hs, "embed_query_dense", unexpected)
+    client = FakeQdrant([], [])
+    with pytest.raises(ValueError, match="cannot be combined"):
+        hs.hybrid_search(client, "q", user_id="A", full_corpus_evaluation=True)
+    assert client.calls == []
 
 
 def test_fuses_signals_and_truncates_to_limit(fake_embeddings, make_points):
