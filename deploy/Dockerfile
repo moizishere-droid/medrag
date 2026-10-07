@@ -1,5 +1,5 @@
 # Build from the repository root. CPU PyTorch avoids shipping CUDA libraries.
-FROM python:3.11.9-slim-bookworm@sha256:8fb099199b9f2d70342674bd9dbccd3ed03a258f26bbd1d556822c6dfc60c317 AS backend-base
+FROM python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56 AS backend-base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONPATH=/app/backend:/app/backend/src HF_HOME=/app/.cache/huggingface
 WORKDIR /app
@@ -32,7 +32,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"
 CMD ["uvicorn", "medrag.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-FROM python:3.11.9-slim-bookworm@sha256:8fb099199b9f2d70342674bd9dbccd3ed03a258f26bbd1d556822c6dfc60c317 AS frontend
+FROM python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56 AS frontend
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONPATH=/app/backend/src
 WORKDIR /app
