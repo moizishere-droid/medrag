@@ -105,11 +105,13 @@ def main():
     logger.info(f"  Loaded {len(image_records)} unique images")
 
     logger.info("Linking images to chunks via figure-caption matching...")
-    links, stats = link_images_to_chunks(chunks, image_records, topics_per_record)
+    from medrag.citations.visuals import get_visual_catalog
+    catalog = get_visual_catalog(PROJECT_ROOT / "data")
+    links, stats = link_images_to_chunks(chunks, image_records, topics_per_record, catalog.figures)
 
     logger.info(f"  {len(links)} links created")
     logger.info(f"  {stats['figure_mentions_found']} figure mentions found across all chunks")
-    logger.info(f"  {stats['figure_mentions_out_of_range']} mentions fell outside their document's image count")
+    logger.info(f"  {stats['figure_mentions_out_of_range']} mentions had no verified caption/page mapping")
     logger.info(f"  {stats['unique_images_linked']}/{stats['total_images']} unique images linked")
     logger.info(f"  {stats['documents_with_neither_matched']} documents had images but no matching chunks")
     logger.info(f"  {stats.get('listing_chunks_skipped', 0)} List-of-Figures chunks skipped")

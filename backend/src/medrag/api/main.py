@@ -72,7 +72,8 @@ from medrag.embeddings.qdrant_client import get_qdrant_client
 from medrag.memory.db import get_postgres_pool, ensure_schema_via_pool, session_operation, transaction
 from medrag.retrieval.reranking import warmup_retrieval
 from medrag.generation.language import AnswerLanguageError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from medrag.citations.visuals import get_visual_catalog, attach_source_visuals, revalidate_saved_visuals
 from medrag.memory.chat_memory import (
     create_session,
     get_session_history,
@@ -300,12 +301,26 @@ def create_session_endpoint(payload: CreateSessionRequest, request: Request, ide
     return CreateSessionResponse(session_id=session_id)
 
 
+@app.get("/media/who/{filename}")
+def source_image(filename: str, request: Request, identity=Depends(get_identity)):
+    """Authenticated curated PNG access; no private files or arbitrary paths."""
+    catalog = get_visual_catalog(PROJECT_ROOT / "data")
+    path = catalog.image_path(filename)
+    if path is None:
+        raise HTTPException(status_code=404, detail="Source image not found")
+    return FileResponse(path, media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})
+
+
 @app.get("/sessions/{session_id}", response_model=SessionHistoryResponse)
 def get_session_endpoint(session_id: uuid.UUID, request: Request, identity=Depends(get_identity)):
     session_id = str(session_id)
     with get_conn(request.app) as conn:
         check_owned_session(conn, session_id, identity)
         messages = get_session_history(conn, session_id)
+
+    catalog = get_visual_catalog(PROJECT_ROOT / "data")
+    messages = [{**message, "citations": revalidate_saved_visuals(message["citations"], catalog)}
+                if message.get("citations") else message for message in messages]
 
     return SessionHistoryResponse(
         session_id=session_id,
@@ -397,6 +412,7 @@ def chat_endpoint(payload: ChatRequest, request: Request, identity=Depends(get_i
         )
 
         citations = build_citations(answer, results, state.who_source_urls)
+        citations = attach_source_visuals(citations, results, get_visual_catalog(PROJECT_ROOT / "data"))
         update_message_citations(conn, assistant_message_id, citations)
 
     logger.info("Chat request completed in %.3f seconds", perf_counter() - started)

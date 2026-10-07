@@ -399,7 +399,7 @@ def chunk_who_guideline(guideline: Guideline, tables: List[dict], topics: List[s
                 source_id=canonical_id,
                 chunk_index=index,
                 chunk_type="table",
-                metadata={"title": guideline.title, "page_number": table["page_number"]},
+                metadata={"title": guideline.title, "page_number": table["page_number"], "table_data": table_data},
             ))
             index += 1
             continue
@@ -433,6 +433,8 @@ def chunk_who_guideline(guideline: Guideline, tables: List[dict], topics: List[s
                 if len(final_pieces) > 1:
                     metadata["token_split_part"] = sub_idx + 1
                     metadata["token_split_parts_total"] = len(final_pieces)
+                else:
+                    metadata["table_data"] = row_group
 
                 chunks.append(_build_chunk(
                     chunk_id=f"{canonical_id}_who_table_{index}",

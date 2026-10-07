@@ -63,6 +63,20 @@ class ChatRequest(BaseModel):
         return value
 
 
+class SourceTable(BaseModel):
+    rows: List[List[str]]
+    page_number: Optional[int] = None
+    part: Optional[int] = None
+
+
+class SourceImage(BaseModel):
+    filename: str
+    page_number: Optional[int] = None
+    figure_number: Optional[str] = None
+    image_type: str = "embedded"
+    caption: Optional[str] = None
+
+
 class CitationOut(BaseModel):
     marker: int
     chunk_id: str
@@ -71,6 +85,8 @@ class CitationOut(BaseModel):
     title: str
     url: Optional[str] = None
     linked_images: list = []
+    table: Optional[SourceTable] = None
+    images: List[SourceImage] = Field(default_factory=list)
 
 
 class ChatResponse(BaseModel):

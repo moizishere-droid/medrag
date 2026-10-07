@@ -5,6 +5,51 @@ from types import SimpleNamespace
 from streamlit.testing.v1 import AppTest
 
 
+def test_source_table_and_figure_render_after_history_reload(monkeypatch):
+    import io
+    import requests
+    from PIL import Image
+    image = io.BytesIO()
+    Image.new("RGB", (2, 2), "white").save(image, format="PNG")
+    calls = []
+    citation = {"marker": 1, "chunk_id": "table", "source": "who", "source_id": "diabetes",
+                "title": "WHO evidence", "url": None,
+                "table": {"rows": [["Treatment", "Evidence"], ["A", "B"]], "page_number": 2},
+                "images": [{"filename": "figure.png", "page_number": 4, "figure_number": "1"}]}
+    def response(data):
+        return SimpleNamespace(json=lambda: data, raise_for_status=lambda: None, status_code=200)
+    monkeypatch.setattr("requests.get", lambda *a, **k: response({"required": False}))
+    def request(method, url, **kwargs):
+        if "/media/who/" in url:
+            calls.append(url)
+            return SimpleNamespace(content=image.getvalue(), raise_for_status=lambda: None, status_code=200)
+        if url.endswith("/health"):
+            return response({"status": "ok", "dependencies": {"postgres": "ok"}})
+        if url.endswith("/sessions"):
+            return response({"sessions": [{"session_id": "a", "title": "Evidence"}]})
+        return response({"messages": [{"role": "assistant", "content": "Answer [1]", "citations": [citation]}]})
+    monkeypatch.setattr("requests.request", request)
+    path = Path(__file__).resolve().parents[2] / "frontend" / "streamlit_app.py"
+    app = AppTest.from_file(str(path)).run()
+    assert not app.exception
+    assert len(app.dataframe) == 1
+    assert app.dataframe[0].value.iloc[1, 0] == "A"
+    assert len(app.image) == 1
+    assert "PDF page 5" in app.image[0].captions[0]
+    assert len(calls) == 1
+    assert any("PDF page 3" in c.value for c in app.caption)
+    # An unavailable media file must not erase the answer or source table.
+    original = request
+    def unavailable(method, url, **kwargs):
+        if "/media/who/" in url:
+            raise requests.ConnectionError("offline")
+        return original(method, url, **kwargs)
+    monkeypatch.setattr("requests.request", unavailable)
+    app.run()
+    assert not app.exception and len(app.dataframe) == 1
+    assert any("temporarily unavailable" in warning.value for warning in app.warning)
+
+
 def test_unavailable_backend_can_be_retried(monkeypatch):
     import requests
     monkeypatch.setattr("requests.get", lambda *a, **k: (_ for _ in ()).throw(requests.ConnectionError("not ready")))

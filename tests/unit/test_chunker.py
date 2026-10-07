@@ -339,7 +339,7 @@ def test_who_small_table_is_one_atomic_chunk_and_index_continues_after_text():
     assert table_chunk.chunk_id == f"htn_who_table_{len(text_chunks)}"
     assert table_chunk.raw_text == "Drug | Dose\nlisinopril | "  # None becomes empty
     assert table_chunk.text == f"HTN Guideline (table, page 12): {table_chunk.raw_text}"
-    assert table_chunk.metadata == {"title": "HTN Guideline", "page_number": 12}
+    assert table_chunk.metadata == {"title": "HTN Guideline", "page_number": 12, "table_data": rows}
 
 
 def test_who_oversized_table_is_split_into_numbered_parts_without_losing_rows():

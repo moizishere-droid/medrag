@@ -87,11 +87,11 @@ if auth_required and not st.session_state.get("access_token"):
     st.stop()
 
 
-def api_request(method, url, **kwargs):
+def api_request(method, url, *, retry_reads=True, **kwargs):
     headers = {"Authorization": f"Bearer {st.session_state.access_token}"} if st.session_state.get("access_token") else {}
     # Interrupted reads can be retried safely. Never replay chat/upload/create
     # writes: the server may already have committed them before disconnecting.
-    attempts = 3 if method == "GET" else 1
+    attempts = 3 if method == "GET" and retry_reads else 1
     for attempt in range(attempts):
         try:
             response = requests.request(method, url, headers=headers, **kwargs)
@@ -289,11 +289,56 @@ else:
             if not st.session_state.get("session_titles", {}).get(sid):
                 st.session_state.setdefault("topic_titles", {}).setdefault(sid, title_from_query(prompt))
 
+    def render_source_visuals(citations):
+        tables_seen, images_seen = set(), set()
+        for citation in citations:
+            marker = f"[{citation['marker']}]"
+            title = citation["title"]
+            table = citation.get("table")
+            if table and citation["chunk_id"] not in tables_seen:
+                tables_seen.add(citation["chunk_id"])
+                with st.expander(f"Source table {marker} — {title}", expanded=True):
+                    if table.get("page_number") is not None:
+                        st.caption(f"PDF page {table['page_number'] + 1}")
+                    if table.get("part"):
+                        st.caption(f"Table part {table['part']}")
+                    rows = table["rows"]
+                    width = max((len(row) for row in rows), default=0)
+                    if width:
+                        columns = {f"Column {i + 1}": [row[i] if i < len(row) else "" for row in rows]
+                                   for i in range(width)}
+                        st.dataframe(columns, hide_index=True)
+                        st.caption("Extracted source cells; original header rows are retained. Check the source PDF for formatting.")
+            for image in citation.get("images", []):
+                filename = image["filename"]
+                if filename in images_seen:
+                    continue
+                images_seen.add(filename)
+                with st.expander(f"Source figure {marker} — {title}", expanded=True):
+                    if image.get("caption"):
+                        st.caption(image["caption"])
+                    caption = f"{marker} {title}"
+                    if image.get("figure_number"):
+                        caption += f" — Figure {image['figure_number']}"
+                    if image.get("page_number") is not None:
+                        caption += f" — PDF page {image['page_number'] + 1}"
+                    if image.get("image_type") == "rasterized_page":
+                        caption += " (source page containing the figure)"
+                    try:
+                        # Fetch through the authenticated API; Streamlit sends
+                        # image bytes to the browser, never the bearer token.
+                        response = api_get(f"{API_URL}/media/who/{filename}", timeout=5, retry_reads=False)
+                        response.raise_for_status()
+                        st.image(response.content, caption=caption)
+                    except requests.exceptions.RequestException:
+                        st.warning("This source figure is temporarily unavailable. The answer and citations are still available.")
+
     # render existing messages
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
             if msg.get("citations"):
+                render_source_visuals(msg["citations"])
                 sources = group_citations_by_source(msg["citations"])
                 with st.expander(f"Sources ({len(sources)})"):
                     for c in sources:

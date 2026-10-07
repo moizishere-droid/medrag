@@ -35,6 +35,7 @@ Create the image before enabling this Markdown.
 - **Conversation memory:** contextual follow-ups can be rewritten using previous messages before retrieval.
 - **Multilingual answers:** response language follows the latest question, rather than earlier answers or source-document language.
 - **Citations:** retrieved evidence is associated with answers; entries from the same document are grouped.
+- **Source visuals:** cited WHO evidence can display original extracted table cells and verified caption/page-mapped figures below the answer, with citation markers and PDF page numbers. Unverified figures are omitted.
 - **Private chats and uploads:** account-owned sessions and PDF evidence scoped to the chat where it was indexed.
 - **Persistent storage:** PostgreSQL stores accounts, sessions, messages, citations and upload metadata.
 - **Streamlit UI:** persistent sign-in, chat selection, immediate question display, thinking indicator, first-question chat titles, PDF upload and topic/source panel.
@@ -42,7 +43,7 @@ Create the image before enabling this Markdown.
 
 **Multilingual does not mean a fixed six-language limit.** The application detects the current query language and instructs the OpenAI model to answer accordingly. Detection and generation can be imperfect; ambiguous short medical terms default to English. A detected answer-language mismatch is retried once and rejected if it persists.
 
-The repository also implements **WHO table/image extraction, CLIP image embeddings and image-to-text links**. These demonstrate multimodal data engineering. The current chat accepts text questions and PDFs, not image questions.
+The repository also implements **WHO table/image extraction, CLIP image embeddings and image-to-text links**. The chat can show tables and linked figures from cited WHO evidence. It accepts text questions and PDFs, not image questions; independent CLIP image search is not part of the chat retrieval flow.
 
 ## Architecture
 
@@ -282,6 +283,7 @@ Register, create a chat and ask a question. Optionally upload a text-based PDF. 
 | GET | `/sessions/{session_id}` | Read owned chat history |
 | POST | `/sessions/{session_id}/documents` | Index chat-scoped PDF |
 | POST | `/chat` | Retrieve, answer and persist a turn |
+| GET | `/media/who/{filename}` | Authenticated access to allowlisted curated source images |
 
 Private routes require a bearer token or HttpOnly session cookie. Swagger documents actual request/response schemas.
 
@@ -332,6 +334,8 @@ Latency comparisons preserved the same ordered top-five evidence for the tested 
 
 Reports: [testing](docs/phase21_report.md), [performance](docs/performance_report.md), [RAGAS](docs/phase17_report.md).
 
+See [source table and figure rendering](docs/source_visuals.md) for the visual API contract, persistence, verification and limits.
+
 ## CI/CD and deployment
 
 GitHub Actions validates workflows/source syntax, tests ordinary and integration behavior, checks coverage, builds containers and verifies packaged startup/authentication on pull requests, main pushes and manual runs. The release workflow reruns checks before publishing commit-tagged backend/frontend images to GitHub Container Registry.
@@ -347,7 +351,7 @@ Before public launch: resolve the CI test, dependency advisories, request deadli
 - Educational use; answers may be incomplete or incorrect and do not replace professional medical advice.
 - Topic/language coverage varies; grounding and language checks do not guarantee perfect responses.
 - Scanned PDFs require OCR, which is not implemented.
-- Image extraction/indexing exists; image-question chat does not.
+- Source tables/linked figures display when present in cited WHO evidence; image-question chat does not. Unrelated visuals are not attached, and some fragmented legacy table chunks lack recoverable cell structure.
 - Persistent upload listing/deletion in the UI is pending.
 - Network delays, CPU work, answer length and concurrency affect latency.
 - Deployment hardening and dependency triage remain open.

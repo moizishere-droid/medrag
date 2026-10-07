@@ -1,44 +1,7 @@
-"""
-Links WHO images to the text chunks that reference them, via figure-caption
-string matching ("Figure 2", "Fig. 3", etc. found inside a chunk's raw_text).
+"""Link exact figure identifiers through verified caption/page mappings.
 
-This is the follow-up step flagged as designed-but-not-implemented in the
-Phase 7 report. It requires no new fields on Chunk or WhoImage:
-
-  - Chunk.source_id is already the canonical document id used during
-    chunking ("+".join(sorted(topics)), set in chunker.py's
-    chunk_who_guideline) - so it doubles as the join key here.
-  - WHO image filenames already encode page and in-page index
-    (e.g. "*_page3_img1.png" - see image_embedder.py's COVER_PAGE_PATTERN),
-    so no stored image_index field is required to reconstruct extraction
-    order from the saved embeddings index alone.
-
-Strategy: ordinal figure matching, not position/page matching. WHO guideline
-clean_text has no page boundaries preserved (WHO text is chunked from the
-fully merged document, per Phase 7's known limitation), so a chunk can't be
-matched to "the image on the same page." Instead: images are sorted into
-each document's reading order (page, then in-page index), which for WHO's
-typical sequential figure numbering corresponds to figure order. A "Figure N"
-mention in any chunk is matched to the Nth image extracted from that same
-document.
-
-This is a heuristic, not a guarantee - it assumes:
-  1. Figures in the source PDF are numbered sequentially without gaps
-     starting at 1, in the same order PyMuPDF extracts them.
-  2. An image's topic set (from the embeddings dedup step) matches its
-     guideline's topic set exactly, since both are used to compute the
-     same canonical join key independently.
-Both assumptions can break on a given document (e.g. a genuinely skipped
-figure number, or a page-rendered vector diagram interleaved oddly with
-embedded raster images). Rather than silently trusting the match, this
-module reports match statistics so mismatches are visible and can be spot
--checked, in the same spirit as Phase 7's honest CLIP limitation writeup.
-
-No fallback is applied when no "Figure N" mention exists anywhere in a
-document's chunks for a given image - it is simply reported as unlinked.
-A nearest-chunk-by-topic fallback was considered and rejected: with no
-page metadata on chunks, "nearest" has no reliable meaning and would
-produce confident-looking but unfounded links.
+Extraction order is never a figure identifier. Unverified figures remain
+unlinked rather than falling back to cover photos or nearby images.
 """
 
 import re
@@ -53,15 +16,15 @@ from medrag.processing.models import Chunk
 
 logger = logging.getLogger("medrag.processing")
 
-FIGURE_PATTERN = re.compile(r"\bfig(?:ure)?s?\.?\s*(\d+)", re.IGNORECASE)
+FIGURE_PATTERN = re.compile(r"\bfig(?:ure)?s?\.?\s*(\d+(?:\.\d+)*[a-z]?)", re.IGNORECASE)
 IMAGE_FILENAME_ORDER_PATTERN = re.compile(r"_page(\d+)_img(\d+)\.png$")
 
 
-def extract_figure_references(text: str) -> List[int]:
+def extract_figure_references(text: str) -> List[str]:
     """Find every 'Figure N' / 'Fig. N' style mention in text, in order of
-    appearance. Sub-figure suffixes ('Figure 2a') are matched on the leading
-    number only - the suffix is not distinguished."""
-    return [int(m) for m in FIGURE_PATTERN.findall(text)]
+    appearance. Decimal numbers and sub-figure suffixes are preserved;
+    Figure 3.2 must never silently become Figure 3."""
+    return [m.lower() for m in FIGURE_PATTERN.findall(text)]
 
 def is_figure_listing_chunk(raw_text: str, min_distinct_figures: int = 3) -> bool:
     """
@@ -95,8 +58,8 @@ def group_images_by_document(
 ) -> Dict[str, List[WhoImage]]:
     """
     Group unique images by canonical document id, sorted into extraction
-    order (page, then in-page index) - this ordering stands in for figure
-    order. canonical_id is computed the same way chunker.py computes
+    order (page, then in-page index) for inventory only, never figure
+    matching. canonical_id is computed the same way chunker.py computes
     Chunk.source_id ("+".join(sorted(topics))), so it lines up with chunks
     from the same underlying document without needing a shared literal id.
     """
@@ -132,11 +95,12 @@ def link_images_to_chunks(
     chunks: List[Chunk],
     image_records: List[WhoImage],
     topics_per_record: List[List[str]],
+    verified_figures: Dict[tuple, dict] = None,
 ) -> Tuple[List[dict], dict]:
     """
     Full pipeline: for every WHO document, scan its text chunks for
-    'Figure N' mentions and link each to the Nth image extracted from that
-    same document (1-indexed, matching natural figure numbering).
+    exact figure mentions and resolve them through verified_figures.
+    Missing verified mappings produce no links.
 
     Only chunk_type == "text" chunks are scanned - table chunks are
     row/cell data, not prose that references figures.
@@ -146,10 +110,9 @@ def link_images_to_chunks(
                canonical_id, match_type}, one entry per mention (a chunk
                mentioning two figures produces two entries; an image
                mentioned by two chunks produces two entries).
-      stats - counts for sanity-checking the heuristic: how many documents
+      stats - counts for checking mapping coverage: how many documents
               had both images and chunks, how many figure mentions were
-              found, how many fell outside the image count for their
-              document (likely mis-numbered or non-sequential figures),
+              found, how many had no verified caption/page mapping,
               and how many unique images ended up with zero links.
     """
     doc_images = group_images_by_document(image_records, topics_per_record)
@@ -189,19 +152,18 @@ def link_images_to_chunks(
 
             for fig_num in extract_figure_references(chunk.raw_text):
                 stats["figure_mentions_found"] += 1
-                ordinal = fig_num - 1
+                figure = (verified_figures or {}).get((canonical_id, fig_num))
 
-                if 0 <= ordinal < len(images):
-                    image = images[ordinal]
+                if figure:
                     links.append({
                         "chunk_id": chunk.chunk_id,
                         "point_id": chunk.point_id,
-                        "image_filename": image.filename,
+                        "image_filename": figure["filename"],
                         "figure_number": fig_num,
                         "canonical_id": canonical_id,
-                        "match_type": "ordinal_caption",
+                        "match_type": "verified_caption",
                     })
-                    linked_image_keys.add((canonical_id, image.filename))
+                    linked_image_keys.add((canonical_id, figure["filename"]))
                 else:
                     stats["figure_mentions_out_of_range"] += 1
                     logger.debug(

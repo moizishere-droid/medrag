@@ -12,6 +12,14 @@
 !data/raw/
 !data/raw/who/
 !data/raw/who/*.json
+!data/tables/
+!data/tables/who/
+!data/tables/who/*.jsonl
+!data/images/
+!data/images/who/
+!data/images/who/*.png
+!data/images/who/*_metadata.jsonl
+!data/images/who/verified_figures.jsonl
 **/__pycache__
 **/*.pyc
 **/.env*

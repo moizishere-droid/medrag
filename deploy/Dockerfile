@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir torch==2.3.1+cpu torchvision==0.18.1+cpu --index-
 COPY pyproject.toml .
 COPY backend /app/backend
 COPY data/raw/who /app/data/raw/who
+COPY data/tables/who /app/data/tables/who
+COPY data/images/who /app/data/images/who
 RUN pip install --no-deps . \
     && useradd --uid 10001 --create-home medrag \
     && mkdir -p /app/.cache/huggingface /app/.medrag_cache \

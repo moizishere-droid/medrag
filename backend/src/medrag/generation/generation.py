@@ -32,6 +32,7 @@ reference.
 
 import logging
 import re
+from pathlib import Path
 from typing import List, Optional
 
 import openai
@@ -40,6 +41,7 @@ from qdrant_client import QdrantClient
 
 from medrag.retrieval.reranking import search_with_reranking
 from medrag.generation.language import language_instruction, complete_in_query_language
+from medrag.citations.visuals import attach_source_visuals, get_visual_catalog
 
 logger = logging.getLogger("medrag.generation")
 
@@ -56,6 +58,8 @@ The context below is in English. Detect the language of the user's question and 
 
 After each claim or statement in your answer, add a bracketed citation referencing which numbered context block it came from, e.g. "ACE inhibitors can cause dry cough [1]." If a claim is supported by multiple sources, cite all of them, e.g. [1][3].
 
+Some context blocks list verified source figures available for display. The application displays these figures separately when you cite that block. When the user requests an available figure, cite its block and say the source figure is attached below. You receive its caption, not its pixels: do not invent or describe unseen visual details. If no verified figure is listed, do not promise an image.
+
 {graph_section}
 
 Context:
@@ -66,12 +70,20 @@ _known_drug_names_cache: Optional[List[str]] = None
 _known_drug_names_cache_driver = None
 
 
-def format_context(results: List[dict]) -> str:
+def format_context(results: List[dict], visual_catalog=None) -> str:
     """Format hybrid_search/reranking results into a numbered context
     block, one block per chunk, labeled by source."""
     blocks = []
+    catalog = visual_catalog if visual_catalog is not None else get_visual_catalog(Path(__file__).resolve().parents[4] / "data")
+    visuals = attach_source_visuals([{"marker": i} for i in range(1, len(results) + 1)], results, catalog)
     for i, r in enumerate(results, 1):
-        blocks.append(f"[{i}] (source: {r['payload']['source']})\n{r['payload']['raw_text']}")
+        block = f"[{i}] (source: {r['payload']['source']})\n{r['payload']['raw_text']}"
+        images = visuals[i - 1]["images"]
+        if images:
+            block += "\nVerified source figures available for display with this citation:\n" + "\n".join(
+                f"- {image['caption']} (PDF page {image['page_number'] + 1})" for image in images
+            )
+        blocks.append(block)
     return "\n\n".join(blocks)
 
 

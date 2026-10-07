@@ -65,12 +65,15 @@ def test_empty_image_pipeline_produces_saveable_vectors(tmp_path):
     assert loaded.shape == (0, 512) and rows == []
 
 
-def test_image_links_require_aligned_topics_and_use_document_ordinal(chunk):
+def test_image_links_require_aligned_topics_and_verified_captions(chunk):
     image = WhoImage(topic="diabetes", page_number=0, image_index=0, filename="diabetes_page0_img0.png", width=100, height=100)
     with pytest.raises(ValueError, match="matching lengths"):
         image_linking.group_images_by_document([image], [])
     chunk.raw_text = "See Figure 1 for the evidence."
     links, stats = image_linking.link_images_to_chunks([chunk], [image], [["diabetes"]])
+    assert links == []  # Extraction order is not figure identity.
+    links, stats = image_linking.link_images_to_chunks([chunk], [image], [["diabetes"]],
+        {("diabetes", "1"): {"filename": image.filename}})
     assert links[0]["image_filename"] == image.filename and stats["unique_images_linked"] == 1
     chunk.raw_text = "Figure 1; Figure 2; Figure 3; contents."
     links, stats = image_linking.link_images_to_chunks([chunk], [image], [["diabetes"]])
