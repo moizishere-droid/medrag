@@ -28,3 +28,5 @@ wandb/
 neo4j_data/
 
 postgres_data/
+.medrag_cache/
+ci-reports/

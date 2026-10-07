@@ -1,0 +1,70 @@
+name: MedRAG release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+  publish:
+    name: Publish tested release containers
+    needs: checks
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - name: Check out tested source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Sign in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Set up container builder
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Determine release image name
+        id: image
+        shell: bash
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          repository="${GITHUB_REPOSITORY,,}"
+          echo "tag=ghcr.io/${repository}-${COMPONENT}:sha-$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+      - name: Build and publish tested component
+        id: publish
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          target: ${{ matrix.component }}
+          push: true
+          tags: ${{ steps.image.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=medrag-${{ matrix.component }}
+      - name: Record deployable digest
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+        run: printf '%s\n' "$IMAGE_TAG" "$IMAGE_DIGEST" >> "$GITHUB_STEP_SUMMARY"
+      - name: Sign out of registry
+        if: always()
+        run: docker logout ghcr.io

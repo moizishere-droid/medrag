@@ -316,6 +316,18 @@ def test_follow_up_retrieves_with_the_rewritten_query_but_answers_the_original(p
     assert len(cm.get_session_history(pg_conn, sid)) == 4
 
 
+def test_explicit_topic_question_skips_rewrite_but_keeps_history(pg_conn, retrieval):
+    sid = cm.create_session(pg_conn)
+    cm.add_message(pg_conn, sid, "user", "Earlier question")
+    cm.add_message(pg_conn, sid, "assistant", "Earlier answer")
+    client = ScriptedOpenAI("Diabetes answer [1].")
+    cm.generate_answer_with_memory("What is diabetes?", sid, pg_conn,
+                                  qdrant_client=object(), openai_client=client, user_id=sid)
+    assert len(client.calls) == 1
+    assert client.calls[0][1]["content"] == "Earlier question"
+    assert retrieval.calls[0]["query"] == "What is diabetes?"
+
+
 def test_user_id_none_is_forwarded_unchanged(pg_conn, retrieval):
     sid = cm.create_session(pg_conn)
     cm.generate_answer_with_memory(

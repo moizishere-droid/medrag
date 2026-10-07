@@ -1,0 +1,17 @@
+**
+!pyproject.toml
+!backend/
+!backend/**
+!frontend/
+!frontend/**
+!tests/
+!tests/**
+!deploy/
+!deploy/**
+!data/
+!data/raw/
+!data/raw/who/
+!data/raw/who/*.json
+**/__pycache__
+**/*.pyc
+**/.env*

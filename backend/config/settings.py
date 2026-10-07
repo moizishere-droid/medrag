@@ -22,6 +22,8 @@ _ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
+    rerank_backend: str = Field(default="onnx", pattern="^(onnx|torch)$", alias="RERANK_BACKEND")
+    rerank_threads: int = Field(default=4, ge=1, le=32, alias="RERANK_THREADS")
     auth_cookie_secure: bool = Field(default=False, alias="AUTH_COOKIE_SECURE")
     cors_origins: List[str] = Field(default=["http://localhost:8501", "http://127.0.0.1:8501", "http://localhost:8502", "http://127.0.0.1:8502"], alias="CORS_ORIGINS")
     retrieval_warmup: bool = Field(default=True, alias="RETRIEVAL_WARMUP")

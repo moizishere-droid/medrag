@@ -23,6 +23,8 @@ pool hybrid_search() already correctly filtered.
 import logging
 from typing import List, Optional
 from threading import Lock
+from pathlib import Path
+from config.settings import settings
 
 from sentence_transformers import CrossEncoder
 
@@ -38,12 +40,18 @@ _cross_encoder_cache = None
 _cross_encoder_lock = Lock()
 
 
-def get_cross_encoder() -> CrossEncoder:
+def get_cross_encoder():
     global _cross_encoder_cache
     with _cross_encoder_lock:
         if _cross_encoder_cache is None:
             logger.info(f"Loading cross-encoder '{CROSS_ENCODER_MODEL}'...")
-            _cross_encoder_cache = CrossEncoder(CROSS_ENCODER_MODEL)
+            encoder = CrossEncoder(CROSS_ENCODER_MODEL)
+            if settings.rerank_backend == "onnx" and encoder.model.device.type == "cpu":
+                from medrag.retrieval.onnx_reranker import OnnxReranker
+                cache_dir = Path(__file__).resolve().parents[4] / ".medrag_cache"
+                encoder = OnnxReranker(encoder, cache_dir, settings.rerank_threads)
+                logger.info("FP32 ONNX reranker ready")
+            _cross_encoder_cache = encoder
     return _cross_encoder_cache
 
 

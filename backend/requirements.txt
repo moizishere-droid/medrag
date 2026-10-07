@@ -107,5 +107,7 @@ langchain-openai==1.6.2
 
 # --- Testing ---
 langdetect==1.0.9
+onnx==1.17.0
+onnxruntime==1.29.0
 pytest==8.2.2
 pytest-cov==7.1.0

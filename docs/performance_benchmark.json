@@ -1,0 +1,86 @@
+[
+  {
+    "backend": "torch",
+    "query": "What is type 2 diabetes?",
+    "seconds": 15.968,
+    "stages": "Chat pipeline seconds: reformulation=0.010 retrieval=13.517 graph_history=0.121 generation=2.301",
+    "top_chunks": [
+      "diabetes_who_text_11",
+      "Liraglutide_openfda_21",
+      "coronary artery disease+heart failure+hyperlipidemia+stroke_who_text_189",
+      "asthma+copd_who_table_88",
+      "coronary artery disease+heart failure+hyperlipidemia+stroke_who_text_115"
+    ],
+    "answer_characters": 284
+  },
+  {
+    "backend": "torch",
+    "query": "What is hypertension?",
+    "seconds": 13.492,
+    "stages": "Chat pipeline seconds: reformulation=0.002 retrieval=11.127 graph_history=0.007 generation=2.348",
+    "top_chunks": [
+      "hypertension_who_text_11",
+      "hypertension_who_text_9",
+      "42476290_pubmed_0",
+      "42472664_pubmed_0",
+      "hypertension_who_text_60"
+    ],
+    "answer_characters": 507
+  },
+  {
+    "backend": "torch",
+    "query": "What is metformin used for?",
+    "seconds": 9.105,
+    "stages": "Chat pipeline seconds: reformulation=0.008 retrieval=6.678 graph_history=0.008 generation=2.404",
+    "top_chunks": [
+      "coronary artery disease+heart failure+hyperlipidemia+stroke_who_text_116",
+      "Metformin Hydrochloride_openfda_18",
+      "Metformin Hydrochloride_openfda_0",
+      "Metformin Hydrochloride_openfda_11",
+      "Metformin Hydrochloride_openfda_14"
+    ],
+    "answer_characters": 480
+  },
+  {
+    "backend": "onnx",
+    "query": "What is type 2 diabetes?",
+    "seconds": 5.343,
+    "stages": "Chat pipeline seconds: reformulation=0.001 retrieval=3.803 graph_history=0.005 generation=1.526",
+    "top_chunks": [
+      "diabetes_who_text_11",
+      "Liraglutide_openfda_21",
+      "coronary artery disease+heart failure+hyperlipidemia+stroke_who_text_189",
+      "asthma+copd_who_table_88",
+      "coronary artery disease+heart failure+hyperlipidemia+stroke_who_text_115"
+    ],
+    "answer_characters": 318
+  },
+  {
+    "backend": "onnx",
+    "query": "What is hypertension?",
+    "seconds": 5.82,
+    "stages": "Chat pipeline seconds: reformulation=0.001 retrieval=3.878 graph_history=0.004 generation=1.924",
+    "top_chunks": [
+      "hypertension_who_text_11",
+      "hypertension_who_text_9",
+      "42476290_pubmed_0",
+      "42472664_pubmed_0",
+      "hypertension_who_text_60"
+    ],
+    "answer_characters": 481
+  },
+  {
+    "backend": "onnx",
+    "query": "What is metformin used for?",
+    "seconds": 4.571,
+    "stages": "Chat pipeline seconds: reformulation=0.002 retrieval=2.785 graph_history=0.003 generation=1.772",
+    "top_chunks": [
+      "coronary artery disease+heart failure+hyperlipidemia+stroke_who_text_116",
+      "Metformin Hydrochloride_openfda_18",
+      "Metformin Hydrochloride_openfda_0",
+      "Metformin Hydrochloride_openfda_11",
+      "Metformin Hydrochloride_openfda_14"
+    ],
+    "answer_characters": 517
+  }
+]

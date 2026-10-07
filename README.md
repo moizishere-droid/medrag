@@ -283,6 +283,15 @@ when updating (`langdetect==1.0.9` was added for local language identification).
 
 See [the Phase 21 UI follow-up](docs/phase21_ui_followup.md) for verification.
 
+CPU reranking now defaults to full-precision ONNX inference using the same
+cross-encoder weights, token limit, 20-candidate pool and five final results.
+The first startup exports the model into ignored `.medrag_cache/`; subsequent
+starts reuse an export identified by its weights/configuration. Keep startup
+warmup enabled. Install the updated pinned requirements before restarting the
+backend. `RERANK_BACKEND=torch` restores the original runtime;
+`RERANK_THREADS=4` controls ONNX CPU threads. No query, answer or private evidence
+cache was introduced. See [measured timings](docs/performance_report.md).
+
 Detailed implementation reports are available in [`docs/`](docs/):
 
 * `phase00_report.md` → Architecture
@@ -298,6 +307,10 @@ The notebooks contain the experimentation and validation work behind the product
 ---
 
 ## Roadmap
+
+Phase 22 adds GitHub Actions checks and tested container release publishing.
+See [CI/CD setup and release guide](docs/phase22_cicd.md) for triggers, local
+verification, required repository settings and the remaining deployment steps.
 
 ```text
 Ingestion

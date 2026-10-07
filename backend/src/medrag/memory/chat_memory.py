@@ -28,6 +28,7 @@ Standalone callers also get atomic persistence of the message pair.
 import json
 import uuid
 import logging
+import re
 from time import perf_counter
 from typing import List, Optional
 
@@ -50,6 +51,7 @@ from medrag.retrieval.reranking import search_with_reranking
 from medrag.memory.db import transaction
 from medrag.memory.session_titles import title_from_query
 from medrag.generation.language import language_instruction, complete_in_query_language
+from medrag.topics import TOPICS
 
 logger = logging.getLogger("medrag.memory")
 
@@ -203,7 +205,10 @@ def reformulate_query(
     conversation history, so retrieval and knowledge-graph drug
     detection have meaningful content to work with."""
     history_messages = build_message_history(conn, session_id, bounded_turns=4)
-    if not history_messages:
+    explicit_topic = any(re.search(r"(?<!\w)" + re.escape(topic) + r"(?!\w)", query, re.I) for topic in TOPICS)
+    contextual = re.search(r"\b(it|its|they|them|their|this|that|these|those|previous|above|same|discussed|also)\b", query, re.I)
+    standalone = bool(explicit_topic and not contextual and re.match(r"\s*(what (is|are)|explain|describe|define)\b", query, re.I))
+    if not history_messages or standalone:
         return query
 
     history_text = "\n".join(f"{m['role']}: {m['content']}" for m in history_messages)

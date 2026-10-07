@@ -1,0 +1,70 @@
+# Disposable services: no host ports, local .env, production volumes or credentials.
+services:
+  vector-ci:
+    image: qdrant/qdrant@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
+  graph-ci:
+    image: neo4j@sha256:956faa5d14b6beaa629b80c718bfd389ec12064f97e276ed9a58b0c53b25a323
+    environment:
+      NEO4J_AUTH: neo4j/ci-test-password
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+  postgres-ci:
+    image: postgres@sha256:0f989d656f95dda60a631c8e1c67287df49b31a73f147e4290d5924fdc7f46e3
+    environment:
+      POSTGRES_USER: medrag
+      POSTGRES_PASSWORD: ci-test-password
+      POSTGRES_DB: medrag_chat
+  tests:
+    image: medrag-test:ci
+    environment:
+      OPENAI_API_KEY: sk-test-placeholder
+      PUBMED_EMAIL: test@example.com
+      QDRANT_URL: http://vector-ci:6333
+      MEDRAG_TEST_QDRANT_URL: http://vector-ci:6333
+      NEO4J_URI: bolt://graph-ci:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ci-test-password
+      POSTGRES_HOST: postgres-ci
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: medrag_chat
+      POSTGRES_USER: medrag
+      POSTGRES_PASSWORD: ci-test-password
+      AUTH_REQUIRED: "true"
+      RETRIEVAL_WARMUP: "true"
+      RERANK_BACKEND: onnx
+      MEDRAG_CI: "true"
+      COVERAGE_FILE: /reports/.coverage
+    volumes:
+      - ${MEDRAG_CI_REPORTS:?Set an absolute disposable reports directory}:/reports
+      - model-downloads:/app/.cache/huggingface
+      - model-exports:/app/.medrag_cache
+  api-ci:
+    image: medrag-backend:ci
+    volumes:
+      - model-downloads:/app/.cache/huggingface
+      - model-exports:/app/.medrag_cache
+    environment:
+      OPENAI_API_KEY: sk-test-placeholder
+      PUBMED_EMAIL: test@example.com
+      QDRANT_URL: http://vector-ci:6333
+      NEO4J_URI: bolt://graph-ci:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ci-test-password
+      POSTGRES_HOST: postgres-ci
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: medrag_chat
+      POSTGRES_USER: medrag
+      POSTGRES_PASSWORD: ci-test-password
+      AUTH_REQUIRED: "true"
+      RETRIEVAL_WARMUP: "true"
+      RERANK_BACKEND: onnx
+  ui-ci:
+    image: medrag-frontend:ci
+    environment:
+      MEDRAG_API_URL: http://api-ci:8000
+      # Only server health is checked here; no browser cookie test is implied.
+      MEDRAG_BROWSER_API_URL: http://localhost:8000
+volumes:
+  model-downloads:
+  model-exports:

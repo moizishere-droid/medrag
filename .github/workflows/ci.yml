@@ -1,0 +1,111 @@
+name: MedRAG CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Tests and container checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      COMPOSE_PROJECT_NAME: medrag-ci
+      MEDRAG_CI_REPORTS: ${{ github.workspace }}/ci-reports
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Prepare test reports
+        run: mkdir -p ci-reports && chmod 777 ci-reports
+      - name: Validate workflow expressions and shell scripts
+        run: >-
+          docker run --rm -v "$PWD:/work:ro" -w /work
+          rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+      - name: Set up container builder
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build clean test environment
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          target: test
+          load: true
+          tags: medrag-test:ci
+          cache-from: type=gha,scope=medrag-backend
+          cache-to: type=gha,mode=max,scope=medrag-backend
+      - name: Check source syntax
+        run: docker run --rm --user root medrag-test:ci python -m compileall -q backend/src backend/config frontend deploy
+      - name: Unit, API and frontend tests
+        run: >-
+          docker compose -f deploy/compose.ci.yml run --rm -T tests
+          python -m pytest -q -m 'not integration and not live'
+          --junitxml=/reports/unit.xml --cov=medrag
+          --cov-report=xml:/reports/coverage.xml --cov-report=term
+      - name: Start disposable integration services
+        run: docker compose -f deploy/compose.ci.yml up -d vector-ci graph-ci postgres-ci
+      - name: Wait for services and seed synthetic graph
+        run: docker compose -f deploy/compose.ci.yml run --rm -T tests python deploy/prepare_ci_services.py
+      - name: Integration tests including real model startup
+        run: >-
+          docker compose -f deploy/compose.ci.yml run --rm -T tests
+          python -m pytest -q -m 'integration and not live'
+          --junitxml=/reports/integration.xml --cov=medrag --cov-append
+          --cov-report=xml:/reports/coverage.xml --cov-report=term --cov-fail-under=85
+      - name: Build backend release image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          target: backend
+          load: true
+          tags: medrag-backend:ci
+          cache-from: type=gha,scope=medrag-backend
+      - name: Build frontend release image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          target: frontend
+          load: true
+          tags: medrag-frontend:ci
+          cache-from: type=gha,scope=medrag-frontend
+          cache-to: type=gha,mode=max,scope=medrag-frontend
+      - name: Start packaged servers on the isolated network
+        run: docker compose -f deploy/compose.ci.yml up -d api-ci ui-ci
+      - name: Check packaged servers and authentication
+        run: |
+          docker compose -f deploy/compose.ci.yml run --rm -T tests python deploy/smoke_runtime.py
+      - name: Render the packaged sign-in screen
+        run: >-
+          docker compose -f deploy/compose.ci.yml exec -T ui-ci
+          python -c "from streamlit.testing.v1 import AppTest;
+          app=AppTest.from_file('frontend/streamlit_app.py').run(timeout=30);
+          assert not app.exception;
+          assert any(title.value == 'Sign in to MedRAG' for title in app.title)"
+      - name: Capture service logs
+        if: failure()
+        run: docker compose -f deploy/compose.ci.yml logs --no-color > ci-reports/services.log
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-test-reports
+          path: ci-reports/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Clean up disposable resources
+        if: always()
+        run: |
+          docker compose -f deploy/compose.ci.yml down -v --remove-orphans
