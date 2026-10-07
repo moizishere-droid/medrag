@@ -1,4 +1,34 @@
-# Phase 22: continuous integration and release delivery
+# Phase 22 Report: GitHub Actions CI and release delivery
+
+Date: 7 October 2026 (Asia/Karachi).
+
+## Outcome
+
+Continuous integration is implemented and verified both locally and on GitHub.
+Pull requests and main-branch pushes automatically check the project, run tests,
+build application containers, and verify packaged startup. A separate release
+workflow prepares delivery through GitHub Container Registry after checks pass.
+Registry publishing has not been verified, and no hosting deployment is configured.
+
+This phase turns the Phase 21 tests into repeatable checks on a clean Linux
+environment. It does not change the retrieval privacy contract, automatically
+ingest medical data, or deploy the application to a public platform.
+
+## Files delivered
+
+| File | Purpose |
+|---|---|
+| `.github/workflows/ci.yml` | Automated tests, coverage, builds, startup checks and reports |
+| `.github/workflows/release.yml` | Rerun CI before publishing backend/frontend release images |
+| `.github/dependabot.yml` | Propose updates to Actions, Docker and Python dependencies |
+| `deploy/Dockerfile` | Test, backend and lean frontend image targets |
+| `deploy/compose.ci.yml` | Isolated PostgreSQL, Qdrant, Neo4j and packaged test services |
+| `deploy/prepare_ci_services.py` | Wait for services and seed a guarded synthetic graph |
+| `deploy/smoke_runtime.py` | Check actual packaged server health and authentication |
+| `frontend/requirements.txt` | Separate frontend dependencies |
+| `.dockerignore` | Allowlisted build context excluding credentials and local artifacts |
+| `tests/unit/test_ci_service_guard.py` | Reject non-CI targets before any network/database access |
+| `.gitignore` and `README.md` | Ignore generated CI evidence and document the workflow |
 
 GitHub Actions checks pull requests, pushes to `main`, and manual CI runs.
 The release workflow reruns the same checks before publishing backend and
@@ -98,7 +128,8 @@ instead of `export`; use single-line commands rather than Bash continuations.
 
 ## GitHub activation and deployment follow-up
 
-After committing/pushing the reviewed files, verify the first GitHub-hosted run.
+The initial implementation was committed and pushed; the first main-branch
+GitHub-hosted run passed, as recorded below.
 Make **Tests and container checks** a required main-branch check using repository
 rules. Protect release tags and restrict who can publish releases. Enable Actions
 and package publishing if repository/organization policies require it. None of
@@ -140,6 +171,39 @@ suite also passed; an initially misplaced unit-only coverage gate was corrected
 to apply to combined unit/integration coverage, then verified in Linux.
 
 Disposable local CI containers, networks and volumes were removed after checks.
-Local XML/coverage evidence is in ignored `ci-reports/`; subsequent GitHub runs
-will upload their own evidence as workflow artifacts.
-GitHub-hosted execution and registry publication have not yet been run.
+Local XML/coverage evidence is in ignored `ci-reports/`; GitHub runs upload
+their own evidence as workflow artifacts.
+
+## GitHub verification
+
+The **MedRAG CI** run for commit
+`dc28b8728ce26c8f7b5f6e1aec1c908e5974a862` completed successfully:
+
+- [Run 37601465282](https://github.com/moizishere-droid/medrag/actions/runs/37601465282).
+- Workflow start: 7 October 2026, 2:33:46 PM Pakistan time.
+- Final workflow update: 2:44:12 PM Pakistan time; approximately 10 minutes 26 seconds.
+- **Tests and container checks** job: successful.
+- Workflow validation, clean dependency build, unit/API/frontend tests,
+  integration tests, both application builds, packaged health/authentication
+  checks, sign-in rendering, artifact upload and cleanup all succeeded.
+
+The 354-test count and 89.24% coverage above are the measured local Linux
+results. GitHub job/step conclusions independently confirm successful hosted
+execution; the hosted artifacts retain its detailed test and coverage results.
+Separate Dependabot pull requests may fail their checks and require review;
+those failures do not change the successful main-commit result.
+
+## Remaining work and phase boundary
+
+1. Confirm repository rules require **Tests and container checks** before merging.
+   Branch/ruleset settings were recommended but are not verified by this report.
+2. Review dependency-update pull requests individually, preserving compatible pins.
+3. Trigger and verify a release publication when ready; no registry publication
+   was performed as part of these checks.
+4. Choose hosting, then configure staging, persistent databases, secrets, HTTPS,
+   deployment checks, production approval and rollback.
+5. Address the persistent uploaded-document list separately; clearing the browser
+   file picker does not delete successfully indexed session-scoped content.
+
+**Phase status:** CI is verified. Release delivery is implemented but unverified
+in the registry. Staging/production deployment is pending the platform decision.

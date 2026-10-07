@@ -309,7 +309,7 @@ The notebooks contain the experimentation and validation work behind the product
 ## Roadmap
 
 Phase 22 adds GitHub Actions checks and tested container release publishing.
-See [CI/CD setup and release guide](docs/phase22_cicd.md) for triggers, local
+See [Phase 22 report and release guide](docs/phase22_report.md) for triggers, local
 verification, required repository settings and the remaining deployment steps.
 
 ```text
