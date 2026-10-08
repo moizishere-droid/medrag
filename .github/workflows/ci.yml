@@ -38,7 +38,7 @@ jobs:
       - name: Set up container builder
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build clean test environment
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: deploy/Dockerfile
@@ -66,7 +66,7 @@ jobs:
           --junitxml=/reports/integration.xml --cov=medrag --cov-append
           --cov-report=xml:/reports/coverage.xml --cov-report=term --cov-fail-under=85
       - name: Build backend release image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: deploy/Dockerfile
@@ -81,7 +81,7 @@ jobs:
           /tmp/medrag-audit/bin/pip install pip-audit==2.10.1
           /tmp/medrag-audit/bin/python deploy/audit_runtime.py ci-reports/backend-packages.json ci-reports/runtime-dependencies.json
       - name: Build frontend release image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: deploy/Dockerfile
