@@ -31,7 +31,8 @@ def public_status(path, ttl=30):
     if cached and time.monotonic() - cached[0] < ttl:
         return cached[1]
     response = requests.get(f"{API_URL}{path}", timeout=5)
-    response.raise_for_status()
+    if not (path == "/health" and response.status_code == 503):
+        response.raise_for_status()
     data = response.json()
     cache[key] = (time.monotonic(), data)
     return data
@@ -57,8 +58,10 @@ def clear_login():
         st.session_state.pop(key, None)
 
 
-if not st.session_state.get("ignore_cookie") and not st.session_state.get("access_token") and st.context.cookies.get("medrag_session"):
-    st.session_state.access_token = st.context.cookies["medrag_session"]
+restored_cookie = st.context.cookies.get("medrag_session")
+if (not st.session_state.get("ignore_cookie") and not st.session_state.get("access_token")
+        and isinstance(restored_cookie, str) and restored_cookie and len(restored_cookie) <= 128):
+    st.session_state.access_token = restored_cookie
 
 if pending := st.session_state.get("auth_action"):
     result = auth_bridge(api_url=BROWSER_API_URL, default=None, key=pending["nonce"], **pending)
@@ -272,8 +275,22 @@ if st.session_state.current_session_id is not None:
 else:
     st.sidebar.caption("Select or create a session to enable document upload.")
 
+if st.session_state.current_session_id is not None:
+    try:
+        uploaded_response = api_get(f"{API_URL}/sessions/{st.session_state.current_session_id}/documents", timeout=5)
+        uploaded_response.raise_for_status()
+        uploaded_documents = uploaded_response.json().get("documents", [])
+        if uploaded_documents:
+            st.sidebar.caption("PDFs already indexed in this chat")
+            for document in uploaded_documents:
+                st.sidebar.text(f"{document['filename']} ({document['chunk_count']} chunks)")
+            st.sidebar.caption("These files remain available after refresh or sign-out when you return to this chat.")
+    except requests.exceptions.RequestException:
+        st.sidebar.warning("The indexed PDF list is temporarily unavailable. This does not mean your files were deleted.")
+
 # --- main area ---
 st.title("MedRAG — Medical Knowledge Assistant")
+st.caption("Educational portfolio demo. Not a diagnosis or treatment service. Avoid uploading personal patient information.")
 st.divider()
 
 if st.session_state.current_session_id is None:
@@ -295,20 +312,27 @@ else:
             marker = f"[{citation['marker']}]"
             title = citation["title"]
             table = citation.get("table")
+            if citation.get("table_warning"):
+                st.warning(f"Source table {marker}: {citation['table_warning']}")
             if table and citation["chunk_id"] not in tables_seen:
                 tables_seen.add(citation["chunk_id"])
-                with st.expander(f"Source table {marker} — {title}", expanded=True):
+                with st.expander(f"Original source excerpt {marker} — {title}", expanded=True):
                     if table.get("page_number") is not None:
                         st.caption(f"PDF page {table['page_number'] + 1}")
                     if table.get("part"):
                         st.caption(f"Table part {table['part']}")
                     rows = table["rows"]
                     width = max((len(row) for row in rows), default=0)
-                    if width:
+                    st.caption("Original source language; not translated. This is a retrieved extract, not the full PDF.")
+                    if width == 1:
+                        for row in rows:
+                            if row and row[0]:
+                                st.text(row[0])
+                    elif width:
                         columns = {f"Column {i + 1}": [row[i] if i < len(row) else "" for row in rows]
                                    for i in range(width)}
-                        st.dataframe(columns, hide_index=True)
-                        st.caption("Extracted source cells; original header rows are retained. Check the source PDF for formatting.")
+                        st.table(columns)
+                    st.caption("All extracted rows are shown. Scroll to read the remaining content; check the cited PDF for original formatting.")
             for image in citation.get("images", []):
                 filename = image["filename"]
                 if filename in images_seen:
@@ -369,7 +393,7 @@ else:
                         "session_id": st.session_state.current_session_id,
                         "message": prompt,
                     },
-                    timeout=60,
+                    timeout=90,
                 )
                 resp.raise_for_status()
                 data = resp.json()
@@ -384,7 +408,9 @@ else:
                 st.session_state.messages.append(
                     {
                         "role": "assistant",
-                        "content": f"Error contacting backend: {e}",
+                        "content": ("The answer service timed out. Your question is still visible. Check chat history before retrying; the request may have completed."
+                                    if isinstance(e, requests.exceptions.Timeout) else
+                                    "The answer service is temporarily unavailable. Your question is still visible. Please try again later."),
                         "citations": None,
                     }
                 )

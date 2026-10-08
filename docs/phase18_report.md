@@ -1,4 +1,4 @@
-> Historical phase snapshot. See [the October 2026 audit](project_audit_report.md) for current corrections, verification, and limits.
+> Historical phase snapshot. See [the October 2026 audit](phase21_report.md#project-audit) for current corrections, verification, and limits.
 
 # Phase 18: FastAPI — Report
 
@@ -52,4 +52,4 @@ Changed or reviewed files:
 - [backend/src/medrag/api/main.py](../backend/src/medrag/api/main.py)
 - [backend/src/medrag/api/models.py](../backend/src/medrag/api/models.py)
 
-Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](project_audit_report.md#validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.
+Verification: the original audit checks passed. Current results, subsequent fixes and the phase-by-phase review are recorded in [Phase 21](phase21_report.md) and the [current audit validation](phase21_report.md#project-audit-validation). Original observations above remain a historical phase snapshot; full notebook execution, paid API calls and source refreshes were not performed in this review.

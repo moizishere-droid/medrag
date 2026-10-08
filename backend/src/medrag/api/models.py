@@ -8,10 +8,11 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
+from medrag.generation.limits import MAX_QUESTION_CHARACTERS, MAX_TITLE_CHARACTERS
 
 
 class CreateSessionRequest(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, max_length=MAX_TITLE_CHARACTERS)
 
 
 class Credentials(BaseModel):
@@ -48,7 +49,7 @@ class SessionHistoryResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     session_id: str
-    message: str
+    message: str = Field(min_length=1, max_length=MAX_QUESTION_CHARACTERS)
 
     @field_validator("session_id")
     @classmethod
@@ -86,6 +87,7 @@ class CitationOut(BaseModel):
     url: Optional[str] = None
     linked_images: list = []
     table: Optional[SourceTable] = None
+    table_warning: Optional[str] = None
     images: List[SourceImage] = Field(default_factory=list)
 
 

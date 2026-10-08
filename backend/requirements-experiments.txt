@@ -1,0 +1,16 @@
+# Notebook, ingestion and test extras; installed on top of the API runtime.
+sqlalchemy==2.0.30
+open-clip-torch==3.3.0
+rank-bm25==0.2.2
+streamlit==1.64.0
+biopython==1.88
+pypdf==6.19.0
+pymupdf==1.28.0
+ragas==0.3.9
+datasets==5.0.1
+langchain==1.4.0
+langchain-community==0.4.2
+langchain-core==1.6.3
+langchain-openai==1.6.2
+pytest==9.0.3
+pytest-cov==7.1.0

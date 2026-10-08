@@ -14,23 +14,13 @@ Chunking reuses Phase 5's sentence_based_chunk() directly - it is
 already source-agnostic (text in, sentence-grouped chunks out); only
 the tagging/metadata wrapping here is new.
 
-Isolation model (the core design of this phase, validated directly
-before being adopted): every uploaded chunk is tagged with THREE ids,
-not one:
-  - user_id: the actual retrieval-isolation boundary. Any chat/session
-    belonging to this user can see this upload; a different user's
-    queries never can. This is what makes "I have multiple open chats
-    like ChatGPT/Claude, and they can all see my own uploads, but a
-    different person can't see mine" work.
-  - session_id: which specific chat the upload happened in - kept for
-    citation display only, not used as a retrieval filter.
-  - document_id: distinguishes multiple uploads from each other within
-    the same user.
-An earlier version of this design used session_id as the isolation
-boundary; this was found to be too narrow once multi-chat behavior was
-clarified (a user's second open chat couldn't see an upload made in
-their first chat) and was replaced with user_id before being used in
-production.
+Isolation contract: the API passes the owning chat's session_id as the
+retrieval user_id key. Uploaded chunks are visible only in that chat,
+including after refresh and sign-in. A different chat or account cannot
+retrieve them. session_id and document_id metadata also support upload
+inventory, publication and deletion. Missing retrieval identity is curated-only;
+full-corpus evaluation requires an explicit internal evaluation option.
+
 """
 
 import io
@@ -49,6 +39,8 @@ from medrag.embeddings.qdrant_client import DENSE_VECTOR_NAME, SPARSE_VECTOR_NAM
 logger = logging.getLogger("medrag.ingestion.user_upload")
 
 MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB
+MAX_UPLOAD_PAGES = 100
+MAX_EXTRACTED_CHARACTERS = 200000
 DEFAULT_TARGET_TOKENS = 300
 DENSE_EMBEDDING_MODEL = "text-embedding-3-small"
 SPARSE_MODEL_NAME = "Qdrant/bm25"
@@ -93,7 +85,18 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     limitation, not a bug)."""
     try:
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-            pages_text = [page.extract_text() or "" for page in pdf.pages]
+            if len(pdf.pages) > MAX_UPLOAD_PAGES:
+                raise UploadExtractionError(f"PDF exceeds the {MAX_UPLOAD_PAGES}-page upload limit.")
+            pages_text = []
+            total_characters = 0
+            for page in pdf.pages:
+                text = page.extract_text() or ""
+                total_characters += len(text)
+                if total_characters > MAX_EXTRACTED_CHARACTERS:
+                    raise UploadExtractionError("PDF contains too much extracted text. Upload a smaller document.")
+                pages_text.append(text)
+    except UploadExtractionError:
+        raise
     except Exception as e:
         raise UploadExtractionError(f"Could not open or read PDF: {e}") from e
 

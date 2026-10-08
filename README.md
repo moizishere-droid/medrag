@@ -35,13 +35,14 @@ Create the image before enabling this Markdown.
 - **Conversation memory:** contextual follow-ups can be rewritten using previous messages before retrieval.
 - **Multilingual answers:** response language follows the latest question, rather than earlier answers or source-document language.
 - **Citations:** retrieved evidence is associated with answers; entries from the same document are grouped.
-- **Source visuals:** cited WHO evidence can display original extracted table cells and verified caption/page-mapped figures below the answer, with citation markers and PDF page numbers. Unverified figures are omitted.
+- **Source visuals:** cited WHO evidence can display original extracted table cells and verified caption/page-mapped figures below the answer, with citation markers and PDF page numbers. Unverified figures and damaged table extractions are omitted; figure captions are not treated as full clinical visual evidence.
 - **Private chats and uploads:** account-owned sessions and PDF evidence scoped to the chat where it was indexed.
+- **Persistent upload inventory:** already-indexed PDFs remain listed in their owning chat after refresh or signing back in.
 - **Persistent storage:** PostgreSQL stores accounts, sessions, messages, citations and upload metadata.
 - **Streamlit UI:** persistent sign-in, chat selection, immediate question display, thinking indicator, first-question chat titles, PDF upload and topic/source panel.
 - **Automated verification:** unit, API, frontend, integration and packaged startup checks.
 
-**Multilingual does not mean a fixed six-language limit.** The application detects the current query language and instructs the OpenAI model to answer accordingly. Detection and generation can be imperfect; ambiguous short medical terms default to English. A detected answer-language mismatch is retried once and rejected if it persists.
+**Multilingual does not mean a fixed six-language limit.** The application detects the current query language, uses an English rewrite for retrieval over the curated English corpus when needed, and instructs the OpenAI model to answer in the original question's language. Detection and generation can be imperfect; ambiguous short medical terms default to English. A detected answer-language mismatch is retried once and rejected if it persists.
 
 The repository also implements **WHO table/image extraction, CLIP image embeddings and image-to-text links**. The chat can show tables and linked figures from cited WHO evidence. It accepts text questions and PDFs, not image questions; independent CLIP image search is not part of the chat retrieval flow.
 
@@ -342,7 +343,7 @@ GitHub Actions validates workflows/source syntax, tests ordinary and integration
 
 The Dockerfile has `test`, `backend` and `frontend` targets. Root Compose is a local database setup; `deploy/compose.ci.yml` is an isolated test setup. Public hosting configuration remains pending.
 
-**Current status:** all local tests pass, but the latest reviewed main-commit GitHub run failed a timing-sensitive login rate-limit test. An earlier run passed. Registry publication and public deployment have not been verified. See [Phase 22](docs/phase22_report.md) and the [current readiness review](docs/deployment_readiness_report.md).
+**Current status:** the published main snapshot has a [successful GitHub CI run](https://github.com/moizishere-droid/medrag/actions/runs/37645175366). Portable Docker deployment has been prepared and locally tested; check the proposed changes' own CI status before merging or publishing. Registry publication and public deployment have not been verified. See [Phase 22](docs/phase22_report.md) and the [current readiness review](docs/deployment_preparation_report.md#historical-readiness).
 
 Before public launch: resolve the CI test, dependency advisories, request deadlines/cost limits, health/readiness behavior and auth-bridge checks. Configure HTTPS, secrets, persistent private databases, corpus restore, backups and rollback on the chosen platform.
 
@@ -371,9 +372,9 @@ Experiments: [notebooks](notebooks/). Decisions, validation and limitations: [do
 | 12–13: entities/knowledge graph | [12](docs/phase12_report.md), [13](docs/phase13_report.md) |
 | 14–17: generation/citations/memory/evaluation | [14](docs/phase14_report.md), [15](docs/phase15_report.md), [16](docs/phase16_report.md), [17](docs/phase17_report.md) |
 | 18–20: API/uploads/frontend | [18](docs/phase18_report.md), [19](docs/phase19_report.md), [20](docs/phase20_report.md) |
-| 21: testing/UI/performance | [21](docs/phase21_report.md), [UI follow-up](docs/phase21_ui_followup.md), [performance](docs/performance_report.md) |
+| 21: testing/UI/performance | [21](docs/phase21_report.md), [UI follow-up](docs/phase21_report.md#ui-follow-up), [performance](docs/performance_report.md) |
 | 22: CI/release delivery | [22](docs/phase22_report.md) |
-| Cross-phase reviews | [Project audit](docs/project_audit_report.md), [deployment readiness](docs/deployment_readiness_report.md) |
+| Cross-phase reviews | [Project audit](docs/phase21_report.md#project-audit), [deployment readiness](docs/deployment_preparation_report.md#historical-readiness) |
 
 Phase reports are historical snapshots. Deployment verification should identify the final tested commit.
 
@@ -391,3 +392,11 @@ Medical content remains attributable to its original authors/source organization
 `TODO: Choose a code license and add LICENSE before claiming a specific license.`
 
 Code licensing does not replace terms applicable to medical documents, datasets or model weights.
+
+## User-perspective verification follow-up
+
+See [the six-query testing report](docs/phase21_report.md#user-perspective-testing) for actual answer-quality findings, fixes and remaining deployment gates. Interactive queries are limited to 4,000 characters and generated answers to 1,000 tokens. Private uploads accept up to 20 MB, 100 pages and 200,000 extracted characters. The project is an educational portfolio demo; passing software tests is not clinical certification.
+
+Portable HTTPS Docker deployment preparation: see [deploy/README.md](deploy/README.md). The serving image uses `backend/requirements-runtime.txt`; notebooks and tests use `backend/requirements.txt`.
+
+Current portable preparation evidence: [deployment preparation report](docs/deployment_preparation_report.md).

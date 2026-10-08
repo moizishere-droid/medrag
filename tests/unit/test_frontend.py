@@ -32,8 +32,8 @@ def test_source_table_and_figure_render_after_history_reload(monkeypatch):
     path = Path(__file__).resolve().parents[2] / "frontend" / "streamlit_app.py"
     app = AppTest.from_file(str(path)).run()
     assert not app.exception
-    assert len(app.dataframe) == 1
-    assert app.dataframe[0].value.iloc[1, 0] == "A"
+    assert len(app.table) == 1
+    assert app.table[0].value.iloc[1, 0] == "A"
     assert len(app.image) == 1
     assert "PDF page 5" in app.image[0].captions[0]
     assert len(calls) == 1
@@ -46,7 +46,7 @@ def test_source_table_and_figure_render_after_history_reload(monkeypatch):
         return original(method, url, **kwargs)
     monkeypatch.setattr("requests.request", unavailable)
     app.run()
-    assert not app.exception and len(app.dataframe) == 1
+    assert not app.exception and len(app.table) == 1
     assert any("temporarily unavailable" in warning.value for warning in app.warning)
 
 
@@ -57,7 +57,7 @@ def test_unavailable_backend_can_be_retried(monkeypatch):
     app = AppTest.from_file(str(path)).run()
     assert not app.exception
     assert app.button[0].label == "Retry connection"
-    monkeypatch.setattr("requests.get", lambda *a, **k: SimpleNamespace(json=lambda: {"required": True}, raise_for_status=lambda: None))
+    monkeypatch.setattr("requests.get", lambda *a, **k: SimpleNamespace(json=lambda: {"required": True}, raise_for_status=lambda: None, status_code=200))
     monkeypatch.setattr("requests.request", lambda *a, **k: SimpleNamespace(json=lambda: {"sessions": []}, raise_for_status=lambda: None, status_code=200))
     app.button[0].click().run(timeout=15)
     assert not app.exception
@@ -184,3 +184,45 @@ def test_interrupted_session_read_recovers_then_preserves_cached_chats(monkeypat
     assert app.sidebar.selectbox[0].value == "a"
     assert any(b.label == "Retry loading chats" for b in app.sidebar.button)
     assert not any("No sessions yet" in message.value for message in app.sidebar.info)
+
+
+def test_degraded_health_is_visible_without_raw_error_or_losing_chat(monkeypatch):
+    import requests
+    def get(url,**kwargs):
+        if url.endswith("/health"):
+            return SimpleNamespace(status_code=503,json=lambda:{"status":"degraded","dependencies":{"qdrant":"unavailable"}},
+                                   raise_for_status=lambda:(_ for _ in ()).throw(requests.HTTPError("503")))
+        return SimpleNamespace(status_code=200,json=lambda:{"required":False},raise_for_status=lambda:None)
+    monkeypatch.setattr("requests.get",get)
+    monkeypatch.setattr("requests.request",lambda *a,**k:SimpleNamespace(status_code=200,json=lambda:{"sessions":[]},raise_for_status=lambda:None))
+    path=Path(__file__).resolve().parents[2]/"frontend"/"streamlit_app.py"
+    app=AppTest.from_file(str(path)).run(timeout=15)
+    assert not app.exception
+    assert any(w.value=="Backend: degraded" for w in app.sidebar.warning)
+
+
+def test_sign_in_screen_does_not_treat_missing_context_cookie_as_login(monkeypatch):
+    monkeypatch.setattr("requests.get",lambda *a,**k:SimpleNamespace(status_code=200,json=lambda:{"required":True},raise_for_status=lambda:None))
+    path=Path(__file__).resolve().parents[2]/"frontend"/"streamlit_app.py"
+    app=AppTest.from_file(str(path)).run(timeout=15)
+    assert not app.exception
+    assert any(title.value=="Sign in to MedRAG" for title in app.title)
+
+
+def test_original_source_excerpt_preserves_all_single_column_rows(monkeypatch):
+    rows = [["Heading"], ["First recommendation"], ["Evidence rating"], ["Final recommendation"]]
+    def response(data):
+        return SimpleNamespace(status_code=200, json=lambda: data, raise_for_status=lambda: None)
+    monkeypatch.setattr("requests.get", lambda *a, **k: response({"required": False, "dependencies": {"postgres": "ok"}}))
+    def request(method, url, **kwargs):
+        if url.endswith("/sessions"):
+            return response({"sessions": [{"session_id": "a", "title": "Test"}]})
+        return response({"messages": [{"role": "assistant", "content": "Answer", "citations": [
+            {"marker": 1, "title": "WHO", "source": "who", "chunk_id": "test", "url": None,
+             "table": {"rows": rows, "page_number": 27}, "images": []}]}]})
+    monkeypatch.setattr("requests.request", request)
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / "frontend" / "streamlit_app.py")).run(timeout=15)
+    assert not app.exception
+    assert any("Original source excerpt" in e.label for e in app.expander)
+    assert all(row[0] in [t.value for t in app.text] for row in rows)
+    assert any("not translated" in c.value for c in app.caption)

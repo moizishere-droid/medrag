@@ -71,7 +71,7 @@ def startup(monkeypatch):
         rec.pool_args.append((host, port, dbname, user))
         return rec.pool
 
-    def fake_openai(api_key):
+    def fake_openai(api_key, **kwargs):
         rec.openai_keys.append(api_key)
         return SimpleNamespace(api_key=api_key)
 

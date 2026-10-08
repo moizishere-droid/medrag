@@ -23,11 +23,11 @@ An omitted user_id retrieves only recognized curated sources with an empty
 ownership field. An explicit user_id adds that exact key's uploads. BOTH
 dense and sparse queries enforce the same filter. Only trusted internal
 evaluation callers may opt into full_corpus_evaluation=True.
-This is the sole mechanism that keeps one user's uploaded documents
-invisible to everyone else, while remaining visible across all of that
-same user's own chat sessions (validated directly in the Phase 19
-notebook: same user_id, different session_id, still retrievable;
-different user_id, completely invisible).
+The API uses the owning chat's session_id as this retrieval key; uploads
+are therefore visible only in that chat. Direct internal callers must use
+an equally scoped identity key and must not substitute an account-wide
+key when the application promises chat-scoped uploads.
+
 """
 
 import logging
@@ -40,6 +40,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 
 from config.settings import settings
+from medrag.generation.limits import EMBEDDING_TIMEOUT_SECONDS
 from medrag.embeddings.qdrant_client import TEXT_COLLECTION, DENSE_VECTOR_NAME, SPARSE_VECTOR_NAME
 
 logger = logging.getLogger("medrag.retrieval")
@@ -55,7 +56,7 @@ _sparse_model_cache = None
 def get_openai_client() -> openai.OpenAI:
     global _openai_client
     if _openai_client is None:
-        _openai_client = openai.OpenAI(api_key=settings.openai_api_key)
+        _openai_client = openai.OpenAI(api_key=settings.openai_api_key, timeout=EMBEDDING_TIMEOUT_SECONDS, max_retries=0)
     return _openai_client
 
 

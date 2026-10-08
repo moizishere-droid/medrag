@@ -21,6 +21,7 @@ pool hybrid_search() already correctly filtered.
 """
 
 import logging
+import re
 from typing import List, Optional
 from threading import Lock
 from pathlib import Path
@@ -63,6 +64,7 @@ def warmup_retrieval():
 
 
 def rerank(query_text: str, candidates: List[dict], top_n: int = DEFAULT_TOP_N) -> List[dict]:
+    candidates = [c for c in candidates if not re.search(r"\(cid:\d+\)", c["payload"]["raw_text"])]
     if not candidates or top_n <= 0:
         return []
     model = get_cross_encoder()

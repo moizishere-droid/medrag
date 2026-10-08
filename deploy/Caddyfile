@@ -1,0 +1,17 @@
+{
+	email {$ACME_EMAIL}
+}
+{$MEDRAG_DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+	}
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		reverse_proxy ui:8501
+	}
+}

@@ -23,3 +23,6 @@
 **/__pycache__
 **/*.pyc
 **/.env*
+
+# Exclude completed hosting credentials from every image stage.
+**/*.env

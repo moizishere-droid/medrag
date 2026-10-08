@@ -216,7 +216,7 @@ class FakeOpenAIChat:
         self._reply = reply
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
 
-    def _create(self, model, messages):
+    def _create(self, model, messages, **kwargs):
         self.calls.append({"model": model, "messages": messages})
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=self._reply))])
 

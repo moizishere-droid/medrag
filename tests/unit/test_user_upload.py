@@ -261,3 +261,12 @@ def test_contract_uploaded_chunks_are_visible_to_their_owner_only(upserted):
     legacy_upload = {"source": "user_upload", "chunk_id": "legacy"}
     assert not passes_filter(build_user_filter(None), legacy_upload)
     assert not passes_filter(build_user_filter("u1"), legacy_upload)
+
+
+def test_upload_page_and_extracted_text_budgets_are_enforced(monkeypatch):
+    monkeypatch.setattr(uu,"MAX_UPLOAD_PAGES",1)
+    with pytest.raises(uu.UploadExtractionError,match="page upload limit"):
+        uu.extract_text_from_pdf(make_pdf(["One","Two"]))
+    monkeypatch.setattr(uu,"MAX_EXTRACTED_CHARACTERS",3)
+    with pytest.raises(uu.UploadExtractionError,match="too much extracted text"):
+        uu.extract_text_from_pdf(make_pdf(["Long text"]))

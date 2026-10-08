@@ -14,6 +14,21 @@ def table_text(rows):
     return "\n".join(" | ".join("" if cell is None else str(cell) for cell in row) for row in rows)
 
 
+TABLE_WARNING = "This source table could not be extracted reliably. Check the cited PDF for the original table."
+
+
+def readable_table(rows):
+    """Reject damaged glyphs and collapsed multi-column extraction without guessing cells."""
+    if not isinstance(rows, list) or not rows or not all(isinstance(row, list) for row in rows):
+        return False
+    text = table_text(rows)
+    if re.search(r"\(cid:\d+\)", text) or "\ufffd" in text:
+        return False
+    columns = {i for row in rows for i, cell in enumerate(row) if cell is not None and str(cell).strip()}
+    width = max(map(len, rows), default=0)
+    return bool(columns) and (width <= 1 or len(columns) >= 2)
+
+
 class VisualCatalog:
     """Read-only manifest for the curated artifacts bundled with the backend."""
 
@@ -79,7 +94,7 @@ class VisualCatalog:
                 rows = self.tables.get((topic, metadata.get("page_number"), raw))
                 if rows is not None:
                     break
-        if rows is None:
+        if rows is None or not readable_table(rows):
             return None
         return {"rows": [["" if cell is None else str(cell) for cell in row] for row in rows],
                 "page_number": metadata.get("page_number"),
@@ -101,11 +116,13 @@ def attach_source_visuals(citations, results, catalog):
     tables_seen = set()
     output = []
     for citation in citations:
-        entry = {**citation, "table": None, "images": []}
+        entry = {**citation, "table": None, "table_warning": None, "images": []}
         payload = results[citation["marker"] - 1]["payload"]
         if payload.get("source") == "who":
             if payload.get("chunk_type") == "table" and len(tables_seen) < 3:
                 table = catalog.table(payload)
+                if table is None:
+                    entry["table_warning"] = TABLE_WARNING
                 if table and payload["chunk_id"] not in tables_seen:
                     entry["table"] = table
                     tables_seen.add(payload["chunk_id"])
@@ -162,6 +179,9 @@ def revalidate_saved_visuals(citations, catalog):
     output = []
     for citation in citations or []:
         entry = dict(citation)
+        if entry.get("table") and not readable_table(entry["table"].get("rows")):
+            entry["table"] = None
+            entry["table_warning"] = TABLE_WARNING
         references = [image.get("figure_number") for image in citation.get("images", []) if isinstance(image, dict)]
         references += [image.get("figure_number") for image in citation.get("linked_images", []) if isinstance(image, dict)]
         entry["images"] = resolve_figures(citation.get("source_id"), references, catalog, seen) if citation.get("source") == "who" else []

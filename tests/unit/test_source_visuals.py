@@ -107,3 +107,28 @@ def test_token_fragments_never_reconstruct_a_full_uncited_table(tmp_path):
     hit["payload"]["raw_text"] = "A"
     hit["payload"]["metadata"]["table_data"] = rows
     assert attach_source_visuals(citations(hit), [hit], catalog)[0]["table"] is None
+
+
+def test_damaged_or_collapsed_tables_are_not_displayed_in_new_or_saved_chats(tmp_path):
+    from medrag.citations.visuals import revalidate_saved_visuals
+    catalog = VisualCatalog(tmp_path)
+    for rows in ([["Header", "Value"], ["NO DIAGNOSE (cid:3)", ""]],
+                 [["Header", "Value"], ["Unreadable\ufffd", "2"]],
+                 [["", "", ""], ["Entire paragraph in one cell", "", ""]]):
+        hit = result(rows)
+        hit["payload"]["metadata"]["table_data"] = rows
+        output = attach_source_visuals(citations(hit), [hit], catalog)[0]
+        assert output["table"] is None
+        assert "could not be extracted reliably" in output["table_warning"]
+        saved = revalidate_saved_visuals([{"source": "who", "table": {"rows": rows}}], catalog)[0]
+        assert saved["table"] is None and saved["table_warning"]
+
+
+def test_readable_table_preserves_long_cells_and_blank_cells(tmp_path):
+    catalog = VisualCatalog(tmp_path)
+    rows = [["Measure", "Value"], ["Long source paragraph " * 30, "2"], ["", "3"]]
+    hit = result(rows)
+    hit["payload"]["metadata"]["table_data"] = rows
+    output = attach_source_visuals(citations(hit), [hit], catalog)[0]
+    assert output["table"]["rows"] == rows
+    assert output["table_warning"] is None

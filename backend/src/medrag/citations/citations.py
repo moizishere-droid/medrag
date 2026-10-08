@@ -79,8 +79,9 @@ def get_who_source_url(source_id: str, who_source_urls: Dict[str, str]) -> Optio
     is correct. Confirmed necessary: a naive direct-key lookup silently
     returned None for every multi-topic WHO document."""
     for topic in source_id.split("+"):
-        if who_source_urls.get(topic):
-            return who_source_urls[topic]
+        for key in (topic, topic.replace(" ", "_")):
+            if who_source_urls.get(key):
+                return who_source_urls[key]
     return None
 
 

@@ -1,0 +1,99 @@
+name: medrag-portfolio
+services:
+  proxy:
+    image: caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      MEDRAG_DOMAIN: ${MEDRAG_DOMAIN:?Set the public domain}
+      ACME_EMAIL: ${ACME_EMAIL:?Set the certificate contact email}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - proxy-config:/config
+    depends_on: [api, ui]
+    networks: [web]
+  api:
+    image: ${BACKEND_IMAGE:-medrag-backend:portable}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: backend
+    command: ["uvicorn", "medrag.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--root-path", "/api", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    restart: unless-stopped
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set an OpenAI API key}
+      PUBMED_EMAIL: ${PUBMED_EMAIL:?Set a contact email}
+      AUTH_REQUIRED: "true"
+      AUTH_COOKIE_SECURE: "true"
+      CORS_ORIGINS: '["https://${MEDRAG_DOMAIN}"]'
+      QDRANT_URL: http://qdrant:6333
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?Set a strong graph password}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: medrag_chat
+      POSTGRES_USER: medrag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a strong database password}
+      RETRIEVAL_WARMUP: "true"
+      RERANK_BACKEND: onnx
+      RERANK_THREADS: 4
+    volumes:
+      - models:/app/.cache/huggingface
+      - exports:/app/.medrag_cache
+    depends_on:
+      postgres: {condition: service_healthy}
+      qdrant: {condition: service_started}
+      neo4j: {condition: service_started}
+    networks: [web, data]
+  ui:
+    image: ${FRONTEND_IMAGE:-medrag-frontend:portable}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: frontend
+    restart: unless-stopped
+    environment:
+      MEDRAG_API_URL: http://api:8000
+      MEDRAG_BROWSER_API_URL: https://${MEDRAG_DOMAIN}/api
+    depends_on: [api]
+    networks: [web]
+  qdrant:
+    image: qdrant/qdrant@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
+    restart: unless-stopped
+    volumes: ["vectors:/qdrant/storage"]
+    networks: [data]
+  neo4j:
+    image: neo4j@sha256:956faa5d14b6beaa629b80c718bfd389ec12064f97e276ed9a58b0c53b25a323
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?Set a strong graph password}
+    volumes: ["graph:/data"]
+    networks: [data]
+  postgres:
+    image: postgres@sha256:0f989d656f95dda60a631c8e1c67287df49b31a73f147e4290d5924fdc7f46e3
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: medrag
+      POSTGRES_DB: medrag_chat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a strong database password}
+    volumes: ["chat:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medrag -d medrag_chat"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [data]
+networks:
+  web:
+  data:
+    internal: true
+volumes:
+  certificates:
+  proxy-config:
+  models:
+  exports:
+  vectors:
+  graph:
+  chat:

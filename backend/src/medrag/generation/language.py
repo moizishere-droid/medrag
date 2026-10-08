@@ -7,6 +7,8 @@ from langdetect import DetectorFactory
 from langdetect.lang_detect_exception import LangDetectException
 from langdetect.detector_factory import PROFILES_DIRECTORY
 
+from medrag.generation.limits import MAX_ANSWER_TOKENS
+
 logger = logging.getLogger("medrag.generation")
 _factory = DetectorFactory()
 _factory.seed = 0
@@ -79,14 +81,26 @@ def answer_matches_language(answer, target):
     return guesses[0].lang.split("-")[0] == expected
 
 
+def answer_preserves_topic(answer, query):
+    """Block the reproduced blood-pressure/eye-pressure mistranslation."""
+    blood_pressure = re.search(r"hypertension|high blood pressure|بلڈ پریشر|خون کا دباؤ", query, re.I)
+    eyes_requested = re.search(r"eye|ocular|glaucoma|آنکھ", query, re.I)
+    eye_pressure = re.search(r"eye pressure|intraocular pressure|آنکھ(?:وں)? کا دبا[ؤو]", answer or "", re.I)
+    return not (blood_pressure and not eyes_requested and eye_pressure)
+
+
 def complete_in_query_language(client, model, messages, query):
     target = detect_query_language(query)
     for attempt in range(2):
-        response = client.chat.completions.create(model=model, messages=messages)
+        response = client.chat.completions.create(model=model, messages=messages, max_completion_tokens=MAX_ANSWER_TOKENS)
+        if not response.choices or getattr(response.choices[0], "finish_reason", None) == "length":
+            raise AnswerLanguageError("The answer exceeded its response limit. Please ask a narrower question.")
         answer = response.choices[0].message.content
-        if answer_matches_language(answer, target):
+        if not answer or not answer.strip():
+            raise AnswerLanguageError("The answer service returned an empty response. Please retry.")
+        if answer_matches_language(answer, target) and answer_preserves_topic(answer, query):
             return answer
         logger.warning("Answer language mismatch; target=%s attempt=%s", target, attempt + 1)
         messages = [dict(message) for message in messages]
-        messages[0]["content"] += language_instruction(query) + " A previous attempt used another language. Correct that error using only the supplied evidence."
-    raise AnswerLanguageError("The model could not answer in the question's language. Please retry.")
+        messages[0]["content"] += language_instruction(query) + " A previous attempt used another language or confused medical concepts. Correct that error using only the supplied evidence. Blood pressure and eye pressure are different concepts."
+    raise AnswerLanguageError("The model could not produce a consistent answer in the question's language. Please retry.")

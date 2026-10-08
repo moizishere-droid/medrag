@@ -27,6 +27,8 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+      - name: Browser authentication bridge regression tests
+        run: node --test tests/frontend/auth_bridge.test.cjs
       - name: Prepare test reports
         run: mkdir -p ci-reports && chmod 777 ci-reports
       - name: Validate workflow expressions and shell scripts
@@ -72,6 +74,12 @@ jobs:
           load: true
           tags: medrag-backend:ci
           cache-from: type=gha,scope=medrag-backend
+      - name: Audit exact backend serving dependencies
+        run: |
+          docker run --rm --network none medrag-backend:ci python -m pip list --format=json > ci-reports/backend-packages.json
+          python3 -m venv /tmp/medrag-audit
+          /tmp/medrag-audit/bin/pip install pip-audit==2.10.1
+          /tmp/medrag-audit/bin/python deploy/audit_runtime.py ci-reports/backend-packages.json ci-reports/runtime-dependencies.json
       - name: Build frontend release image
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
@@ -82,6 +90,10 @@ jobs:
           tags: medrag-frontend:ci
           cache-from: type=gha,scope=medrag-frontend
           cache-to: type=gha,mode=max,scope=medrag-frontend
+      - name: Audit exact frontend serving dependencies
+        run: |
+          docker run --rm --network none medrag-frontend:ci python -m pip list --format=json > ci-reports/frontend-packages.json
+          /tmp/medrag-audit/bin/python deploy/audit_runtime.py ci-reports/frontend-packages.json ci-reports/frontend-runtime-dependencies.json
       - name: Start packaged servers on the isolated network
         run: docker compose -f deploy/compose.ci.yml up -d api-ci ui-ci
       - name: Check packaged servers and authentication

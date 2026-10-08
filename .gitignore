@@ -30,3 +30,6 @@ neo4j_data/
 postgres_data/
 .medrag_cache/
 ci-reports/
+
+# Portable hosting credentials
+deploy/portable.env

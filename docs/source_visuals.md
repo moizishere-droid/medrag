@@ -65,3 +65,13 @@ The first generation-context implementation mistakenly searched `backend/data` r
 A live response cited `dengue fever_who_text_26`, whose extracted diagram cells begin with the exact caption heading but omit the figure number. The resolver now also accepts a complete standalone verified caption heading in the same WHO document. Partial headings, keyword/substring matches, ambiguous captions, other documents and private uploads cannot resolve that mapping. A read-only check of the actual Qdrant chunk confirmed it attaches verified Figure 2 and includes the figure in generation context. The affected generation, visual, API and frontend tests passed (47 tests). The user also confirmed that the older tyre-image reply now displays the correct labeled WHO diagram.
 
 Restart both the API and Streamlit after updating. Keep the bundled source assets available in deployment. Ask a new question whose retrieved/cited WHO evidence contains a table or figure; historical text-only responses are unchanged.
+
+
+### Table extraction quality follow-up
+
+Source tables containing unresolved PDF glyph IDs (`(cid:N)`), replacement characters, or collapsed multi-column output are no longer displayed as structured evidence. The API returns a source-table notice directing readers to the original PDF; saved chat tables undergo the same check on history reads. Valid source cells are preserved and displayed in a wrapped static table rather than a clipped data grid. No missing cells or medical values are inferred. This is a display quality guard; damaged underlying extraction/index text has not been repaired or reindexed. The affected visual, frontend and API tests passed (24 tests).
+
+
+The [8 October user-perspective follow-up](phase21_report.md#user-perspective-testing) adds evidence-quality guards: damaged `(cid:N)` text is excluded from generation/reranking and caption-heading diagram cells are not treated as clinical source text. The six-query live review found semantic failures despite correct media delivery; the report distinguishes those findings from subsequent automated guard verification.
+
+Original source excerpts retain the source language; generated answer tables follow the query language. Single-column recommendation boxes display as wrapped text, with every extracted row preserved, rather than an invented Column 1 table. The saved hypertension page 28 extraction contains seven rows; the lower rows require scrolling. An excerpt does not guarantee that the whole source PDF or every source table was retrieved.

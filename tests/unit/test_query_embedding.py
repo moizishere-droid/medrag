@@ -39,7 +39,7 @@ def test_openai_client_is_built_once_from_the_configured_key(monkeypatch):
     built = []
 
     class FakeOpenAI:
-        def __init__(self, api_key):
+        def __init__(self, api_key, **kwargs):
             built.append(api_key)
 
     monkeypatch.setattr(hs.openai, "OpenAI", FakeOpenAI)

@@ -72,7 +72,8 @@ def test_password_storage_login_and_revocable_expiring_tokens(private_api):
     assert client.get("/sessions", headers=headers).status_code == 401
 
 
-def test_login_attempts_are_rate_limited(private_api):
+def test_login_attempts_are_rate_limited(private_api, monkeypatch):
+    monkeypatch.setattr(main.auth.time, "time", lambda: 123480.0)
     client, _ = private_api
     for _ in range(5):
         assert client.post("/auth/login", json={"username": "unknown", "password": "incorrect-password"}).status_code == 401
@@ -120,3 +121,19 @@ def test_chat_and_upload_budgets_use_shared_database_state(private_api):
         rate_limit(conn, f"chat:{uid}", 10)
     response = client.post("/chat", json={"session_id": str(uuid.uuid4()), "message": "Q?"}, headers=account.headers)
     assert response.status_code == 429
+
+
+def test_uploaded_file_registry_is_private_and_survives_new_connections(private_api):
+    client,conn=private_api
+    alice,bob=register(client),register(client)
+    sid=client.post("/sessions",json={},headers=alice.headers).json()["session_id"]
+    document_id=str(uuid.uuid4())
+    with conn.cursor() as cur:
+        cur.execute("INSERT INTO uploaded_documents(document_id,session_id,content_hash,filename,chunk_count) VALUES(%s,%s,%s,%s,%s)",
+                    (document_id,sid,"synthetic-test-hash","portfolio-test.pdf",1))
+    refreshed=TestClient(main.app)
+    response=refreshed.get(f"/sessions/{sid}/documents",headers=alice.headers)
+    assert response.status_code==200
+    assert response.json()=={"documents":[{"document_id":document_id,"filename":"portfolio-test.pdf","chunk_count":1}]}
+    assert refreshed.get(f"/sessions/{sid}/documents",headers=bob.headers).status_code==404
+    assert refreshed.get(f"/sessions/{sid}/documents").status_code==401

@@ -72,6 +72,7 @@ from medrag.embeddings.qdrant_client import get_qdrant_client
 from medrag.memory.db import get_postgres_pool, ensure_schema_via_pool, session_operation, transaction
 from medrag.retrieval.reranking import warmup_retrieval
 from medrag.generation.language import AnswerLanguageError
+from medrag.generation.limits import MODEL_TIMEOUT_SECONDS
 from fastapi.responses import JSONResponse, FileResponse
 from medrag.citations.visuals import get_visual_catalog, attach_source_visuals, revalidate_saved_visuals
 from medrag.memory.chat_memory import (
@@ -156,7 +157,7 @@ async def lifespan(app: FastAPI):
         ensure_schema_via_pool(app.state.pg_pool)
         logger.info("  Postgres connected (pool ready)")
 
-        app.state.openai_client = openai.OpenAI(api_key=settings.openai_api_key)
+        app.state.openai_client = openai.OpenAI(api_key=settings.openai_api_key, timeout=MODEL_TIMEOUT_SECONDS, max_retries=0)
         resources.callback(getattr(app.state.openai_client, "close", lambda: None))
         logger.info("  OpenAI client ready")
 
@@ -179,6 +180,14 @@ app = FastAPI(title="MedRAG API", lifespan=lifespan)
 @app.exception_handler(AnswerLanguageError)
 async def answer_language_error(request, exc):
     return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+@app.exception_handler(openai.APIError)
+async def answer_service_error(request, exc):
+    logger.warning("Answer provider failed: %s", type(exc).__name__)
+    timeout = isinstance(exc, openai.APITimeoutError)
+    detail = "The answer service timed out. Please try again." if timeout else "The answer service is temporarily unavailable. Please try again later."
+    return JSONResponse(status_code=504 if timeout else 503, content={"detail": detail})
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -204,8 +213,9 @@ def get_identity(request: Request):
                 raise HTTPException(status_code=403, detail="Untrusted browser origin.")
             authorization = f"Bearer {request.cookies[auth.SESSION_COOKIE]}"
         identity = auth.token_owner(conn, authorization)
-        budget = 10 if request.url.path == "/chat" else 5 if request.url.path.endswith("/documents") else 120
-        group = "chat" if request.url.path == "/chat" else "upload" if request.url.path.endswith("/documents") else "read"
+        upload_write = request.method == "POST" and request.url.path.endswith("/documents")
+        budget = 10 if request.url.path == "/chat" else 5 if upload_write else 120
+        group = "chat" if request.url.path == "/chat" else "upload" if upload_write else "read"
         auth.rate_limit(conn, f"{group}:{identity}", budget)
         return identity
 
@@ -265,7 +275,7 @@ def logout(request: Request, response: Response, identity=Depends(get_identity))
 
 
 @app.get("/health", response_model=HealthResponse)
-def health(request: Request):
+def health(request: Request, response: Response):
     """Checks each backend dependency individually rather than
     returning a bare boolean - distinguishes 'the app process is
     running' from 'the app can actually serve a real request', which
@@ -276,22 +286,38 @@ def health(request: Request):
     try:
         state.qdrant_client.get_collections()
     except Exception as e:
-        deps["qdrant"] = f"error: {e}"
+        deps["qdrant"] = "unavailable"
+        logger.warning("Health dependency unavailable: qdrant (%s)", type(e).__name__)
 
     try:
         state.neo4j_driver.verify_connectivity()
     except Exception as e:
-        deps["neo4j"] = f"error: {e}"
+        deps["neo4j"] = "unavailable"
+        logger.warning("Health dependency unavailable: neo4j (%s)", type(e).__name__)
 
     try:
         with get_conn(request.app) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
     except Exception as e:
-        deps["postgres"] = f"error: {e}"
+        deps["postgres"] = "unavailable"
+        logger.warning("Health dependency unavailable: postgres (%s)", type(e).__name__)
 
     overall = "ok" if all(v == "ok" for v in deps.values()) else "degraded"
+    if overall != "ok":
+        response.status_code = 503
     return HealthResponse(status=overall, dependencies=DependencyStatus(**deps))
+
+
+@app.get("/sessions/{session_id}/documents")
+def list_uploaded_documents(session_id: uuid.UUID, request: Request, identity=Depends(get_identity)):
+    session_id = str(session_id)
+    with get_conn(request.app) as conn:
+        check_owned_session(conn, session_id, identity)
+        with conn.cursor() as cur:
+            cur.execute("SELECT document_id, filename, chunk_count FROM uploaded_documents WHERE session_id = %s ORDER BY filename, document_id", (session_id,))
+            documents = [{"document_id": str(row[0]), "filename": row[1], "chunk_count": row[2]} for row in cur.fetchall()]
+    return {"documents": documents}
 
 
 @app.post("/sessions", response_model=CreateSessionResponse)

@@ -1,18 +1,28 @@
 <!doctype html>
 <html><body>
 <script>
-// The API sets an HttpOnly cookie. No token is stored in URLs or localStorage.
+// Credentials go only to the API configured by the trusted Streamlit parent.
+const parentOrigin = document.referrer ? new URL(document.referrer).origin : window.location.origin;
 let lastNonce;
 function send(type, extra = {}) {
-  window.parent.postMessage({isStreamlitMessage: true, type, ...extra}, "*");
+  window.parent.postMessage({isStreamlitMessage: true, type, ...extra}, parentOrigin);
 }
 window.addEventListener("message", async event => {
-  if (event.data.type !== "streamlit:render") return;
+  if (event.source !== window.parent || event.origin !== parentOrigin ||
+      !event.data || event.data.type !== "streamlit:render") return;
   const args = event.data.args;
-  if (!args.nonce || args.nonce === lastNonce) return;
+  if (!args || typeof args.nonce !== "string" || !args.nonce || args.nonce.length > 128 || args.nonce === lastNonce) return;
   lastNonce = args.nonce;
   try {
-    const result = await fetch(args.api_url + "/auth/" + args.action, {
+    if (!["login", "register", "logout"].includes(args.action)) throw new Error("Invalid action");
+    const api = new URL(args.api_url);
+    const local = ["localhost", "127.0.0.1", "[::1]"].includes(api.hostname);
+    if ((api.protocol !== "https:" && !(local && api.protocol === "http:")) || api.username || api.password || api.search || api.hash)
+      throw new Error("Invalid API address");
+    if (args.action !== "logout" && (!args.credentials || typeof args.credentials.username !== "string" ||
+        typeof args.credentials.password !== "string" || args.credentials.username.length > 64 || args.credentials.password.length > 128))
+      throw new Error("Invalid credentials");
+    const result = await fetch(api.href.replace(/\/$/, "") + "/auth/" + args.action, {
       method: "POST", credentials: "include",
       headers: {"Content-Type": "application/json"},
       body: args.action === "logout" ? undefined : JSON.stringify(args.credentials)
@@ -24,7 +34,6 @@ window.addEventListener("message", async event => {
       return;
     }
     send("streamlit:setComponentValue", {value: {ok: true}, dataType: "json"});
-    // Reconnect Streamlit with the cookie sent on the browser's new request.
     setTimeout(() => window.parent.location.reload(), 150);
   } catch (error) {
     send("streamlit:setComponentValue", {value: {error: "Could not reach the sign-in service. Please try again."}, dataType: "json"});

@@ -13,7 +13,7 @@ import logging
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from medrag.ingestion.storage import load_articles, load_drugs, load_guideline, load_who_tables
-from medrag.ingestion.pipeline import TOPICS as PUBMED_TOPICS
+from medrag.topics import TOPICS as PUBMED_TOPICS
 from medrag.processing.chunker import chunk_pubmed_article, chunk_openfda_drug, chunk_who_guideline
 from medrag.processing.storage import save_chunks
 

@@ -30,3 +30,18 @@ def test_real_startup_health_and_authenticated_session(pg_conn, monkeypatch):
         assert created.status_code == 200
         sid = created.json()["session_id"]
         assert client.get(f"/sessions/{sid}", headers=headers).json()["messages"] == []
+
+
+def test_onnx_reranker_matches_torch_for_mixed_lengths(tmp_path):
+    import numpy as np
+    from sentence_transformers import CrossEncoder
+    from medrag.retrieval.reranking import CROSS_ENCODER_MODEL
+    from medrag.retrieval.onnx_reranker import OnnxReranker
+    encoder = CrossEncoder(CROSS_ENCODER_MODEL, device="cpu")
+    pairs = [["hypertension", "High blood pressure is hypertension."],
+             ["hypertension treatment", "A tyre is made of rubber."],
+             ["blood pressure", "Clinical guidance describes blood pressure monitoring and treatment goals. " * 12]]
+    expected = encoder.predict(pairs, show_progress_bar=False)
+    exported = OnnxReranker(encoder, tmp_path)
+    np.testing.assert_allclose(exported.predict(pairs), expected, rtol=1e-4, atol=1e-4)
+    np.testing.assert_allclose(exported.predict(pairs[:1]), expected[:1], rtol=1e-4, atol=1e-4)

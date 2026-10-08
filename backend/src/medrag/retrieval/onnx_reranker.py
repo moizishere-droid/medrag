@@ -1,5 +1,6 @@
 """FP32 ONNX execution of the existing cross-encoder, with identical tokenization."""
 import hashlib
+import inspect
 import os
 from pathlib import Path
 
@@ -38,10 +39,11 @@ class OnnxReranker:
                                           token_type_ids=token_type_ids, return_dict=False)[0]
                 temporary = path.with_suffix(f".{os.getpid()}.tmp.onnx")
                 try:
+                    export_options = {"dynamo": False} if "dynamo" in inspect.signature(torch.onnx.export).parameters else {}
                     torch.onnx.export(ExportModel(encoder.model).eval(), tuple(tokens[n] for n in names),
                                       str(temporary), input_names=names, output_names=["logits"],
                                       dynamic_axes={**{n: {0: "batch", 1: "sequence"} for n in names},
-                                                    "logits": {0: "batch"}}, opset_version=17)
+                                                    "logits": {0: "batch"}}, opset_version=17, **export_options)
                     temporary.replace(path)
                 finally:
                     temporary.unlink(missing_ok=True)

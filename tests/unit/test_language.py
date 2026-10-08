@@ -27,7 +27,7 @@ def test_detects_language_of_current_query(query, code):
 def client_with_answers(*answers):
     calls = []
     replies = iter(answers)
-    def create(model, messages):
+    def create(model, messages, **kwargs):
         calls.append(messages)
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=next(replies)))])
     return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create))), calls

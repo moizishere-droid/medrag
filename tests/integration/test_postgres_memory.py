@@ -233,7 +233,7 @@ class ScriptedOpenAI:
         self.calls = []
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
 
-    def _create(self, model, messages):
+    def _create(self, model, messages, **kwargs):
         self.calls.append(messages)
         content = self.replies.pop(0)
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
@@ -334,3 +334,15 @@ def test_user_id_none_is_forwarded_unchanged(pg_conn, retrieval):
         "q", sid, pg_conn, qdrant_client=object(), openai_client=ScriptedOpenAI("a"),
     )
     assert retrieval.calls[0]["user_id"] is None
+
+
+def test_non_english_first_question_is_translated_for_english_retrieval(pg_conn,retrieval):
+    from medrag.generation.language import language_instruction
+    sid=cm.create_session(pg_conn)
+    query="ہائی بلڈ پریشر کیا ہے؟"
+    client=ScriptedOpenAI("What is high blood pressure?","ہائی بلڈ پریشر خون کی نالیوں میں زیادہ دباؤ ہے [1]۔")
+    cm.generate_answer_with_memory(query,sid,pg_conn,qdrant_client=object(),openai_client=client,user_id=sid)
+    assert retrieval.calls[0]["query"]=="What is high blood pressure?"
+    assert "Always return the standalone question in English" in client.calls[0][0]["content"]
+    assert client.calls[-1][-1]["content"]==query
+    assert "Respond exclusively in Urdu" in client.calls[-1][0]["content"]

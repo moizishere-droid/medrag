@@ -55,7 +55,7 @@ class ScriptedOpenAI:
         self.calls = []
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
 
-    def _create(self, model, messages):
+    def _create(self, model, messages, **kwargs):
         self.calls.append(messages)
         content = self.replies.pop(0)
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])

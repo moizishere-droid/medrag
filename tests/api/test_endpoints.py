@@ -224,10 +224,12 @@ def test_health_is_degraded_and_names_the_failing_dependency(client, state, brok
     else:
         state.pg_pool.fail_with = RuntimeError("down")
 
-    body = client.get("/health").json()
+    response = client.get("/health")
+    assert response.status_code == 503
+    body = response.json()
 
     assert body["status"] == "degraded"
-    assert body["dependencies"][broken].startswith("error:")
+    assert body["dependencies"][broken] == "unavailable"
     healthy = {"qdrant", "neo4j", "postgres"} - {broken}
     assert all(body["dependencies"][name] == "ok" for name in healthy)
 
