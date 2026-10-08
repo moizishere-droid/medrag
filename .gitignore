@@ -36,3 +36,7 @@ deploy/portable.env
 
 # Full-app local Docker credentials
 deploy/local.env
+
+# Modal tooling and hosted credentials
+.modal-venv/
+deploy/modal.env

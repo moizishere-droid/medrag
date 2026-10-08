@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     # --- Qdrant (not required until Phase 9) ---
     qdrant_url: Optional[str] = Field(default=None, alias="QDRANT_URL")
 
+    qdrant_api_key: Optional[str] = Field(default=None, alias="QDRANT_API_KEY")
+
     # --- Neo4j (not required until Phase 14) ---
     neo4j_uri: Optional[str] = Field(default=None, alias="NEO4J_URI")
     neo4j_user: Optional[str] = Field(default=None, alias="NEO4J_USER")

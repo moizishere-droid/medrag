@@ -24,6 +24,7 @@ never happen by accident on a normal ingestion run.
 """
 
 import logging
+import os
 from uuid import uuid5, NAMESPACE_URL
 
 from qdrant_client import QdrantClient
@@ -45,7 +46,7 @@ def get_qdrant_client(url: str = "http://localhost:6333") -> QdrantClient:
     """Create a Qdrant client. Does not itself verify connectivity -
     call client.get_collections() after this to confirm the server is
     actually reachable."""
-    return QdrantClient(url=url)
+    return QdrantClient(url=url, api_key=os.environ.get("QDRANT_API_KEY") or None)
 
 
 def ensure_collections(client: QdrantClient) -> None:

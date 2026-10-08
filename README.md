@@ -130,3 +130,5 @@ Docker is the current delivery target. Railway or AWS will be chosen later. Publ
 **Abdul Moiz** · [GitHub](https://github.com/moizishere-droid)
 
 A project code license has not been selected. Source documents, datasets and model weights retain their original terms and attribution.
+
+Modal deployment preparation: [setup and cloud database requirements](deploy/README.modal.md). This target is not publicly deployed yet.

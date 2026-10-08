@@ -252,3 +252,14 @@ The README was shortened around project benefits, features, architecture, Docker
 ### Decision and remaining limits
 
 The local Docker delivery path is verified for this checkout. Commit/push the new files (including the curated graph artifact) and obtain their own green GitHub CI before presenting the GitHub clone as this version. A fresh remote clone and published image pull were not tested; these need publication first. Initial model downloads require internet and adequate CPU/RAM/disk. Medical grounding and Urdu wording still need review; software test success does not establish perfect answer accuracy. Public hosting, domain/TLS issuance, backup restore, concurrent load and running costs remain later deployment gates.
+
+
+## Modal preparation — 8 October 2026
+
+Prepared `deploy/modal_app.py` with the existing Streamlit/FastAPI application behind a single proxy URL, secure cookies, no GPU, zero minimum containers and one maximum app container. Persistent model caches use a named Modal Volume. ONNX exports also point into that cache. An explicit account-owner-only provisioning function imports the curated corpus into external demo databases without resetting collections. The app remains disabled until `MEDRAG_DEMO_READY=true` is set after provisioning passes.
+
+The Modal 1.6.1 SDK is isolated in the ignored `.modal-venv`. The existing authenticated Modal profile was found, but the required `medrag-demo` Secret is absent. No cloud app was published, no remote image build was run, and no paid OpenAI requests were made. Existing local services and data were preserved. Modal compute credit is shared with other apps; cold starts, active WebSockets and the idle grace period consume usage.
+
+Cloud connection support now passes `QDRANT_API_KEY` from the environment to the Qdrant client. The hosted settings require HTTPS Qdrant, verified-TLS Neo4j and TLS PostgreSQL, and reject the local Docker service addresses. `deploy/README.modal.md` explains dedicated Qdrant Cloud, Neo4j Aura and Neon setup; actual endpoints and credentials are still required. Free database inactivity/suspension rules mean an unattended demo is not guaranteed to stay ready indefinitely.
+
+Local verification: the SDK imports the deployment definition, Caddy accepts the proxy configuration, source syntax passes, and the updated default suite passes **359 tests**, with **54 isolated integration tests** also passing (**413 Python tests total**). The live Modal image build, cloud database import, hosted browser authentication/cold start and actual credit usage remain unverified until the cloud settings exist. These are preparation results, not a claim of a live deployment.
