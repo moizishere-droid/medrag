@@ -221,3 +221,34 @@ The three pinned spaCy/scispaCy model wheels come from their documented publishe
 RAGAS remains in the offline experiment/test environment. Its reported multimodal context URL/file handling SSRF issue is not exposed by the chat API because RAGAS is excluded from the serving image. Use only trusted evaluation inputs; do not turn its evaluator into a public endpoint.
 
 Primary PDF maintainer guidance: [crafted-PDF advisory](https://github.com/pdfminer/pdfminer.six/security/advisories/GHSA-wf5f-4jwr-ppcp), [CMap-loader advisory](https://github.com/pdfminer/pdfminer.six/security/advisories/GHSA-f83h-ghpp-7wcc). The pinned pdfplumber release uses pdfminer.six 20260107, beyond the maintainer's 20251230 fix boundary.
+
+
+## Full-app local Docker verification — 8 October 2026
+
+The Docker-first delivery target now has `deploy/compose.local.yml`, a loopback-only HTTP proxy, an ignored `deploy/local.env` template, and automatic corpus initialization. The API starts only after bootstrap succeeds. The root Compose remains database-only; portable Compose remains the public HTTPS option. Registry publishing and a public host are not claimed.
+
+### Fresh-clone startup
+
+The repository tracks curated source chunks, text/image embeddings and the newly prepared OpenFDA graph artifact. Copy `deploy/local.env.example` to `deploy/local.env`, fill credentials, then run:
+
+```powershell
+docker compose --env-file deploy/local.env -f deploy/compose.local.yml up -d --build
+```
+
+The prepared graph contains 49,133 relationships exported read-only from the existing curated graph. Every evidence ID was checked against tracked OpenFDA chunks. Its source-file SHA-256 fingerprint, allowed relationship types and entity fields are checked before import. No chat/account/upload data is included. If the artifact is absent, the original graph extraction runner remains available, but is substantially slower. If the artifact exists and its source fingerprint is invalid, initialization fails rather than silently loading mismatched evidence.
+
+### Current verification
+
+- Backend/frontend image builds passed; running API/UI report healthy. A second full startup reused the existing corpus and exited bootstrap successfully without repeating NER or vector ingestion.
+- 350 unit/API/frontend tests and 54 isolated integration tests passed: **404 Python tests** total. Five browser bridge script tests also passed.
+- Seven read-only checks passed through `http://localhost:8503`: health, required authentication, anonymous-session rejection, Swagger root path, OpenAPI, frontend and frontend health.
+- Six synthetic user-flow checks passed: registration/HttpOnly cookie, cookie-based session access, cross-account chat/document inventory denial, rejection of untrusted cookie-write origins, logout token revocation, and chat persistence after logout/login. The two synthetic accounts/chats were removed afterward. These were HTTP-client checks, not a claim of manual hosted-browser testing.
+- Local initialization verified **22,696 text chunks** (4,725 PubMed, 13,167 OpenFDA, 4,804 WHO), **76 image points**, and **49,133 graph relationships** in separate local volumes.
+- Source syntax, workflow validation, README file links and formatting were checked. First-start verification exposed a local password-policy mismatch; local setup now accepts existing nonempty credentials. The public HTTPS readiness check retains the stronger password requirements.
+- An initial integration test container lacked outgoing model-download access; rerunning with both local networks passed. No paid `/chat` queries were made in this follow-up.
+
+The README was shortened around project benefits, features, architecture, Docker startup, repository layout and phases 00–22. Detailed direct-Python setup remains in `deploy/README.development.md`.
+
+### Decision and remaining limits
+
+The local Docker delivery path is verified for this checkout. Commit/push the new files (including the curated graph artifact) and obtain their own green GitHub CI before presenting the GitHub clone as this version. A fresh remote clone and published image pull were not tested; these need publication first. Initial model downloads require internet and adequate CPU/RAM/disk. Medical grounding and Urdu wording still need review; software test success does not establish perfect answer accuracy. Public hosting, domain/TLS issuance, backup restore, concurrent load and running costs remain later deployment gates.

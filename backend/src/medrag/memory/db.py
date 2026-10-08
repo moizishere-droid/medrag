@@ -44,13 +44,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Phase 19: user_id added to support multi-chat-per-user grouping (a
--- user with several open chats can share uploaded-document access
--- across all of them). ADD COLUMN IF NOT EXISTS keeps this migration
--- safe to run against a database created before this column existed -
--- existing session rows simply get user_id = NULL, meaning they
--- belong to no particular user (they still work, just without shared
--- upload access across other sessions).
+-- Account ownership groups chats for listing and authorization. Upload retrieval
+-- remains scoped to the individual session ID; other chats do not share uploads.
+-- Older rows with user_id NULL are not implicitly assigned to a signed-in account.
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 

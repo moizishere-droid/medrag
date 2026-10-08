@@ -33,3 +33,6 @@ ci-reports/
 
 # Portable hosting credentials
 deploy/portable.env
+
+# Full-app local Docker credentials
+deploy/local.env

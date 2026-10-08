@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir torch==2.14.1+cpu --index-url https://download.py
 ENV FASTEMBED_CACHE_PATH=/app/.medrag_cache/fastembed
 COPY pyproject.toml .
 COPY backend /app/backend
-COPY deploy/check_readiness.py /app/deploy/check_readiness.py
+COPY deploy/check_readiness.py deploy/bootstrap_local.py /app/deploy/
 COPY data/raw/who /app/data/raw/who
 COPY data/tables/who /app/data/tables/who
 COPY data/images/who /app/data/images/who

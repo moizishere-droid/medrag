@@ -79,20 +79,26 @@ def main():
     driver = get_neo4j_driver(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
     setup_constraints(driver)
 
-    logger.info("Loading OpenFDA chunks...")
-    chunks = load_all_openfda_chunks(CHUNKS_DIR)
-    logger.info(f"  {len(chunks)} unique chunks loaded")
+    prepared = PROJECT_ROOT / "data" / "processed" / "graph" / "openfda_relationships.json.gz"
+    if prepared.is_file():
+        from medrag.knowledge_graph.prepared_graph import load_prepared_graph
+        final_relationships = load_prepared_graph(prepared, Path(CHUNKS_DIR) / "openfda")
+        logger.info(f"Loaded {len(final_relationships)} validated prepared relationships")
+    else:
+        logger.info("Loading OpenFDA chunks...")
+        chunks = load_all_openfda_chunks(CHUNKS_DIR)
+        logger.info(f"  {len(chunks)} unique chunks loaded")
 
-    logger.info("Extracting relationships...")
-    all_relationships = []
-    for i, chunk in enumerate(chunks):
-        all_relationships.extend(extract_relationships_from_chunk(chunk))
-        if (i + 1) % 1000 == 0:
-            logger.info(f"  processed {i + 1}/{len(chunks)} chunks...")
-    logger.info(f"  {len(all_relationships)} raw relationships extracted")
+        logger.info("Extracting relationships...")
+        all_relationships = []
+        for i, chunk in enumerate(chunks):
+            all_relationships.extend(extract_relationships_from_chunk(chunk))
+            if (i + 1) % 1000 == 0:
+                logger.info(f"  processed {i + 1}/{len(chunks)} chunks...")
+        logger.info(f"  {len(all_relationships)} raw relationships extracted")
 
-    final_relationships = aggregate_relationships(all_relationships)
-    logger.info(f"  {len(final_relationships)} unique relationships after aggregation")
+        final_relationships = aggregate_relationships(all_relationships)
+        logger.info(f"  {len(final_relationships)} unique relationships after aggregation")
 
     logger.info("Writing to Neo4j...")
     write_relationships_batched(driver, final_relationships)
