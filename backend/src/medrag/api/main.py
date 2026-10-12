@@ -59,6 +59,7 @@ from time import perf_counter
 from contextlib import asynccontextmanager
 
 import openai
+from psycopg2 import OperationalError, InterfaceError
 from psycopg2.pool import PoolError
 from fastapi import FastAPI, HTTPException, Request, Response, UploadFile, File, Depends
 from psycopg2.errors import UniqueViolation
@@ -121,15 +122,32 @@ def get_conn(app: FastAPI):
     single request, and always return it - even if the request raises.
     Replaces the old pattern of reaching for one shared, long-lived
     app.state.pg_conn directly."""
+    pool = app.state.pg_pool
+    for attempt in range(2):
+        try:
+            conn = pool.getconn()
+        except PoolError as exc:
+            raise HTTPException(status_code=503, detail="Database is busy. Please retry.", headers={"Retry-After": "1"}) from exc
+        try:
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+            break
+        except (OperationalError, InterfaceError):
+            pool.putconn(conn, close=True)
+            if attempt == 1:
+                raise
+    discard = False
     try:
-        conn = app.state.pg_pool.getconn()
-    except PoolError as exc:
-        raise HTTPException(status_code=503, detail="Database is busy. Please retry.", headers={"Retry-After": "1"}) from exc
-    try:
-        conn.autocommit = True
         yield conn
+    except (OperationalError, InterfaceError):
+        discard = True
+        raise
     finally:
-        app.state.pg_pool.putconn(conn)
+        if discard:
+            pool.putconn(conn, close=True)
+        else:
+            pool.putconn(conn)
 
 
 @asynccontextmanager

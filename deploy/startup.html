@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Starting MedRAG</title>
+<style>body{margin:0;background:#0e1117;color:#f4f4f5;font:17px system-ui;display:grid;place-items:center;min-height:100vh}main{max-width:480px;padding:32px}h1{font-size:30px}.spinner{width:30px;height:30px;border:3px solid #334155;border-top-color:#4ade80;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}p{line-height:1.6;color:#cbd5e1}small{color:#94a3b8}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}</style>
+<main><h1>MedRAG is getting ready</h1><div class="spinner" aria-hidden="true"></div><p id="status" role="status" aria-live="polite">Waking the assistant and connecting to its knowledge sources...</p><small>Your chat will open automatically. The first visit after inactivity can take longer.</small><noscript><p>JavaScript is required to open the chat automatically. Refresh this page shortly.</p></noscript></main>
+<script>
+const started=Date.now();
+async function check(){
+ const elapsed=Date.now()-started;
+ if(elapsed>=240000){document.getElementById('status').textContent='Startup is taking longer than expected. Please refresh to try again.';return}
+ if(document.hidden){setTimeout(check,15000);return}
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),8000);
+ try{
+  const r=await fetch('/_startup/status',{cache:'no-store',signal:controller.signal});
+  if(r.ok){const s=await r.json();if(s.ready){location.reload();return}document.getElementById('status').textContent=s.message}
+ }catch(e){}finally{clearTimeout(timer)}
+ setTimeout(check,elapsed<60000?5000:15000);
+}
+check();
+</script></html>

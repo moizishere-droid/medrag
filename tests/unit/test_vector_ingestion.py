@@ -78,3 +78,21 @@ def test_image_links_require_aligned_topics_and_verified_captions(chunk):
     chunk.raw_text = "Figure 1; Figure 2; Figure 3; contents."
     links, stats = image_linking.link_images_to_chunks([chunk], [image], [["diabetes"]])
     assert links == [] and stats["listing_chunks_skipped"] == 1
+
+
+def test_existing_collections_receive_cloud_filter_indexes_without_reset():
+    client = Mock()
+    client.collection_exists.return_value = True
+    schema.ensure_collections(client)
+    schema.ensure_collections(client)
+    client.create_collection.assert_not_called()
+    client.delete_collection.assert_not_called()
+    calls = client.create_payload_index.call_args_list
+    expected = {"upload_ready", "source", "user_id", "session_id", "document_id", "topics"}
+    assert len(calls) == 2 * len(expected)
+    assert {call.kwargs["field_name"] for call in calls} == expected
+    for call in calls:
+        assert call.kwargs["collection_name"] == schema.TEXT_COLLECTION
+        assert call.kwargs["wait"] is True
+        expected_type = "bool" if call.kwargs["field_name"] == "upload_ready" else "keyword"
+        assert call.kwargs["field_schema"].value == expected_type

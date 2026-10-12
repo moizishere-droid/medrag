@@ -262,3 +262,20 @@ def test_each_request_checks_out_its_own_connection(client, db, state):
 def test_pool_exhaustion_is_a_retryable_503_not_a_500(client_no_raise, state):
     state.pg_pool.fail_with = psycopg2.pool.PoolError("connection pool exhausted")
     assert client_no_raise.get("/sessions").status_code == 503
+
+
+def test_checkout_replaces_stale_connection_before_request(state):
+    from unittest.mock import Mock
+    from psycopg2 import OperationalError
+    stale, healthy = Mock(), Mock()
+    healthy.cursor = Mock(return_value=__import__("contextlib").nullcontext(Mock()))
+    # Mock cursor context manager explicitly for the failed probe.
+    stale.cursor.side_effect = OperationalError("closed")
+    pool = Mock()
+    pool.getconn.side_effect = [stale, healthy]
+    state.pg_pool = pool
+    with main.get_conn(main.app) as conn:
+        assert conn is healthy
+    assert pool.getconn.call_count == 2
+    pool.putconn.assert_any_call(stale, close=True)
+    pool.putconn.assert_any_call(healthy)

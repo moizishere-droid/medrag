@@ -3,10 +3,27 @@
     auto_https off
 }
 :8080 {
-    handle_path /api/* {
-        reverse_proxy 127.0.0.1:8000
+    header Cache-Control "no-store"
+    handle /_startup/status {
+        root * /tmp/medrag-startup
+        rewrite * /status.json
+        file_server
+    }
+    @ready file {
+        root /tmp/medrag-startup
+        try_files ready
+    }
+    handle @ready {
+        handle_path /api/* {
+            reverse_proxy 127.0.0.1:8000
+        }
+        handle {
+            reverse_proxy 127.0.0.1:8501
+        }
     }
     handle {
-        reverse_proxy 127.0.0.1:8501
+        root * /app/deploy
+        rewrite * /startup.html
+        file_server
     }
 }

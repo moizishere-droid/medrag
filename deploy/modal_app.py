@@ -25,15 +25,15 @@ image = (
     .add_local_dir(ROOT / "data/tables/who", "/app/data/tables/who", copy=True)
     .add_local_dir(ROOT / "data/raw/who", "/app/data/raw/who", copy=True, ignore=["*.pdf"])
 )
-for filename in ("modal_config.py", "modal_server.py", "Caddyfile.modal", "check_readiness.py"):
+for filename in ("modal_config.py", "modal_server.py", "Caddyfile.modal", "check_readiness.py", "startup.html"):
     image = image.add_local_file(ROOT / "deploy" / filename, "/app/deploy/" + filename, copy=True)
-image = image.workdir("/app").run_commands("pip install --no-deps .", "pip check", "ln -s /cache/exports /app/.medrag_cache")
+image = image.workdir("/app").run_commands("caddy validate --config deploy/Caddyfile.modal", "pip install --no-deps .", "pip check", "ln -s /cache/exports /app/.medrag_cache")
 
 
 @app.function(image=image, secrets=[secret], volumes={"/cache": cache}, cpu=1, memory=4096,
               min_containers=0, max_containers=1, scaledown_window=60, timeout=600)
 @modal.concurrent(max_inputs=20)
-@modal.web_server(8080, startup_timeout=180, label="medrag")
+@modal.web_server(8080, startup_timeout=300, label="medrag")
 def web():
     subprocess.Popen([sys.executable, "deploy/modal_server.py"])
 

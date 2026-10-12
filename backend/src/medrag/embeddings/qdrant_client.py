@@ -79,6 +79,23 @@ def ensure_collections(client: QdrantClient) -> None:
             f"(dense: dim={TEXT_VECTOR_SIZE} cosine, sparse: IDF-modified BM25)"
         )
 
+    # Cloud strict filtering requires indexes even on existing collections.
+    # Adding indexes preserves all points and the privacy filters.
+    for field, field_type in {
+        "upload_ready": qmodels.PayloadSchemaType.BOOL,
+        "source": qmodels.PayloadSchemaType.KEYWORD,
+        "user_id": qmodels.PayloadSchemaType.KEYWORD,
+        "session_id": qmodels.PayloadSchemaType.KEYWORD,
+        "document_id": qmodels.PayloadSchemaType.KEYWORD,
+        "topics": qmodels.PayloadSchemaType.KEYWORD,
+    }.items():
+        client.create_payload_index(
+            collection_name=TEXT_COLLECTION,
+            field_name=field,
+            field_schema=field_type,
+            wait=True,
+        )
+
     if client.collection_exists(IMAGE_COLLECTION):
         logger.info(f"Collection '{IMAGE_COLLECTION}' already exists - leaving as-is")
     else:
