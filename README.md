@@ -4,7 +4,7 @@
 
 MedRAG searches PubMed research, OpenFDA drug labels and WHO guidelines, then answers questions with citations. Users can add PDFs to a private chat. This AI/ML portfolio project shows the journey from notebook experiments to a tested, Docker-packaged application.
 
-Open **[Live Demo](https://moizishere-droid--medrag.modal.run/)**
+You can access demo here:  **[Live Demo](https://moizishere-droid--medrag.modal.run/)**
 
 ## Why MedRAG?
 
