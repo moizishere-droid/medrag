@@ -201,7 +201,13 @@ async def answer_language_error(request, exc):
 
 @app.exception_handler(openai.APIError)
 async def answer_service_error(request, exc):
-    logger.warning("Answer provider failed: %s", type(exc).__name__)
+    logger.warning(
+        "Answer provider failed: type=%s status=%s code=%s request_id=%s",
+        type(exc).__name__,
+        getattr(exc, "status_code", None),
+        getattr(exc, "code", None),
+        getattr(exc, "request_id", None),
+    )
     timeout = isinstance(exc, openai.APITimeoutError)
     detail = "The answer service timed out. Please try again." if timeout else "The answer service is temporarily unavailable. Please try again later."
     return JSONResponse(status_code=504 if timeout else 503, content={"detail": detail})

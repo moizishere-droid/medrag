@@ -45,7 +45,7 @@ from medrag.citations.visuals import attach_source_visuals, get_visual_catalog
 
 logger = logging.getLogger("medrag.generation")
 
-DEFAULT_GENERATION_MODEL = "gpt-4.1-nano"
+DEFAULT_GENERATION_MODEL = "gpt-5.6-luna"
 DEFAULT_CANDIDATE_POOL_SIZE = 20
 DEFAULT_TOP_N = 5
 DEFAULT_MAX_CAUSES = 8
