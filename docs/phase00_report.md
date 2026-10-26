@@ -48,7 +48,7 @@ A topic missing coverage from one source (e.g., no WHO guidance, or few OpenFDA-
 
 | Layer | Technology | Why |
 |---|---|---|
-| LLM (planned) | GPT-4-turbo (OpenAI) | Multilingual generation + medical reasoning |
+| LLM (planned) | gpt-4.1-nano (OpenAI) | Multilingual generation + medical reasoning |
 | Text Embeddings | `text-embedding-3-small` (OpenAI) | Cost-efficient (~$0.13 for the full corpus), strong retrieval performance |
 | Image Embeddings | CLIP `ViT-B-32` (OpenAI pretrained, via `open-clip-torch`) | Standard vision-text embedding model; runs locally on CPU at this scale |
 | Vector DB (planned) | Qdrant | Open-source, fast, filterable, Docker-deployable |
