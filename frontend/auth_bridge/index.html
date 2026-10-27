@@ -33,8 +33,15 @@ window.addEventListener("message", async event => {
       send("streamlit:setComponentValue", {value: {error}, dataType: "json"});
       return;
     }
-    send("streamlit:setComponentValue", {value: {ok: true}, dataType: "json"});
-    setTimeout(() => window.parent.location.reload(), 150);
+    // The API also sets the HttpOnly session cookie for future page loads.
+    // Hand the token only to the trusted Streamlit parent for this existing
+    // connection, whose initial cookie snapshot predates this sign-in.
+    if (args.action !== "logout" && (typeof data.access_token !== "string" ||
+        !data.access_token || data.access_token.length > 128)) throw new Error("Invalid session");
+    send("streamlit:setComponentValue", {
+      value: args.action === "logout" ? {ok: true} : {ok: true, access_token: data.access_token},
+      dataType: "json"
+    });
   } catch (error) {
     send("streamlit:setComponentValue", {value: {error: "Could not reach the sign-in service. Please try again."}, dataType: "json"});
   }

@@ -50,6 +50,7 @@ RUN pip install --no-cache-dir -r frontend/requirements.txt && pip check \
 RUN pip install --no-cache-dir pip==26.2.1 setuptools==83.0.0 wheel==0.46.3 && pip check
 COPY backend/src /app/backend/src
 COPY frontend /app/frontend
+COPY .streamlit /app/.streamlit
 USER medrag
 EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

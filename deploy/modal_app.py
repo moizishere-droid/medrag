@@ -20,6 +20,7 @@ image = (
           "RETRIEVAL_WARMUP": "true", "PYTHONUNBUFFERED": "1"})
     .add_local_dir(ROOT / "backend", "/app/backend", copy=True, ignore=["**/__pycache__/**", "**/*.pyc", "**/*.env", "**/.env*"])
     .add_local_dir(ROOT / "frontend", "/app/frontend", copy=True, ignore=["**/__pycache__/**", "**/*.pyc"])
+    .add_local_file(ROOT / ".streamlit/config.toml", "/app/.streamlit/config.toml", copy=True)
     .add_local_file(ROOT / "pyproject.toml", "/app/pyproject.toml", copy=True)
     .add_local_dir(ROOT / "data/images/who", "/app/data/images/who", copy=True)
     .add_local_dir(ROOT / "data/tables/who", "/app/data/tables/who", copy=True)

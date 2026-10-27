@@ -3,12 +3,14 @@ import requests
 import os
 import time
 import uuid
+import sys
 from pathlib import Path
 from collections import Counter
 import streamlit.components.v1 as components
 from medrag.citations.citations import group_citations_by_source
 from medrag.memory.session_titles import title_from_query
-from medrag.topics import TOPICS, topic_label
+sys.path.insert(0, str(Path(__file__).parent))
+from interface import apply_theme, navbar, landing, account_form, topics, navigate, show_auth_feedback
 
 # Direct IPv4 avoids intermittent localhost resolution/disconnects on Windows.
 # Browser auth keeps the UI hostname so its HttpOnly cookie reaches Streamlit.
@@ -16,7 +18,8 @@ API_URL = os.environ.get("MEDRAG_API_URL", "http://127.0.0.1:8000").rstrip("/")
 BROWSER_API_URL = os.environ.get("MEDRAG_BROWSER_API_URL", os.environ.get("MEDRAG_API_URL", "http://localhost:8000")).rstrip("/")
 auth_bridge = components.declare_component("medrag_auth", path=str(Path(__file__).parent / "auth_bridge"))
 
-st.set_page_config(page_title="MedRAG", layout="wide")
+st.set_page_config(page_title="MedRAG · Research workspace", page_icon="✦", layout="wide", initial_sidebar_state="auto")
+apply_theme()
 
 
 def public_status(path, ttl=30):
@@ -52,7 +55,7 @@ except (requests.exceptions.RequestException, KeyError) as exc:
 
 def clear_login():
     st.session_state.pop("public_status_cache", None)
-    keys = {"access_token", "username", "current_session_id", "messages", "last_uploaded_key", "pending_question", "selected_session_id", "topic_titles", "session_titles", "last_known_sessions", "sessions_load_failed"}
+    keys = {"access_token", "username", "current_session_id", "messages", "last_uploaded_key", "pending_question", "pending_files", "selected_session_id", "topic_titles", "session_titles", "last_known_sessions", "sessions_load_failed"}
     keys.update(key for key in st.session_state if key.startswith("pdf_upload:"))
     for key in keys:
         st.session_state.pop(key, None)
@@ -63,30 +66,55 @@ if (not st.session_state.get("ignore_cookie") and not st.session_state.get("acce
         and isinstance(restored_cookie, str) and restored_cookie and len(restored_cookie) <= 128):
     st.session_state.access_token = restored_cookie
 
+# Keep a stable root position even when no authentication request is pending.
+# Inserting the iframe above an existing form shifts Streamlit element paths
+# and briefly leaves the previous page visible above the newly rendered page.
+auth_transport = st.container(key="auth_transport")
 if pending := st.session_state.get("auth_action"):
-    result = auth_bridge(api_url=BROWSER_API_URL, default=None, key=pending["nonce"], **pending)
+    with auth_transport:
+        result = auth_bridge(api_url=BROWSER_API_URL, default=None, key=pending["nonce"], **pending)
     if result:
         st.session_state.pop("auth_action", None)
         if result.get("error"):
-            st.error(result["error"])
+            st.session_state.auth_feedback = {
+                "title": "Unable to sign out" if pending["action"] == "logout" else "Unable to sign in" if pending["action"] == "login" else "Unable to create account",
+                "message": result["error"], "success": False,
+            }
+            st.rerun()
         else:
             clear_login()
-            st.info("Updating sign-in…")
-            st.stop()
+            st.query_params.clear()
+            st.query_params["page"] = "overview" if pending["action"] == "logout" else "workspace"
+            if pending["action"] == "logout":
+                st.session_state.ignore_cookie = True
+            else:
+                token = result.get("access_token")
+                if not isinstance(token, str) or not token or len(token) > 128:
+                    st.session_state.auth_feedback = {"title": "Unable to sign in", "message": "Sign-in could not be restored. Please try again.", "success": False}
+                    st.rerun()
+                st.session_state.access_token = token
+                st.session_state.ignore_cookie = False
+                st.session_state.auth_feedback = {
+                    "title": "Account created" if pending["action"] == "register" else "Welcome back",
+                    "message": "You are signed in. Your research workspace is ready.", "success": True,
+                }
+            st.rerun()
 
 
 if auth_required and not st.session_state.get("access_token"):
-    st.title("Sign in to MedRAG")
-    action = st.radio("Account", ["Sign in", "Create account"], horizontal=True)
-    with st.form("login"):
-        username = st.text_input("Username")
-        password = st.text_input("Password (at least 12 characters)", type="password", max_chars=128)
-        submitted = st.form_submit_button(action)
-    if submitted:
-        st.session_state.auth_action = {"action": "login" if action == "Sign in" else "register",
-                                       "credentials": {"username": username, "password": password},
-                                       "nonce": uuid.uuid4().hex}
-        st.rerun()
+    page = st.query_params.get("page", "overview")
+    if page not in {"overview", "login", "signup"}:
+        page = "login"
+        st.query_params["page"] = page
+    navbar()
+    if page == "overview":
+        landing()
+    else:
+        action = account_form(page)
+        if action:
+            st.session_state.auth_action = {**action, "nonce": uuid.uuid4().hex}
+            st.rerun()
+    show_auth_feedback()
     st.stop()
 
 
@@ -121,11 +149,17 @@ def api_post(url, **kwargs):
     return api_request("POST", url, **kwargs)
 
 
-if auth_required:
-    st.sidebar.caption("Signed in")
-    if st.sidebar.button("Sign out"):
-        st.session_state.auth_action = {"action": "logout", "nonce": uuid.uuid4().hex}
-        st.rerun()
+def sign_out():
+    st.session_state.auth_action = {"action": "logout", "nonce": uuid.uuid4().hex}
+    st.rerun()
+
+
+st.query_params["page"] = "workspace"
+navbar(authenticated=True, sign_out=sign_out if auth_required else None)
+workspace_view = st.query_params.get("view", "chat")
+if workspace_view not in {"chat", "topics"}:
+    workspace_view = "chat"
+    st.query_params["view"] = "chat"
 
 # --- session state init ---
 if "current_session_id" not in st.session_state:
@@ -134,31 +168,13 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # --- sidebar: title + health check ---
-st.sidebar.title("MedRAG")
-
-try:
-    health_data = public_status("/health")
-    dependencies = health_data.get("dependencies", {})
-    all_ok = bool(dependencies) and all(status == "ok" for status in dependencies.values())
-    if all_ok:
-        st.sidebar.success("Backend: all systems ok")
-    else:
-        st.sidebar.warning("Backend: degraded")
-        st.sidebar.json(health_data)
-except requests.exceptions.RequestException:
-    st.sidebar.error("Backend: unreachable")
+st.sidebar.title("Research workspace")
+if st.sidebar.button("Research chat", use_container_width=True, type="primary" if workspace_view == "chat" else "secondary"):
+    navigate("workspace", "chat")
+if st.sidebar.button("Topics & sources", use_container_width=True, type="primary" if workspace_view == "topics" else "secondary"):
+    navigate("workspace", "topics")
 
 st.sidebar.divider()
-
-with st.sidebar.expander(f"Supported topics and sources ({len(TOPICS)} topics)"):
-    st.markdown("**Curated sources:** [PubMed](https://pubmed.ncbi.nlm.nih.gov/), "
-                "[OpenFDA drug labels](https://open.fda.gov/), "
-                "[WHO guidelines](https://www.who.int/).")
-    st.caption("Answers use retrieved evidence from these sources. PDFs you upload can also provide evidence in their own chat.")
-    st.markdown("**Medical topics**")
-    st.markdown("\n".join(f"- {topic_label(topic)}" for topic in TOPICS))
-    st.caption("Coverage varies by topic and source. When the available evidence is insufficient, the assistant should say so.")
-
 
 # --- sidebar: session switcher + new session ---
 def load_sessions():
@@ -183,7 +199,7 @@ def session_label(s):
     return st.session_state.get("topic_titles", {}).get(s["session_id"], "New Chat")
 
 
-if st.sidebar.button("New Session"):
+if st.sidebar.button("＋ New conversation", use_container_width=True):
     try:
         resp = api_post(f"{API_URL}/sessions", json={}, timeout=10)
         resp.raise_for_status()
@@ -191,6 +207,8 @@ if st.sidebar.button("New Session"):
         st.session_state.current_session_id = new_session["session_id"]
         st.session_state.selected_session_id = new_session["session_id"]
         st.session_state.messages = []
+        st.query_params["chat"] = new_session["session_id"]
+        st.query_params["view"] = "chat"
         st.rerun()
     except requests.exceptions.RequestException as e:
         st.sidebar.error(f"Session creation failed: {e}")
@@ -214,7 +232,9 @@ if sessions:
         st.session_state.selected_session_id = pending_sid
     if st.session_state.get("selected_session_id") not in by_id:
         current = st.session_state.current_session_id
-        st.session_state.selected_session_id = current if current in by_id else next(iter(by_id))
+        restored_chat = st.query_params.get("chat")
+        st.session_state.selected_session_id = (current if current in by_id else
+                                               restored_chat if restored_chat in by_id else next(iter(by_id)))
     selected_id = st.sidebar.selectbox(
         "Session",
         list(by_id),
@@ -229,6 +249,7 @@ if sessions:
             messages = history_resp.json().get("messages", [])
             st.session_state.current_session_id = selected_id
             st.session_state.messages = messages
+            st.query_params["chat"] = selected_id
             st.rerun()
         except requests.exceptions.RequestException as e:
             st.sidebar.error(f"Session load failed: {e}")
@@ -238,43 +259,7 @@ else:
 
 st.sidebar.divider()
 
-# --- sidebar: file uploader (session-scoped, per Phase 19 isolation design) ---
-if st.session_state.current_session_id is not None:
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload a PDF (this session only)", type=["pdf"],
-        key=f"pdf_upload:{st.session_state.current_session_id}",
-    )
-
-    if uploaded_file is not None:
-        # Rerun-model gotcha: uploaded_file stays non-None across every
-        # subsequent rerun (e.g. when the user then sends a chat
-        # message), so without this guard the SAME file would get
-        # re-uploaded/re-indexed on every rerun. Keyed by session_id
-        # too, so switching sessions and re-uploading the same file is
-        # correctly treated as a new upload for that session.
-        file_key = f"{st.session_state.current_session_id}:{uploaded_file.file_id}"
-        if st.session_state.get("last_uploaded_key") != file_key:
-            with st.sidebar.status("Uploading and indexing...", expanded=False):
-                try:
-                    files = {
-                        "file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")
-                    }
-                    resp = api_post(
-                        f"{API_URL}/sessions/{st.session_state.current_session_id}/documents",
-                        files=files,
-                        timeout=120,
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                    st.session_state.last_uploaded_key = file_key
-                    st.sidebar.success(
-                        f"Indexed {data['filename']} ({data['chunk_count']} chunks)"
-                    )
-                except requests.exceptions.RequestException as e:
-                    st.sidebar.error(f"Upload failed: {e}")
-else:
-    st.sidebar.caption("Select or create a session to enable document upload.")
-
+# Uploaded evidence remains scoped to the selected conversation.
 if st.session_state.current_session_id is not None:
     try:
         uploaded_response = api_get(f"{API_URL}/sessions/{st.session_state.current_session_id}/documents", timeout=5)
@@ -289,20 +274,31 @@ if st.session_state.current_session_id is not None:
         st.sidebar.warning("The indexed PDF list is temporarily unavailable. This does not mean your files were deleted.")
 
 # --- main area ---
-st.title("MedRAG — Medical Knowledge Assistant")
-st.caption("Educational portfolio demo. Not a diagnosis or treatment service. Avoid uploading personal patient information.")
+if workspace_view == "topics":
+    topics()
+    show_auth_feedback()
+    st.stop()
+
+st.html('<div class="mr-eyebrow">PERSONAL RESEARCH WORKSPACE</div>')
+st.title("MedRAG · Research chat")
+st.caption("Ask in your language · Attach a PDF using + · Review the cited evidence")
 st.divider()
 
-if st.session_state.current_session_id is None:
-    st.info("Create or select a session to start chatting.")
-else:
+if st.session_state.current_session_id is None and not st.session_state.get("pending_question"):
+    st.info("What would you like to research? Send a question or attach a PDF to start a conversation.")
+with st.container(key="research_chat"):
     # The callback runs before sidebar/history code can trigger a rerun. Keep
     # submissions outside the ephemeral chat widget event until processed.
     def capture_question():
-        prompt = st.session_state.get("chat_prompt", "").strip()
-        if prompt:
+        submitted = st.session_state.get("chat_prompt", "")
+        prompt = (submitted if isinstance(submitted, str) else submitted.text).strip()
+        files = [] if isinstance(submitted, str) else submitted.files
+        if prompt or files:
             sid = st.session_state.current_session_id
             st.session_state.pending_question = {"session_id": sid, "message": prompt}
+            st.session_state.pending_files = [
+                {"name": file.name, "bytes": file.getvalue(), "id": file.file_id} for file in files
+            ]
             if not st.session_state.get("session_titles", {}).get(sid):
                 st.session_state.setdefault("topic_titles", {}).setdefault(sid, title_from_query(prompt))
 
@@ -364,6 +360,7 @@ else:
             if msg.get("citations"):
                 render_source_visuals(msg["citations"])
                 sources = group_citations_by_source(msg["citations"])
+                st.caption("Supporting evidence")
                 with st.expander(f"Sources ({len(sources)})"):
                     for c in sources:
                         markers = ", ".join(f"[{marker}]" for marker in c["markers"])
@@ -372,20 +369,72 @@ else:
                         if c.get("url"):
                             st.markdown(f"[{c['url']}]({c['url']})")
 
-    # chat input
-    st.chat_input("Ask a medical question...", key="chat_prompt", on_submit=capture_question)
+    # Draw the incoming turn above the composer before waiting on any service.
+    # Reserve its response slot here so later loading content stays above input.
+    pending = st.session_state.get("pending_question")
+    loading = bool(pending and pending["session_id"] == st.session_state.current_session_id)
+    if loading and pending["message"]:
+        with st.chat_message("user"):
+            st.write(pending["message"])
+    upload_feedback = st.container()
+    response_slot = st.empty()
+    if loading and pending["message"]:
+        with response_slot.container():
+            assistant_output = st.chat_message("assistant")
+
+    # The input stays below the current turn, including while its answer loads.
+    st.chat_input("Ask a research question…", key="chat_prompt", on_submit=capture_question,
+                  accept_file=True, file_type=["pdf"], max_upload_size=20, disabled=loading)
+    st.caption("Educational research demo. Not a substitute for medical care. Check original sources.")
     pending = st.session_state.get("pending_question")
     if pending and pending["session_id"] == st.session_state.current_session_id:
         prompt = pending["message"]
+        if st.session_state.current_session_id is None:
+            try:
+                response = api_post(f"{API_URL}/sessions", json={}, timeout=10)
+                response.raise_for_status()
+                sid = response.json()["session_id"]
+                st.session_state.current_session_id = sid
+                st.session_state.selected_session_id = sid
+                pending["session_id"] = sid
+                st.query_params["chat"] = sid
+            except requests.exceptions.RequestException:
+                st.session_state.pop("pending_question", None)
+                st.session_state.pop("pending_files", None)
+                st.error("Could not start a conversation. Please try again.")
+                response_slot.empty()
+                if st.button("Return to chat"):
+                    st.rerun()
+                st.stop()
+        for file in st.session_state.pop("pending_files", []):
+            file_key = f"{st.session_state.current_session_id}:{file['id']}"
+            if st.session_state.get("last_uploaded_key") == file_key:
+                continue
+            with upload_feedback, st.status("Uploading and indexing your PDF…", expanded=False):
+                try:
+                    response = api_post(
+                        f"{API_URL}/sessions/{st.session_state.current_session_id}/documents",
+                        files={"file": (file["name"], file["bytes"], "application/pdf")}, timeout=120,
+                    )
+                    response.raise_for_status()
+                    st.session_state.last_uploaded_key = file_key
+                    st.success(f"{file['name']} is ready in this conversation.")
+                except requests.exceptions.RequestException:
+                    st.session_state.pop("pending_question", None)
+                    st.error("The PDF could not be indexed. Attach it again before asking about it.")
+                    if prompt:
+                        st.info(f"Your unsent question: {prompt}")
+                    response_slot.empty()
+                    if st.button("Return to chat"):
+                        st.rerun()
+                    st.stop()
         st.session_state.pop("pending_question", None)
+        if not prompt:
+            st.rerun()
         st.session_state.messages.append(
             {"role": "user", "content": prompt, "citations": None}
         )
-        # State alone is rendered only on the next rerun. Draw this turn now,
-        # before waiting for the backend, so the question is visible immediately.
-        with st.chat_message("user"):
-            st.write(prompt)
-        with st.chat_message("assistant"), st.spinner("Thinking..."):
+        with assistant_output, st.spinner("Researching your question…"):
             try:
                 resp = api_post(
                     f"{API_URL}/chat",
@@ -415,3 +464,5 @@ else:
                     }
                 )
         st.rerun()
+
+show_auth_feedback()

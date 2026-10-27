@@ -1,5 +1,7 @@
 **
 !pyproject.toml
+!.streamlit/
+!.streamlit/config.toml
 !backend/
 !backend/**
 !frontend/

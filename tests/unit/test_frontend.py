@@ -61,7 +61,7 @@ def test_unavailable_backend_can_be_retried(monkeypatch):
     monkeypatch.setattr("requests.request", lambda *a, **k: SimpleNamespace(json=lambda: {"sessions": []}, raise_for_status=lambda: None, status_code=200))
     app.button[0].click().run(timeout=15)
     assert not app.exception
-    assert "MedRAG" in app.title[0].value
+    assert any(button.label == "Overview" for button in app.button)
     assert not any("temporarily unavailable" in warning.value for warning in app.warning)
 
 
@@ -115,16 +115,16 @@ def test_session_switch_loads_correct_history_and_scopes_upload_picker(monkeypat
     assert not app.exception
     assert app.session_state.current_session_id == "a"
     assert len(set(app.sidebar.selectbox[0].options)) == 2
-    assert "pdf_upload:a" in app.get("file_uploader")[0].proto.id
-    assert app.sidebar.expander[0].label == "Supported topics and sources (36 topics)"
-    panel = " ".join(m.value for m in app.sidebar.markdown)
-    assert all(source in panel for source in ("PubMed", "OpenFDA", "WHO"))
-    assert "- Diabetes" in panel and "- Malnutrition" in panel
+    assert app.chat_input[0].proto.accept_file
+    assert list(app.chat_input[0].proto.file_type) == [".pdf"]
+    assert app.query_params["chat"] == ["a"]
+    assert not app.sidebar.expander
+    assert not app.sidebar.success
     app.sidebar.selectbox[0].select("b").run()
     assert not app.exception
     assert app.session_state.current_session_id == "b"
     assert app.session_state.messages == [{"role": "user", "content": "History b"}]
-    assert "pdf_upload:b" in app.get("file_uploader")[0].proto.id
+    assert app.query_params["chat"] == ["b"]
 
 
 def test_submission_survives_sidebar_rerun_and_updates_topic(monkeypatch):
@@ -186,7 +186,7 @@ def test_interrupted_session_read_recovers_then_preserves_cached_chats(monkeypat
     assert not any("No sessions yet" in message.value for message in app.sidebar.info)
 
 
-def test_degraded_health_is_visible_without_raw_error_or_losing_chat(monkeypatch):
+def test_backend_status_is_not_exposed_in_workspace(monkeypatch):
     import requests
     def get(url,**kwargs):
         if url.endswith("/health"):
@@ -198,7 +198,9 @@ def test_degraded_health_is_visible_without_raw_error_or_losing_chat(monkeypatch
     path=Path(__file__).resolve().parents[2]/"frontend"/"streamlit_app.py"
     app=AppTest.from_file(str(path)).run(timeout=15)
     assert not app.exception
-    assert any(w.value=="Backend: degraded" for w in app.sidebar.warning)
+    assert not any("Backend:" in w.value for w in app.sidebar.warning)
+    assert not app.sidebar.success
+    assert app.chat_input
 
 
 def test_sign_in_screen_does_not_treat_missing_context_cookie_as_login(monkeypatch):
@@ -206,7 +208,11 @@ def test_sign_in_screen_does_not_treat_missing_context_cookie_as_login(monkeypat
     path=Path(__file__).resolve().parents[2]/"frontend"/"streamlit_app.py"
     app=AppTest.from_file(str(path)).run(timeout=15)
     assert not app.exception
-    assert any(title.value=="Sign in to MedRAG" for title in app.title)
+    assert not app.chat_input
+    assert any(button.label == "Log in" for button in app.button)
+    app.query_params["page"] = "login"
+    app.run()
+    assert any(title.value == "Welcome back" for title in app.title)
 
 
 def test_original_source_excerpt_preserves_all_single_column_rows(monkeypatch):
